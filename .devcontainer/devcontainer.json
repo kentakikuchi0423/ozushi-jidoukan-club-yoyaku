@@ -1,0 +1,55 @@
+{
+  "name": "ozushi-jidoukan-club-yoyaku",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:1-20-bookworm",
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installZsh": true,
+      "configureZshAsDefaultShell": false,
+      "upgradePackages": true
+    }
+  },
+  "forwardPorts": [3000],
+  "portsAttributes": {
+    "3000": {
+      "label": "Next.js dev server",
+      "onAutoForward": "notify"
+    }
+  },
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+  "remoteUser": "node",
+  "containerEnv": {
+    "TZ": "Asia/Tokyo",
+    "NEXT_TELEMETRY_DISABLED": "1"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "bradlc.vscode-tailwindcss",
+        "ms-playwright.playwright",
+        "vitest.explorer",
+        "supabase.vscode-supabase-extension",
+        "eamodio.gitlens"
+      ],
+      "settings": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.codeActionsOnSave": {
+          "source.fixAll.eslint": "explicit"
+        },
+        "typescript.tsdk": "node_modules/typescript/lib",
+        "eslint.validate": [
+          "javascript",
+          "javascriptreact",
+          "typescript",
+          "typescriptreact"
+        ]
+      }
+    }
+  },
+  "mounts": [
+    "source=${localEnv:HOME}/.claude,target=/home/node/.claude,type=bind,consistency=cached"
+  ]
+}
