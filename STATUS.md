@@ -28,7 +28,7 @@
   - `backend-architect`, `frontend-ux-reviewer`, `security-reviewer`, `test-writer`
 - `.devcontainer/devcontainer.json` 作成（Node 20 + pnpm + Playwright 依存）
 - `README.md` 初版
-- Phase 0 完了としてコミット予定
+- Phase 0 を 4 つのコミット（skeleton / docs / .claude / devcontainer）に分割してコミット済み
 
 ### 現在地
 - **Phase 0（探索と設計）完了**
