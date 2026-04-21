@@ -1,0 +1,12 @@
+-- Development seed for 大洲市児童館クラブ予約システム
+--
+-- 本番でも必要な固定マスタ（facilities / reservation_number_sequences）は
+-- migration 内で INSERT 済みなので、このファイルには入れない。
+--
+-- このファイルは `supabase db reset` 時にローカル開発 DB で実行される。
+-- 実在しそうな個人情報は絶対に入れず、テスト用と分かる氏名/メールのみを使う:
+--   * 氏名は「テスト …」プレフィックス
+--   * メールは `@test.local` ドメイン
+--
+-- まだ Phase 2 初期のため、実際の seed 挿入は保留。
+-- Phase 3 / Phase 4 の UI 実装時に、クラブ / 予約の fixture を追記する。
