@@ -7,20 +7,40 @@
 //
 // 前提:
 //   リポジトリ直下の .env.local に SUPABASE_DB_URL が設定されていること。
-//   bash の `source` だと値に含まれる特殊文字（"、$、` など）で破綻する
-//   ため、ここではミニ dotenv パーサで読み取る。
+//
+// Supabase CLI は --workdir 配下の `.env` / `.env.local` を自動で読む。
+// しかし CLI の godotenv ベースのパーサは値にバックスラッシュや未終端クォート
+// が含まれると即座にエラーにする（本プロジェクトでも実際に発生した）。
+// そこで CLI を **リポジトリ外の scratch ディレクトリ** から起動し、そこへ
+// `supabase/` だけをシンボリックリンクしておく。これで CLI は migration と
+// config は見える一方、`.env.local` は一切パースしなくなる。
 
 import { spawn } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const ENV_FILE = join(ROOT, ".env.local");
+const SUPABASE_BIN = join(ROOT, "node_modules", "supabase", "bin", "supabase");
 
 if (!existsSync(ENV_FILE)) {
   console.error(
     `error: ${ENV_FILE} が見つかりません。.env.example を複製してください。`,
+  );
+  process.exit(1);
+}
+
+if (!existsSync(SUPABASE_BIN)) {
+  console.error(
+    `error: ${SUPABASE_BIN} が見つかりません。"pnpm install" を実行してください。`,
   );
   process.exit(1);
 }
@@ -33,10 +53,10 @@ function parseEnv(text) {
     const eq = line.indexOf("=");
     if (eq < 0) continue;
     const key = line.slice(0, eq).trim();
-    let value = line.slice(eq + 1);
-    // 値の前後の空白を削る（値の中身の空白は保持）
-    value = value.replace(/^\s+/, "").replace(/\s+$/, "");
-    // シングル/ダブルクォートで囲まれていれば 1 セットだけ剥がす
+    let value = line
+      .slice(eq + 1)
+      .replace(/^\s+/, "")
+      .replace(/\s+$/, "");
     if (
       (value.startsWith('"') && value.endsWith('"')) ||
       (value.startsWith("'") && value.endsWith("'"))
@@ -60,13 +80,35 @@ if (!dbUrl) {
   process.exit(1);
 }
 
+const scratchDir = mkdtempSync(join(tmpdir(), "supabase-push-"));
+try {
+  symlinkSync(join(ROOT, "supabase"), join(scratchDir, "supabase"));
+} catch (e) {
+  rmSync(scratchDir, { recursive: true, force: true });
+  console.error(
+    `error: scratch ディレクトリの準備に失敗しました: ${e.message}`,
+  );
+  process.exit(1);
+}
+
 const extraArgs = process.argv.slice(2);
 const child = spawn(
-  "pnpm",
-  ["exec", "supabase", "db", "push", "--db-url", dbUrl, ...extraArgs],
-  { stdio: "inherit", cwd: ROOT },
+  SUPABASE_BIN,
+  ["db", "push", "--db-url", dbUrl, ...extraArgs],
+  { stdio: "inherit", cwd: scratchDir },
 );
+
 child.on("exit", (code, signal) => {
-  if (signal) process.kill(process.pid, signal);
+  rmSync(scratchDir, { recursive: true, force: true });
+  if (signal) {
+    process.kill(process.pid, signal);
+    return;
+  }
   process.exit(code ?? 1);
+});
+
+child.on("error", (err) => {
+  rmSync(scratchDir, { recursive: true, force: true });
+  console.error(`error: supabase CLI の起動に失敗しました: ${err.message}`);
+  process.exit(1);
 });
