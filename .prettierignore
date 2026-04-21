@@ -1,0 +1,17 @@
+node_modules
+.next
+out
+build
+coverage
+playwright-report
+test-results
+.vercel
+pnpm-lock.yaml
+next-env.d.ts
+
+# Markdown docs are maintained by hand; we don't enforce Prettier on them.
+*.md
+**/*.md
+
+# Claude Code metadata
+.claude/
