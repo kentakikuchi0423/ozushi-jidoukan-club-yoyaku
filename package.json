@@ -13,7 +13,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "db:push": "bash scripts/db-push.sh"
+    "db:push": "node scripts/db-push.mjs"
   },
   "dependencies": {
     "next": "16.2.4",
