@@ -1,0 +1,140 @@
+# TASKS
+
+プロジェクト全体のタスク一覧。各フェーズの完了条件と進捗率を管理する。
+作業のたびに該当行を更新する。STATUS.md とセットで運用する。
+
+---
+
+## 進捗サマリ
+
+| Phase | 内容 | 進捗 |
+| --- | --- | --- |
+| 0 | 探索と設計 | 100% |
+| 1 | 開発基盤 | 0% |
+| 2 | DB / 認証 / 権限 | 0% |
+| 3 | 利用者画面 | 0% |
+| 4 | 管理画面 | 0% |
+| 5 | 予約待ち / 繰り上げ / 期限管理 | 0% |
+| 6 | テスト / セキュリティ / 仕上げ | 0% |
+
+---
+
+## Phase 0: 探索と設計 (100%)
+
+**完了条件**: requirements / architecture / open-questions / decisions / task breakdown が揃い、Phase 1 に着手できる。
+
+- [x] CLAUDE.md 確認
+- [x] docs/requirements.md 初版
+- [x] docs/architecture.md 初版
+- [x] docs/open-questions.md 初版
+- [x] docs/decisions.md 初版
+- [x] docs/testing-strategy.md 初版
+- [x] docs/security-review.md 初版
+- [x] TASKS.md / STATUS.md 作成
+- [x] README.md 初版
+- [x] .gitignore
+- [x] .claude/settings.json 初版
+- [x] .claude/skills/ 素案
+- [x] .claude/agents/ 素案
+- [x] .devcontainer/devcontainer.json 初版
+
+---
+
+## Phase 1: 開発基盤 (0%)
+
+**完了条件**: `pnpm dev` で空ページが表示され、`pnpm build / lint / typecheck / test` が全てグリーン。Playwright の smoke test が通る。
+
+- [ ] devcontainer で開発開始できることを確認
+- [ ] pnpm で Next.js 15 App Router + TypeScript スキャフォールド
+- [ ] Tailwind CSS セットアップ
+- [ ] shadcn/ui 初期化
+- [ ] ESLint + Prettier
+- [ ] Vitest セットアップ（サンプルテスト）
+- [ ] Playwright セットアップ（smoke test）
+- [ ] .env.example 作成（Supabase / Resend の placeholder）
+- [ ] src/app/layout.tsx に共通レイアウトとメタデータ
+- [ ] CLAUDE.md に「コマンド」「アーキテクチャ」セクション追記
+- [ ] CI なし前提でローカルで全部通すことを確認
+
+---
+
+## Phase 2: DB / 認証 / 権限 (0%)
+
+**完了条件**: admin がログインでき、自分の館のクラブだけ閲覧できる最小ループが通る。予約テーブルの一意制約とトランザクションが動作する。
+
+- [ ] Supabase プロジェクト作成手順を docs に追記
+- [ ] schema 設計確定（facilities / clubs / reservations / admins / admin_facilities / audit_logs）
+- [ ] SQL migration 作成
+- [ ] seed データ（個人情報なし）
+- [ ] admin ログイン（Supabase Auth もしくは自前 + bcrypt）
+- [ ] 館ごとの権限モデル実装（server-side enforcement）
+- [ ] 監査ログテーブルと書き込み箇所の洗い出し
+- [ ] retention policy の SQL または cron 設計
+- [ ] unit test: 予約番号生成の一意性
+- [ ] unit test: 権限チェック
+
+---
+
+## Phase 3: 利用者画面 (0%)
+
+**完了条件**: 一般利用者がクラブ一覧から予約 → 確認メール受信 → 予約確認画面からキャンセルまで、E2E で通る。
+
+- [ ] クラブ一覧ページ（日付降順・時間降順）
+- [ ] 受付終了後1年間は表示し「終了」バッジ
+- [ ] 写真リンクの validation と「見る」/「準備中」表示
+- [ ] 予約入力フォーム（バリデーション）
+- [ ] 確認画面 + 利用規約表示
+- [ ] 完了画面 + メール送信
+- [ ] 予約確認・キャンセル画面（予約番号入力）
+- [ ] キャンセル確認メール
+- [ ] 予約待ち時の順位通知メール
+- [ ] モバイルレイアウト確認
+- [ ] 利用者 E2E テスト
+
+---
+
+## Phase 4: 管理画面 (0%)
+
+**完了条件**: 各館 admin が自館のクラブを CRUD でき、super_admin のみがアカウント追加できる。全ての管理操作が audit_logs に記録される。
+
+- [ ] ログイン / ログアウト
+- [ ] ダッシュボード（新規登録 / クラブ一覧 / パスワード変更 導線）
+- [ ] クラブ新規登録（自分の館のみ選択可）
+- [ ] クラブ一覧（自分の館のみ）
+- [ ] クラブ編集
+- [ ] パスワード変更
+- [ ] super_admin のみ アカウント追加画面
+- [ ] 写真リンクの外部 URL validation
+- [ ] モバイル対応
+- [ ] 管理者 E2E テスト
+
+---
+
+## Phase 5: 予約待ち / 繰り上げ / 期限管理 (0%)
+
+**完了条件**: キャンセル → 繰り上げ → 通知メール の流れが DB トランザクション安全に動く。1年経過クラブが自動削除される。
+
+- [ ] 定員超過時の waitlist 入り
+- [ ] キャンセル時の自動繰り上げ（先頭）
+- [ ] 繰り上げ通知メール
+- [ ] キャンセル期限（2営業日前17時）のチェック
+- [ ] retention cleanup（1年以上前のクラブと予約削除）
+- [ ] 状態遷移テスト
+- [ ] 競合（同時予約）テスト
+
+---
+
+## Phase 6: テスト / セキュリティ / 仕上げ (0%)
+
+**完了条件**: docs/security-review.md のチェックリストが全て済み、主要フローが E2E で通る。公開前の最終確認が完了している。
+
+- [ ] unit test カバレッジ確認
+- [ ] integration test
+- [ ] E2E（利用者 + 管理者）
+- [ ] 権限越権テスト
+- [ ] CSRF / XSS / SQLi 観点レビュー
+- [ ] レート制限 / Bot 対策の要否判断
+- [ ] 個人情報ログ出力チェック
+- [ ] UI ポリッシュ（アクセシビリティ含む）
+- [ ] 運用ドキュメント（本番メール切替、バックアップ、障害対応）
+- [ ] README 更新
