@@ -5,12 +5,15 @@
 
 ---
 
-## ADR-0001 Next.js 15 (App Router) + TypeScript を採用する
+## ADR-0001 Next.js 15+ (App Router) + TypeScript を採用する
 
-- **Status**: Accepted（2026-04-21）
+- **Status**: Accepted（2026-04-21, Phase 1 で実績を反映）
 - **Context**: フロント・API 双方を一つで持て、Vercel との親和性が高い。CLAUDE.md で Next.js + TS が前提
-- **Decision**: Next.js 15 (App Router) を採用。Server Actions / Route Handlers を使い分ける
-- **Consequences**: RSC の学習コスト。Server Action でのトランザクション処理パターンを docs に整理する
+- **Decision**: Next.js 15+ (App Router) を採用。Server Actions / Route Handlers を使い分ける。
+  - Phase 1 実装時点（2026-04-21）では `create-next-app@latest` が導入する **Next.js 16.2 / React 19.2 / Tailwind CSS v4** を採用した。したがって「15 系以降」を広く許容する（後方互換のために 15 へ戻すことはしない）
+- **Consequences**:
+  - RSC の学習コスト。Server Action でのトランザクション処理パターンを docs に整理する
+  - Next.js 16 系のデフォルト（Turbopack・ルーティング挙動）に準じ、Phase 1 では Turbopack を無効化せずに標準設定で進める
 
 ## ADR-0002 Supabase + Resend + Vercel を初期構成にする
 

@@ -11,7 +11,7 @@
 | --- | --- | --- |
 | ランタイム | Node.js 20 LTS | |
 | パッケージマネージャ | pnpm | lockfile の厳格さ・速度 |
-| フレームワーク | Next.js 15 (App Router) | SSR / Server Actions / Route Handlers |
+| フレームワーク | Next.js 15+ (App Router) | SSR / Server Actions / Route Handlers（Phase 1 実績: 16.2） |
 | 言語 | TypeScript (strict) | |
 | UI | Tailwind CSS + shadcn/ui | 保守しやすさと低コスト |
 | DB / Auth | Supabase (PostgreSQL) | 低コスト、RLS、Auth 同梱 |

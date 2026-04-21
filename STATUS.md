@@ -5,61 +5,59 @@
 
 ---
 
-## 最終更新: 2026-04-21
+## 最終更新: 2026-04-21（Phase 2 着手・DB 非依存部分）
 
 ### 今セッションでやったこと
-- **devcontainer / settings 軽微修正を先にコミット**（`6901905`）。`$localEnv:HOME` 依存の mount 削除と settings schema URL の安定化。
-- **Phase 1（開発基盤）を完了**:
-  - `pnpm dlx create-next-app@latest` でスキャフォールド（Next.js 16.2 / React 19 / Tailwind v4 / App Router / src-dir / `@/*` alias / Turbopack 無効）。
-    - create-next-app が自動導入するバージョンが Next.js 16 になっていたため、`docs/decisions.md` の ADR-0001 は「15 or later」に読み替えるか後日更新する（本セッションでは実績バージョンを `CLAUDE.md` と本 STATUS に記録するに留める）。
-  - 開発依存を追加: prettier / prettier-plugin-tailwindcss / eslint-config-prettier / vitest / @vitejs/plugin-react / @vitest/coverage-v8 / @testing-library/react / @testing-library/jest-dom / jsdom / @playwright/test
-  - Playwright ブラウザ (chromium) と Linux の system deps を devcontainer にインストール（`playwright install-deps chromium`）。
-  - `package.json` に `typecheck` / `format` / `format:check` / `test` / `test:watch` / `test:e2e` スクリプトを追加。
-  - `.prettierrc.json` / `.prettierignore`（docs/.claude は対象外）を追加。
-  - `eslint.config.mjs` に `eslint-config-prettier` を追加（フォーマット系ルールを無効化）。
-  - `src/app/layout.tsx`: `lang="ja"` / Noto Sans JP / メタデータ（title template・noindex）/ Viewport を設定。
-  - `src/app/page.tsx`: Phase 1 段階のプレースホルダ画面（3館チップ + 管理者ログイン導線の placeholder リンク）。
-  - `src/lib/facility.ts` + `src/lib/facility.test.ts`: 3館コード/名前のマスタと型ガード。Vitest の単体テスト 3 ケース。
-  - `e2e/smoke.spec.ts`: build → start 経由で動作する Playwright smoke（見出し + 3館 listitem + `html[lang=ja]`）。
-  - `playwright.config.ts`: webServer を `pnpm build && pnpm start`、timeout 300s、`PLAYWRIGHT_BASE_URL` で上書き可。
-  - `vitest.config.ts` + `vitest.setup.ts`: jsdom / `@testing-library/jest-dom/vitest` / `@/*` alias / coverage (v8)。
-  - `.env.example`: Supabase / Resend / NEXT_PUBLIC_SITE_URL / admin bootstrap のプレースホルダ。
-  - `CLAUDE.md` に「コマンド」「アーキテクチャ」セクションを追記。
-- **動作確認（すべて exit 0）**:
-  - `pnpm format:check`、`pnpm lint`、`pnpm typecheck`、`pnpm test`（3 tests passed）、`pnpm build`（4 pages / all static）、`pnpm test:e2e`（2 tests passed, chromium）。
+- **ADR-0001 更新**: `docs/decisions.md` の Next.js バージョン記述を「15+」に広げ、Phase 1 実績の **Next.js 16.2 / React 19.2 / Tailwind CSS v4** を追記。`docs/architecture.md` の技術スタック表も同期。
+- **Phase 2 の DB 側設計確定 & SQL migration 作成**:
+  - `supabase/migrations/20260421000000_initial_schema.sql` — 7 テーブル（facilities / admins / admin_facilities / clubs / reservations / reservation_number_sequences / audit_logs）+ `reservation_status` ENUM + 全テーブル RLS ON。
+    - RLS ポリシーは最小権限で付与し、policy 未定義の組み合わせは `secret key` 経由のみ許可（Supabase の慣例）。
+    - `reservations` は直接 SELECT/INSERT を許可せず、後続の `SECURITY DEFINER` 関数（Phase 2 後半）から呼ばせる前提。
+    - CHECK 制約で DB 側でも不正データ（予約番号の正規表現、status と waitlist_position / canceled_at の整合、phone/email 形式、photo_url の http(s) プレフィックス、備考 500 字上限）を弾く。
+    - インデックスは `clubs_start_at_desc` / `clubs_facility_start_at` / `reservations_club_status` / `reservations_club_waitlist_unique`（partial unique）/ `audit_logs_created_at_desc` / `audit_logs_admin_id`。
+    - マスタデータ（facilities 3件、reservation_number_sequences 3件）は migration 内で `insert ... on conflict do nothing`。
+  - `supabase/seed.sql` — 開発用 placeholder（個人情報を入れない方針をコメントで明示）。
+- **ドメインロジック + unit test**:
+  - `src/lib/reservations/number.ts` — `buildReservationNumber` / `parseReservationNumber` / `isReservationNumber` / 正規表現と境界値定数。
+  - `src/server/reservations/secure-token.ts` — Web Crypto ベースの `generateSecureToken`（32 バイト → 43 文字 base64url）と `isSecureTokenFormat`。
+  - それぞれの `*.test.ts` で 19 ケース（既存 facility 3 + 予約番号 11 + secure token 5）をカバー。
+- **ローカルパイプライン all green**:
+  - `pnpm format:check` / `pnpm lint` / `pnpm typecheck` / `pnpm test`（19 passed）/ `pnpm build`（4 static pages）すべて exit 0。
+  - E2E は今回 UI を触っていないので未実行。
 
 ### 現在地
-- **Phase 1（開発基盤）完了**。`src/` にアプリ本体が存在し、ローカルの全パイプラインが green。
-- 次は **Phase 2: DB / 認証 / 権限**。Supabase プロジェクトがまだ作成されていないため、先にユーザー操作依頼が発生する。
+- **Phase 2 は 30%**（DB 側の骨格と予約番号ドメインロジック完了）。
+- Supabase プロジェクト未作成のため、migration の **実際の適用確認はユーザー対応待ち**。SQL 自体は Postgres の構文として正しいことを手で確認済み。
+- 認証（Supabase Auth）/ Server Action / 権限 enforcement はこのあと。
 
-### 次にやること（Phase 2 に向けて）
-1. **[ユーザー操作]** Supabase プロジェクトを作成し、`NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` / `SUPABASE_SECRET_KEY` を `.env.local` に設定する（`.env.example` 参照）。※ 2025-11 以降の新規プロジェクトでは anon / service_role は発行されず publishable / secret のみ。
-2. `docs/architecture.md` のスキーマ案を最終化（`facilities` / `clubs` / `reservations` / `admins` / `admin_facilities` / `audit_logs`、ENUM・一意制約・インデックス）。
-3. SQL migration を `supabase/migrations/` に作成（初期化スクリプト + seed）。
-4. 管理者認証（Supabase Auth ベース、ADR-0001 候補）を server-side で固定する入口を `src/server/` に作る。
-5. 館ごとの権限 enforcement ユーティリティと、監査ログ書き込みのラッパを追加。
-6. 予約番号採番・予約確定 RPC（ADR-0004 / ADR-0005）の unit test を Vitest で。
-7. `docs/decisions.md` の ADR-0001 を「Next.js 15 or later」と読み替える、もしくは実績の 16 を追記する。
+### 次にやること（Phase 2 の続き）
+1. **[ユーザー操作]** Supabase プロジェクトを作成し、`NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` / `SUPABASE_SECRET_KEY` を `.env.local` に設定（`.env.example` 参照）。
+2. **[ユーザー操作 または CLI セットアップ]** `supabase` CLI をインストールし、`supabase link` → `supabase db push` で migration を反映。または Supabase ダッシュボードの SQL Editor で直接流す。
+3. `docs/open-questions.md` Q1（管理者認証方式）を決定 → ADR-0013 として `docs/decisions.md` に追加。推奨は Supabase Auth。
+4. `src/lib/supabase/` に anon（publishable key 用）と admin（secret key 用、server-only）のクライアントを追加。
+5. `src/server/auth/` に管理者セッション確認 + `requireFacilityPermission` / `requireSuperAdmin` ユーティリティ。
+6. 予約確定・採番・繰り上げを行う RPC（Postgres function）を追加 migration で追加。unit test は SQL レベルで pg container を起動できるなら integration test に寄せる。
+7. 予約番号 sequence の原子的 UPDATE を薄くラップしたサーバー側関数 `allocateReservationNumber(code)` を `src/server/reservations/` に追加（RPC 経由で呼ぶだけの薄い層）。
+8. 監査ログ書き込みラッパを `src/server/audit/` に。
 
 ### ブロッカー / 未確定
-- **Supabase プロジェクト未作成**（ユーザー操作が必要）。`.env.local` に値が入らないと Phase 2 の統合テストが書けない。
+- **Supabase プロジェクト未作成**（ユーザー操作が必要）。作成してキーを `.env.local` に入れれば migration 適用と以降の実装に進める。
 - **Resend アカウントとドメイン認証**（Phase 3 時）。
 - **GitHub リモート未設定**（公開準備ができたら `gh repo create` を依頼予定）。
-- Playwright ブラウザと system deps は **今回の devcontainer インスタンスに手動で追加** した。別の devcontainer インスタンスや CI 環境では `bash .devcontainer/post-create.sh` → `pnpm exec playwright install chromium` → `sudo $(which pnpm) exec playwright install-deps chromium` が必要。
-- `docs/open-questions.md` に 13 件の未確定事項が残る（主に Phase 2 以降の仕様確認）。
+- `docs/open-questions.md` に 13 件の未確定事項。Q1（認証方式）を次に確定したい。
+- Playwright ブラウザと system deps は devcontainer 再作成時に再セットアップ要（`bash .devcontainer/post-create.sh` → `pnpm exec playwright install chromium` → `sudo $(which pnpm) exec playwright install-deps chromium`）。
 
 ### 直近コマンド結果
 - `pnpm format:check`: `All matched files use Prettier code style!`
 - `pnpm lint`: 0 warnings / 0 errors
 - `pnpm typecheck`: 0 errors
-- `pnpm test`: 1 file / 3 tests passed
-- `pnpm build`: Compiled successfully / 4 static pages
-- `pnpm test:e2e`: 2 tests passed (chromium)
+- `pnpm test`: 3 files / **19 tests passed**
+- `pnpm build`: Compiled successfully / 4 static pages (Next.js 16.2.4 Turbopack)
+- `pnpm test:e2e`: 未実行（今回 UI 無変更のため）
 
 ### Git
-- ブランチ: `main`
+- ブランチ: `main`（Phase 2 骨格はコミット対象）
 - リモート: 未設定
-- ローカル user 設定を今回のコンテナに対してのみ追加（既存履歴の identity に一致）
-- 前セッション末以降のコミット:
-  - `6901905` chore(devcontainer): remove HOME-dependent mount, update settings schema URL
-  - (Phase 1 実装コミット予定)
+- 前セッション末以降のコミット: `a97574b` chore(supabase): switch env to new publishable/secret key scheme
+- 本セッションのコミット予定:
+  - Phase 2 初期のスキーマ + ドメインロジック（`supabase/migrations/...` + `src/lib/reservations/*` + `src/server/reservations/*` + docs 更新）

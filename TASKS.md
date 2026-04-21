@@ -11,7 +11,7 @@
 | --- | --- | --- |
 | 0 | 探索と設計 | 100% |
 | 1 | 開発基盤 | 100% |
-| 2 | DB / 認証 / 権限 | 0% |
+| 2 | DB / 認証 / 権限 | 30% |
 | 3 | 利用者画面 | 0% |
 | 4 | 管理画面 | 0% |
 | 5 | 予約待ち / 繰り上げ / 期限管理 | 0% |
@@ -58,20 +58,22 @@
 
 ---
 
-## Phase 2: DB / 認証 / 権限 (0%)
+## Phase 2: DB / 認証 / 権限 (30%)
 
 **完了条件**: admin がログインでき、自分の館のクラブだけ閲覧できる最小ループが通る。予約テーブルの一意制約とトランザクションが動作する。
 
 - [ ] Supabase プロジェクト作成手順を docs に追記
-- [ ] schema 設計確定（facilities / clubs / reservations / admins / admin_facilities / audit_logs）
-- [ ] SQL migration 作成
-- [ ] seed データ（個人情報なし）
+- [x] schema 設計確定（facilities / clubs / reservations / admins / admin_facilities / audit_logs）
+- [x] SQL migration 作成（`supabase/migrations/20260421000000_initial_schema.sql`、RLS 含む）
+- [x] seed データ（`supabase/seed.sql` placeholder、固定マスタは migration 内 INSERT）
 - [ ] admin ログイン（Supabase Auth もしくは自前 + bcrypt）
 - [ ] 館ごとの権限モデル実装（server-side enforcement）
 - [ ] 監査ログテーブルと書き込み箇所の洗い出し
 - [ ] retention policy の SQL または cron 設計
-- [ ] unit test: 予約番号生成の一意性
+- [x] unit test: 予約番号生成（形式・境界値・round-trip）
+- [x] unit test: secure_token 生成（一意性・形式）
 - [ ] unit test: 権限チェック
+- [ ] Supabase Auth 採用を ADR 化（open-questions.md Q1 の決定）
 
 ---
 
