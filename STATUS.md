@@ -33,7 +33,7 @@
 - 次は **Phase 2: DB / 認証 / 権限**。Supabase プロジェクトがまだ作成されていないため、先にユーザー操作依頼が発生する。
 
 ### 次にやること（Phase 2 に向けて）
-1. **[ユーザー操作]** Supabase プロジェクトを作成し、`SUPABASE_URL` / `SUPABASE_ANON_KEY` / `SUPABASE_SERVICE_ROLE_KEY` を `.env.local` に設定する（`.env.example` 参照）。
+1. **[ユーザー操作]** Supabase プロジェクトを作成し、`NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` / `SUPABASE_SECRET_KEY` を `.env.local` に設定する（`.env.example` 参照）。※ 2025-11 以降の新規プロジェクトでは anon / service_role は発行されず publishable / secret のみ。
 2. `docs/architecture.md` のスキーマ案を最終化（`facilities` / `clubs` / `reservations` / `admins` / `admin_facilities` / `audit_logs`、ENUM・一意制約・インデックス）。
 3. SQL migration を `supabase/migrations/` に作成（初期化スクリプト + seed）。
 4. 管理者認証（Supabase Auth ベース、ADR-0001 候補）を server-side で固定する入口を `src/server/` に作る。

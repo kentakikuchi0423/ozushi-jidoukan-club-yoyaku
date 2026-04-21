@@ -23,11 +23,11 @@ description: migration / 制約 / インデックス / RLS / retention の整合
 ## 3. RLS ポリシー
 
 - すべてのテーブルで RLS **ON**
-- `anon` から
+- `anon`（publishable key）から
   - `clubs`: SELECT のみ（retention 内）
   - `reservations`: 直接 SELECT/UPDATE **不可**（Route Handler 経由のみ）
   - `admins` / `admin_facilities` / `audit_logs`: すべて拒否
-- `service_role` から全操作可能
+- `service_role`（secret key）から全操作可能
 
 ## 4. Retention
 

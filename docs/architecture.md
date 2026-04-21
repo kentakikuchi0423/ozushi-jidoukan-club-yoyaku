@@ -155,11 +155,11 @@ create table audit_logs (
 ### 3.3 RLS 方針
 
 - Supabase の **Row Level Security** を原則すべてのテーブルで **ON**
-- 利用者クライアント（anon key）は以下のみ許可
+- 利用者クライアント（publishable key、旧 anon key 相当）は以下のみ許可
   - `clubs` の SELECT（`deleted_at is null` かつ `start_at >= now() - interval '1 year'` の条件付きビュー経由）
   - `reservations` の INSERT（ただし実際の予約確定はサーバーサイドの関数で行う）
   - `reservations` の SELECT / UPDATE は **secure_token 一致時のみ** 許可（または Route Handler 経由のみ）
-- 管理操作は **service role key を使った Route Handler / Server Action のみ**
+- 管理操作は **secret key（旧 service_role key 相当）を使った Route Handler / Server Action のみ**
 - RLS に頼り切らず、アプリ側でも必ず権限チェック（二重化）
 
 ## 4. 予約処理フロー
@@ -241,10 +241,10 @@ Client: 予約番号 + secure_token で accessing
 ## 7. 環境変数（.env.example の予定）
 
 ```
-# Supabase
+# Supabase（2025-11 以降の新規プロジェクトは publishable / secret のみ）
 NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=   # "sb_publishable_..."（旧 anon key の値も可）
+SUPABASE_SECRET_KEY=                    # "sb_secret_..."（旧 service_role key の値も可、サーバー専用）
 
 # Resend
 RESEND_API_KEY=

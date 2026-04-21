@@ -36,7 +36,7 @@ tools: Read, Grep, Glob, Bash
 
 ### 5. Secrets
 - `.env` がコミットされていないか
-- `SUPABASE_SERVICE_ROLE_KEY` がクライアントバンドルに載っていないか
+- `SUPABASE_SECRET_KEY`（旧 `SUPABASE_SERVICE_ROLE_KEY`）がクライアントバンドルに載っていないか
 - `NEXT_PUBLIC_*` 以外の env がクライアントで参照されていないか
 
 ### 6. 依存

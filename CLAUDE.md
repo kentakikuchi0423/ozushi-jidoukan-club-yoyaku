@@ -49,7 +49,7 @@ pnpm exec playwright install chromium
 
 - `src/app/` — Next.js 15+ App Router のルート。`layout.tsx` が `lang="ja"` / Noto Sans JP を設定。`page.tsx` は Phase 1 段階のプレースホルダ。
 - `src/lib/` — ドメインロジック（UI 非依存）。テストを隣接配置 (`*.test.ts`)。まずは `facility.ts`（3館コード/名前のマスタ）から。
-- `src/server/` — server-only 処理（DB アクセス・Resend 送信・RPC 呼び出し）を置く予定（Phase 2 以降）。Service Role key はここからのみ参照する。
+- `src/server/` — server-only 処理（DB アクセス・Resend 送信・RPC 呼び出し）を置く予定（Phase 2 以降）。`SUPABASE_SECRET_KEY`（旧 service_role key 相当）はここからのみ参照する。
 - `e2e/` — Playwright の E2E テスト。`playwright.config.ts` は `pnpm build && pnpm start` を起動してから実行する。
 - `docs/` — 要件・アーキ・未確定事項・ADR・テスト方針・セキュリティレビューの真実のソース。
 - `.env.example` を複製して `.env.local` を作る。実値はコミットしない。

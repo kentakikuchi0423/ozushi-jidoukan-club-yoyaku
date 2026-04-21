@@ -79,6 +79,23 @@
 - **Decision**: UI 表示と業務日判定は `Asia/Tokyo`。DB は UTC 保存（timestamptz）。日付計算には `date-fns-tz` を使う
 - **Consequences**: ビジネスデイ計算（キャンセル期限判定）は必ず JST で行う
 
+## ADR-0012 Supabase 新 API キー方式（publishable / secret）を採用する
+
+- **Status**: Accepted（2026-04-21）
+- **Context**: 2025-11-01 以降に作成された Supabase プロジェクトでは、従来の `anon` / `service_role` キーは発行されず、代わりに `sb_publishable_...` / `sb_secret_...` のみが提供される。本プロジェクトは今まさに作成するため、新方式に寄せる
+- **Decision**:
+  - 環境変数名は以下に統一
+    - `NEXT_PUBLIC_SUPABASE_URL`
+    - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`（旧 `NEXT_PUBLIC_SUPABASE_ANON_KEY` 相当、クライアント同梱可・RLS 適用）
+    - `SUPABASE_SECRET_KEY`（旧 `SUPABASE_SERVICE_ROLE_KEY` 相当、サーバー専用・RLS バイパス）
+  - `SUPABASE_SECRET_KEY` には必ず `NEXT_PUBLIC_` を付けない。`src/server/` の server-only モジュール経由でのみ参照する
+  - supabase-js への引き渡し方は旧キーと同じ（第2引数の `key` に値を渡すだけ）。drop-in で互換
+  - 旧キー（anon / service_role）を貼り付けても動くが、本プロジェクトは新方式で運用する
+- **Consequences**:
+  - 古いチュートリアルやスニペットに出てくる `SUPABASE_ANON_KEY` / `SUPABASE_SERVICE_ROLE_KEY` をそのままコピペしないよう注意（env 名が変わっている）
+  - Supabase Auth Helpers 等の既定 env 名が旧名のままのライブラリを使うときはラッパで吸収する
+  - `docs/security-review.md` のチェック項目と `.claude/agents/security-reviewer.md` の lint 観点も新名に更新済み
+
 ## ADR-0011 Git ブランチ戦略: `main` + `feat/*` / `fix/*` / `chore/*`
 
 - **Status**: Accepted（2026-04-21）
