@@ -11,7 +11,7 @@
 | --- | --- | --- |
 | 0 | 探索と設計 | 100% |
 | 1 | 開発基盤 | 100% |
-| 2 | DB / 認証 / 権限 | 40% |
+| 2 | DB / 認証 / 権限 | 65% |
 | 3 | 利用者画面 | 0% |
 | 4 | 管理画面 | 0% |
 | 5 | 予約待ち / 繰り上げ / 期限管理 | 0% |
@@ -58,7 +58,7 @@
 
 ---
 
-## Phase 2: DB / 認証 / 権限 (40%)
+## Phase 2: DB / 認証 / 権限 (65%)
 
 **完了条件**: admin がログインでき、自分の館のクラブだけ閲覧できる最小ループが通る。予約テーブルの一意制約とトランザクションが動作する。
 
@@ -67,15 +67,18 @@
 - [x] SQL migration 作成（`supabase/migrations/20260421000000_initial_schema.sql`、RLS 含む）
 - [x] migration をリモート DB に適用（`pnpm db:push`、Session pooler 経由、PAT 不使用）
 - [x] seed データ（`supabase/seed.sql` placeholder、固定マスタは migration 内 INSERT）
-- [ ] admin ログイン（Supabase Auth もしくは自前 + bcrypt）
-- [ ] Supabase クライアント 2 種（publishable / secret）を追加
-- [ ] 館ごとの権限モデル実装（server-side enforcement）
-- [ ] 監査ログテーブルと書き込み箇所の洗い出し
-- [ ] retention policy の SQL または cron 設計
+- [x] Supabase Auth 採用を ADR 化（ADR-0014、email = ID 方式）
+- [x] Supabase クライアント 3 種（browser / server / admin）を追加（ADR-0015）
+- [x] `src/lib/env.ts` + `src/server/env.ts` による env fail-fast
+- [x] `src/server/auth/` 実装（session / permissions / guards）
 - [x] unit test: 予約番号生成（形式・境界値・round-trip）
 - [x] unit test: secure_token 生成（一意性・形式）
-- [ ] unit test: 権限チェック
-- [ ] Supabase Auth 採用を ADR 化（open-questions.md Q1 の決定）
+- [x] unit test: 権限チェック（computeIsSuperAdmin / hasFacilityPermission）
+- [ ] admin ログイン画面 + middleware（Phase 4 で着手予定、本 Phase では bootstrap のみ）
+- [ ] 監査ログ書き込みラッパ（`src/server/audit/`）
+- [ ] retention policy の SQL または cron 設計
+- [ ] 予約確定・採番・繰り上げ RPC（Postgres function）の migration 追加
+- [ ] `allocateReservationNumber(code)` の server wrapper と integration test
 
 ---
 
