@@ -8,58 +8,58 @@
 ## 最終更新: 2026-04-21
 
 ### 今セッションでやったこと
-- **devcontainer 起動エラー修正**: `.devcontainer/devcontainer.json` の `mounts` 設定が Windows ホストで `${localEnv:HOME}` が未定義となり `source=/.claude` に解決されて `docker run` が失敗していた。ホストの Claude Code 設定をコンテナに持ち込む必要はない（ユーザーは WSL ホスト側から Claude Code を使っている）ため、`mounts` エントリを削除
-- リポジトリ初期状態調査（コード無し、CLAUDE.md のみ、git 未初期化）
-- `git init -b main` 実行。`main` ブランチ運用を決定
-- `.gitignore` 作成
-- 進捗管理ドキュメント作成
-  - `TASKS.md`（Phase 0-6 / 進捗率 / 完了条件つき）
-  - `STATUS.md`（本ファイル）
-- `docs/` 初版作成
-  - `requirements.md` — 要件の完全版を整理
-  - `architecture.md` — 技術スタック / DB スキーマ案 / 予約処理フロー
-  - `open-questions.md` — 13件の未確定事項
-  - `decisions.md` — 採用した設計判断（ADR形式）
-  - `testing-strategy.md` — テスト方針
-  - `security-review.md` — セキュリティ観点チェックリスト
-- `.claude/settings.json` 初版作成（permissions + 最小限の hooks）
-- `.claude/skills/` に 4 種のスキル素案
-  - `phase-plan`, `db-check`, `pw-debug`, `release-check`
-- `.claude/agents/` に 4 種のサブエージェント素案
-  - `backend-architect`, `frontend-ux-reviewer`, `security-reviewer`, `test-writer`
-- `.devcontainer/devcontainer.json` 作成（Node 20 + pnpm + Playwright 依存）
-- `README.md` 初版
-- Phase 0 を 4 つのコミット（skeleton / docs / .claude / devcontainer）に分割してコミット済み
+- **devcontainer / settings 軽微修正を先にコミット**（`6901905`）。`$localEnv:HOME` 依存の mount 削除と settings schema URL の安定化。
+- **Phase 1（開発基盤）を完了**:
+  - `pnpm dlx create-next-app@latest` でスキャフォールド（Next.js 16.2 / React 19 / Tailwind v4 / App Router / src-dir / `@/*` alias / Turbopack 無効）。
+    - create-next-app が自動導入するバージョンが Next.js 16 になっていたため、`docs/decisions.md` の ADR-0001 は「15 or later」に読み替えるか後日更新する（本セッションでは実績バージョンを `CLAUDE.md` と本 STATUS に記録するに留める）。
+  - 開発依存を追加: prettier / prettier-plugin-tailwindcss / eslint-config-prettier / vitest / @vitejs/plugin-react / @vitest/coverage-v8 / @testing-library/react / @testing-library/jest-dom / jsdom / @playwright/test
+  - Playwright ブラウザ (chromium) と Linux の system deps を devcontainer にインストール（`playwright install-deps chromium`）。
+  - `package.json` に `typecheck` / `format` / `format:check` / `test` / `test:watch` / `test:e2e` スクリプトを追加。
+  - `.prettierrc.json` / `.prettierignore`（docs/.claude は対象外）を追加。
+  - `eslint.config.mjs` に `eslint-config-prettier` を追加（フォーマット系ルールを無効化）。
+  - `src/app/layout.tsx`: `lang="ja"` / Noto Sans JP / メタデータ（title template・noindex）/ Viewport を設定。
+  - `src/app/page.tsx`: Phase 1 段階のプレースホルダ画面（3館チップ + 管理者ログイン導線の placeholder リンク）。
+  - `src/lib/facility.ts` + `src/lib/facility.test.ts`: 3館コード/名前のマスタと型ガード。Vitest の単体テスト 3 ケース。
+  - `e2e/smoke.spec.ts`: build → start 経由で動作する Playwright smoke（見出し + 3館 listitem + `html[lang=ja]`）。
+  - `playwright.config.ts`: webServer を `pnpm build && pnpm start`、timeout 300s、`PLAYWRIGHT_BASE_URL` で上書き可。
+  - `vitest.config.ts` + `vitest.setup.ts`: jsdom / `@testing-library/jest-dom/vitest` / `@/*` alias / coverage (v8)。
+  - `.env.example`: Supabase / Resend / NEXT_PUBLIC_SITE_URL / admin bootstrap のプレースホルダ。
+  - `CLAUDE.md` に「コマンド」「アーキテクチャ」セクションを追記。
+- **動作確認（すべて exit 0）**:
+  - `pnpm format:check`、`pnpm lint`、`pnpm typecheck`、`pnpm test`（3 tests passed）、`pnpm build`（4 pages / all static）、`pnpm test:e2e`（2 tests passed, chromium）。
 
 ### 現在地
-- **Phase 0（探索と設計）完了**
-- コードはまだ無い。次セッション以降で Next.js をスキャフォールドする Phase 1 に着手する
+- **Phase 1（開発基盤）完了**。`src/` にアプリ本体が存在し、ローカルの全パイプラインが green。
+- 次は **Phase 2: DB / 認証 / 権限**。Supabase プロジェクトがまだ作成されていないため、先にユーザー操作依頼が発生する。
 
-### 次にやること（Phase 1 最優先）
-1. devcontainer を起動し、中で作業することを確認
-2. `pnpm dlx create-next-app@latest . --ts --app --tailwind --eslint --src-dir --import-alias "@/*" --no-turbopack` でスキャフォールド（既存ファイルを上書きしないようフラグと事前バックアップに注意）
-3. shadcn/ui 初期化 (`pnpm dlx shadcn@latest init`)
-4. Vitest 導入 + サンプルテスト
-5. Playwright 導入 + smoke test
-6. `.env.example` 作成
-7. CLAUDE.md に「コマンド」「アーキテクチャ」セクションを追記
-8. Phase 1 完了条件（build / lint / typecheck / test が全部通る）を満たしたことを STATUS と TASKS に反映
+### 次にやること（Phase 2 に向けて）
+1. **[ユーザー操作]** Supabase プロジェクトを作成し、`SUPABASE_URL` / `SUPABASE_ANON_KEY` / `SUPABASE_SERVICE_ROLE_KEY` を `.env.local` に設定する（`.env.example` 参照）。
+2. `docs/architecture.md` のスキーマ案を最終化（`facilities` / `clubs` / `reservations` / `admins` / `admin_facilities` / `audit_logs`、ENUM・一意制約・インデックス）。
+3. SQL migration を `supabase/migrations/` に作成（初期化スクリプト + seed）。
+4. 管理者認証（Supabase Auth ベース、ADR-0001 候補）を server-side で固定する入口を `src/server/` に作る。
+5. 館ごとの権限 enforcement ユーティリティと、監査ログ書き込みのラッパを追加。
+6. 予約番号採番・予約確定 RPC（ADR-0004 / ADR-0005）の unit test を Vitest で。
+7. `docs/decisions.md` の ADR-0001 を「Next.js 15 or later」と読み替える、もしくは実績の 16 を追記する。
 
 ### ブロッカー / 未確定
-- **Supabase プロジェクト作成はユーザー操作が必要**。Phase 2 着手前に以下をユーザーに依頼する必要あり
-  - Supabase プロジェクト作成 → `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` を `.env.local` に設定
-- **Resend アカウントとドメイン認証**。Phase 3 のメール送信の前に必要
-- **GitHub リモート未設定**。公開準備ができたら以下のコマンドをユーザーに実行してもらう
-  ```bash
-  gh repo create ozushi-jidoukan-club-yoyaku --public --source=. --remote=origin
-  git push -u origin main
-  ```
-- **詳細な未確定事項**は `docs/open-questions.md` に 13 件記録
+- **Supabase プロジェクト未作成**（ユーザー操作が必要）。`.env.local` に値が入らないと Phase 2 の統合テストが書けない。
+- **Resend アカウントとドメイン認証**（Phase 3 時）。
+- **GitHub リモート未設定**（公開準備ができたら `gh repo create` を依頼予定）。
+- Playwright ブラウザと system deps は **今回の devcontainer インスタンスに手動で追加** した。別の devcontainer インスタンスや CI 環境では `bash .devcontainer/post-create.sh` → `pnpm exec playwright install chromium` → `sudo $(which pnpm) exec playwright install-deps chromium` が必要。
+- `docs/open-questions.md` に 13 件の未確定事項が残る（主に Phase 2 以降の仕様確認）。
 
 ### 直近コマンド結果
-- ローカルでのコマンド実行は未（Next.js 未スキャフォールドのため）。Phase 1 完了時にここへ `build / lint / typecheck / test` の結果サマリを記載する
+- `pnpm format:check`: `All matched files use Prettier code style!`
+- `pnpm lint`: 0 warnings / 0 errors
+- `pnpm typecheck`: 0 errors
+- `pnpm test`: 1 file / 3 tests passed
+- `pnpm build`: Compiled successfully / 4 static pages
+- `pnpm test:e2e`: 2 tests passed (chromium)
 
 ### Git
-- ブランチ: `main`（初期コミット予定）
-- リモート: 未設定（ユーザー操作が必要。上記参照）
-- `git config user.name / user.email`: 設定済み（global）
+- ブランチ: `main`
+- リモート: 未設定
+- ローカル user 設定を今回のコンテナに対してのみ追加（既存履歴の identity に一致）
+- 前セッション末以降のコミット:
+  - `6901905` chore(devcontainer): remove HOME-dependent mount, update settings schema URL
+  - (Phase 1 実装コミット予定)

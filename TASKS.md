@@ -10,7 +10,7 @@
 | Phase | 内容 | 進捗 |
 | --- | --- | --- |
 | 0 | 探索と設計 | 100% |
-| 1 | 開発基盤 | 0% |
+| 1 | 開発基盤 | 100% |
 | 2 | DB / 認証 / 権限 | 0% |
 | 3 | 利用者画面 | 0% |
 | 4 | 管理画面 | 0% |
@@ -40,21 +40,21 @@
 
 ---
 
-## Phase 1: 開発基盤 (0%)
+## Phase 1: 開発基盤 (100%)
 
 **完了条件**: `pnpm dev` で空ページが表示され、`pnpm build / lint / typecheck / test` が全てグリーン。Playwright の smoke test が通る。
 
-- [ ] devcontainer で開発開始できることを確認
-- [ ] pnpm で Next.js 15 App Router + TypeScript スキャフォールド
-- [ ] Tailwind CSS セットアップ
-- [ ] shadcn/ui 初期化
-- [ ] ESLint + Prettier
-- [ ] Vitest セットアップ（サンプルテスト）
-- [ ] Playwright セットアップ（smoke test）
-- [ ] .env.example 作成（Supabase / Resend の placeholder）
-- [ ] src/app/layout.tsx に共通レイアウトとメタデータ
-- [ ] CLAUDE.md に「コマンド」「アーキテクチャ」セクション追記
-- [ ] CI なし前提でローカルで全部通すことを確認
+- [x] devcontainer で開発開始できることを確認
+- [x] pnpm で Next.js 16 (App Router) + TypeScript スキャフォールド ※ 採択時点の create-next-app は v16 を導入
+- [x] Tailwind CSS v4 セットアップ（create-next-app 標準）
+- [ ] shadcn/ui 初期化 — Phase 3 で UI を実装するタイミングに延期（初期化に UI 依存が増えるため）
+- [x] ESLint + Prettier（`eslint-config-prettier` で競合解消）
+- [x] Vitest セットアップ（`src/lib/facility.ts` にサンプル + 3ケース）
+- [x] Playwright セットアップ（`e2e/smoke.spec.ts`、build→start で検証）
+- [x] .env.example 作成（Supabase / Resend / bootstrap admin の placeholder）
+- [x] src/app/layout.tsx に共通レイアウト（lang="ja" / Noto Sans JP / JST 想定メタデータ）
+- [x] CLAUDE.md に「コマンド」「アーキテクチャ」セクション追記
+- [x] CI なし前提でローカルで全部通すことを確認（format:check / lint / typecheck / test / build / test:e2e すべて green）
 
 ---
 

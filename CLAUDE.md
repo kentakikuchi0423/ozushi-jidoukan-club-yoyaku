@@ -17,8 +17,44 @@
 - 現在地・次の一手は常に `STATUS.md` を正とする。
 - タスク全体像と進捗率は `TASKS.md`。
 - 設計判断は `docs/decisions.md`、未確定事項は `docs/open-questions.md`。
-- **まだ Next.js はスキャフォールドされていない**（Phase 1 未着手）。`package.json` が未生成のため `pnpm dev` 等は存在しない。Phase 1 完了後に本ファイルへ「コマンド」「アーキテクチャ」セクションを追記する。
 - 開発は VS Code devcontainer 内で行う（`.devcontainer/devcontainer.json`）。
+
+---
+
+## コマンド
+
+すべて devcontainer 内で実行する想定。`pnpm` は corepack 経由で有効化済み。
+
+```bash
+pnpm install            # 依存インストール
+pnpm dev                # 開発サーバー (http://localhost:3000)
+pnpm build              # 本番ビルド
+pnpm start              # 本番サーバー (build 後)
+pnpm lint               # ESLint (Next.js core-web-vitals + typescript + prettier)
+pnpm typecheck          # tsc --noEmit
+pnpm format             # Prettier で書き換え
+pnpm format:check       # Prettier の差分確認のみ
+pnpm test               # Vitest (単体・jsdom)
+pnpm test:watch         # Vitest watch モード
+pnpm test:e2e           # Playwright (build → start → テスト)
+```
+
+Playwright の初回だけブラウザバイナリが必要:
+
+```bash
+pnpm exec playwright install chromium
+```
+
+## アーキテクチャ
+
+- `src/app/` — Next.js 15+ App Router のルート。`layout.tsx` が `lang="ja"` / Noto Sans JP を設定。`page.tsx` は Phase 1 段階のプレースホルダ。
+- `src/lib/` — ドメインロジック（UI 非依存）。テストを隣接配置 (`*.test.ts`)。まずは `facility.ts`（3館コード/名前のマスタ）から。
+- `src/server/` — server-only 処理（DB アクセス・Resend 送信・RPC 呼び出し）を置く予定（Phase 2 以降）。Service Role key はここからのみ参照する。
+- `e2e/` — Playwright の E2E テスト。`playwright.config.ts` は `pnpm build && pnpm start` を起動してから実行する。
+- `docs/` — 要件・アーキ・未確定事項・ADR・テスト方針・セキュリティレビューの真実のソース。
+- `.env.example` を複製して `.env.local` を作る。実値はコミットしない。
+
+技術スタックの採用理由は `docs/decisions.md`（ADR 形式）を参照。
 
 ---
 
