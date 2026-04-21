@@ -5,7 +5,7 @@
 
 ---
 
-## 最終更新: 2026-04-22（Phase 3 半分: 詳細 + 予約フォーム + 完了画面）
+## 最終更新: 2026-04-22（Phase 3: 予約作成・確認・キャンセルの UI 一巡が完了）
 
 ### 今セッションでやったこと（Phase 2 クロージングから Phase 3 着手まで一気通貫）
 - **Phase 2 クロージング**:
@@ -49,10 +49,41 @@
   - 予約番号 + 予約確認 URL（`NEXT_PUBLIC_SITE_URL` + `/reservations?r=...&t=...`）を表示し、第三者に共有しないよう警告
   - waitlisted の場合は順位 `p` を表示
 
-### 次にやること
-1. **予約確認・キャンセル画面** `/reservations?r=...&t=...`: URL トークンを server 側で検証し、予約の状態（確定/待ち/キャンセル済）を表示。Server Action `cancelReservationAction(r, t)` を用意し、「キャンセルする」ボタンで呼ぶ。キャンセル後は繰り上げ情報を画面に反映。
-2. **E2E シナリオ**: 「クラブ一覧 → 詳細 → フォーム入力 → 確認 → 予約確定 → 完了 → 確認 URL → キャンセル → 再度確認」を Playwright で通す。シード用の migration またはテスト前フックでクラブ 1 件を用意する（Phase 6 整備可能だが、最小限 1 本書いてから着手しても良い）。
-3. **メール送信基盤**: `src/server/mail/` に Resend ラッパ（`confirmed` / `waitlisted` / `promoted` / `canceled` のテンプレ）。Resend アカウント未作成でも `.env.local` 未設定時はログ出力に fallback するようにしておき、Phase 3 クロージングは Resend 準備後に。
+### 追加でやったこと（同セッション・Phase 3 続き: 予約確認・キャンセル画面）
+- **`get_my_reservation(p_reservation_number, p_secure_token)` RPC** を追加して適用済み（`20260422040000_my_reservation_lookup.sql`）。token 両方が一致したときのみ予約 + クラブ + 施設の結合行を返す SECURITY DEFINER。
+- `src/server/reservations/lookup.ts` に `fetchMyReservation()` + `ReservationDetail` 型を追加。
+- `/reservations/page.tsx`:
+  - `searchParams` から r / t を受け取り、`isReservationNumber` + `isSecureTokenFormat` で形式検証。不正は `notFound()`。
+  - 予約状態（confirmed / waitlisted + 順位 / canceled + キャンセル日時）、クラブ情報、お申込み情報を表示。
+  - status が `canceled` 以外のときだけ `<CancelForm />` を出す。
+- `src/app/reservations/cancel-form.tsx`（Client Component）:
+  - 「キャンセルする」ボタン → confirmation ステップ → Server Action 実行 → 完了表示 + `router.refresh()`。
+  - 送信中は disabled、失敗はメッセージ表示。
+- `src/app/reservations/actions.ts`:
+  - `cancelReservationAction(r, t)` が `cancelReservation()` を呼び、`ReservationNotFoundError` / `InvalidReservationIdentifierError` を serialize。
+  - 成功時は `revalidatePath('/reservations')` で同 URL の再表示に最新状態を反映。
+- ローカルパイプライン all green:
+  - `pnpm format:check` / `pnpm lint` / `pnpm typecheck` / `pnpm test`（**40 passed**）/ `pnpm build`（**6 ルート登録**: `/`, `/admin/login`, `/clubs/[id]`, `/clubs/[id]/done`, `/reservations`, `/_not-found`）
+
+### 現在地（= 重要）
+- Phase 2 は 95%、**Phase 3 は 75%**。予約作成 → 完了 → 確認 → キャンセル（繰り上げ含む）までの UI と Server Action が繋がっている。
+- 残りは **メール送信基盤** と **利用者 E2E テスト** の 2 点のみ。E2E は seed クラブ投入後に実質テスト可能。
+- **ここからは Resend 設定がブロッカー**。メール送信周りに手をつける前に、ユーザーにアカウント作成 + ドメイン検証 + 環境変数追加をお願いしたい。
+
+### 次にユーザーにお願いしたいこと（Resend 設定）
+1. <https://resend.com> でアカウント作成（ログイン）
+2. **Domains** → **Add Domain** で送信元に使いたいドメインを追加し、DNS レコード（SPF / DKIM / DMARC）を登録して **Verified** にする。検証できない場合は一時的に `onboarding@resend.dev` でもテスト送信可能
+3. **API Keys** → **Create API Key**（scope: Full access or Sending access）
+4. `.env.local` に以下を追記:
+   - `RESEND_API_KEY="re_..."`
+   - `RESEND_FROM_ADDRESS="大洲市児童館予約 <no-reply@<your-verified-domain>>"`
+5. 実送信テストに使える本物のメールアドレスを 1 つ用意（保護者視点で受け取れるもの）
+
+Resend が揃えば、次セッションで:
+- `src/server/mail/send.ts`（Resend ラッパ、未設定時は console fallback）
+- `src/server/mail/templates/{confirmed,waitlisted,promoted,canceled}.ts`
+- `createReservationAction` / `cancelReservationAction` に fire-and-forget で mail 送信を挿入
+- 開発用 seed（クラブ 1 件）を admin client で投入してから E2E 1 本（予約 → 完了 → キャンセル）
 
 ### ブロッカー / 次にユーザー操作が必要になる地点
 - **Resend アカウント**（予約完了メール / 繰り上げ通知 / キャンセル確認）の実送信テストに必要
