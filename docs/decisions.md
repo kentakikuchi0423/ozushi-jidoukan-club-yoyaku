@@ -117,6 +117,46 @@
   - DB パスワードを万一漏洩した場合は Supabase Studio で即 Reset database password → `SUPABASE_DB_URL` を更新
   - `docs/security-review.md` §5「secrets / 運用」にも方針を追記する
 
+## ADR-0014 管理者認証は Supabase Auth を採用し、ID はメールアドレスとする
+
+- **Status**: Accepted（2026-04-22、open-questions.md Q1 / Q11 の決定内容を取り込み）
+- **Context**:
+  - 要件では「ID/パスワード」でログインと書かれているが、固有 ID を別に発番する実装コストと、ID を忘れた際の復旧フローが発生する
+  - Supabase Auth は email + password、MFA、パスワードリセット、ログイン失敗レート制限などを標準で提供
+  - 管理者は数人規模（各館 1〜2 名 + super_admin）であり、自前で同等の機能を安全に作るメリットが薄い
+- **Decision**:
+  - **Supabase Auth の email/password 方式** を採用し、**ID = メールアドレス** として扱う。UI 文言は「ログイン ID（メールアドレス）」と表記
+  - セッションは `@supabase/ssr` を使い Next.js の cookie ベースで管理（HttpOnly / Secure / SameSite=Lax）
+  - セッション有効期限は Supabase 既定（access_token 1 時間、refresh_token で自動更新）。アイドル 24 時間で強制ログアウトはミドルウェアで実装する（Phase 4）
+  - MFA は v1 では使わない。必要性が出た段階で `supabase.auth.mfa` API で追加（移行パスあり）
+  - 新規アカウントは super_admin がダッシュボードから招待する設計（Phase 4）。初期 super_admin のみ Supabase Studio で手動作成し、`.env.local` の `ADMIN_BOOTSTRAP_EMAIL` でハンドリング
+  - パスワードリセットと本人によるパスワード変更は Supabase Auth の機能に乗せる
+- **Consequences**:
+  - `src/server/auth/` は「Supabase のセッション ＝ そのユーザーが admin」という前提で薄く書ける
+  - メールアドレスを ID として使うため、個人情報（メール）の取り扱いに要注意。`admins` テーブルに二重に email を持たず、`auth.users` を唯一の真実とする
+  - super_admin 判定は ADR-0007 に従い `admin_facilities` で 3 館揃うかで判定する（列フラグは持たない）
+
+## ADR-0015 Supabase クライアントは 3 種に分離し、server-only 境界を明示する
+
+- **Status**: Accepted（2026-04-22）
+- **Context**:
+  - Supabase には用途の異なる接続方法がある: browser, server (RSC/Route Handler/Server Action), service (secret key で RLS バイパス)
+  - それぞれが要件の異なる cookie 処理・キー種別・許可された参照元を持つ
+  - secret key を client component から誤って import すると致命的リスクになる
+- **Decision**:
+  - 3 つのクライアントファクトリを以下のパスで分離する
+    - `src/lib/supabase/browser.ts` — `createBrowserClient()`（`@supabase/ssr`）。publishable key を使い、client components からのみ呼ぶ
+    - `src/lib/supabase/server.ts` — `createServerClient()`（`@supabase/ssr`、Next.js `cookies()` と連携）。publishable key を使い、RSC / Route Handler / Server Action から呼ぶ。`import "server-only"` で client import を禁止
+    - `src/server/supabase/admin.ts` — `createClient()`（`@supabase/supabase-js`）。secret key を使い、RLS をバイパスする管理系 RPC / cron のみで呼ぶ。`import "server-only"` + `src/server/` 配下で二重に隔離
+  - env 変数は読み取り層でも分離する
+    - `src/lib/env.ts` — `NEXT_PUBLIC_*` のみ（browser 同梱可）
+    - `src/server/env.ts` — `SUPABASE_SECRET_KEY` 等 server-only な値。`import "server-only"` 必須
+  - 変数不足時はアプリ起動時に **早期に fail fast**（起動後に API コール時に初めて気づく状況を避ける）
+- **Consequences**:
+  - `src/server/` と `import "server-only"` の規約を CLAUDE.md / README に明記し、今後の PR レビュー観点にする
+  - lint ルールは最初は規約どおり書く運用でカバー。後日 `no-restricted-imports` で強制化できる
+  - secret key は `src/server/supabase/admin.ts` のみが読む。他からの直接参照はレビューで弾く
+
 ## ADR-0011 Git ブランチ戦略: `main` + `feat/*` / `fix/*` / `chore/*`
 
 - **Status**: Accepted（2026-04-21）
