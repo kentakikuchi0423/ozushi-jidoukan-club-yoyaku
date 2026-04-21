@@ -109,7 +109,7 @@
 - **Decision**:
   - 本プロジェクトの migration 反映は **`--db-url` 経路に統一** する
   - DB 接続文字列は `.env.local` の `SUPABASE_DB_URL` に置き、`pnpm db:push`（`scripts/db-push.sh`）がそれを読み込んで `supabase db push` を起動する
-  - 接続先は Direct connection または Session pooler（port 5432）。Transaction pooler（port 6543）は DDL / prepared statement 周りの互換性問題があるため migration では使わない
+  - 接続先は Session pooler（port 5432）を優先する。Direct connection（`db.<ref>.supabase.co`）は Supabase の現行インフラで IPv6 専用であり、devcontainer / GitHub Actions 等 IPv4 のみの環境から到達できない。Transaction pooler（port 6543）は DDL / prepared statement 周りの互換性問題があるため migration では使わない
   - `supabase link` は任意（ローカル実行での `supabase status` などに便利だが必須ではない）。link 済みでも `db:push` は `--db-url` を明示で渡す
   - CI / 本番 migration 反映も同じパターン（GitHub Actions の secret に `SUPABASE_DB_URL` を入れる）
 - **Consequences**:
