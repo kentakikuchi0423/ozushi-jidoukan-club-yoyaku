@@ -1,21 +1,30 @@
 import { expect, test } from "@playwright/test";
 
-test("home page renders and lists all three facility chips", async ({
-  page,
-}) => {
+test("home page renders the club listing shell", async ({ page }) => {
   await page.goto("/");
 
   await expect(
-    page.getByRole("heading", {
-      name: /クラブを予約できるようになるまで/,
-    }),
+    page.getByRole("heading", { name: "クラブを探して予約する" }),
   ).toBeVisible();
 
-  const chips = page.getByRole("listitem");
-  await expect(chips).toHaveCount(3);
-  await expect(chips.nth(0)).toHaveText("大洲児童館");
-  await expect(chips.nth(1)).toHaveText("喜多児童館");
-  await expect(chips.nth(2)).toHaveText("徳森児童センター");
+  // 現状はクラブ未登録なので空状態メッセージが出るが、クラブが登録されると
+  // 空状態メッセージは消え、"予約する" ボタンが少なくとも 1 つ現れる。
+  // どちらのケースでもこの smoke test は通るようにする。
+  const hasEmptyState = await page.getByRole("status").isVisible();
+  if (hasEmptyState) {
+    await expect(page.getByRole("status")).toContainText(
+      "予約できるクラブはありません",
+    );
+  } else {
+    const reserveLinks = page.getByRole("link", { name: "予約する" });
+    await expect(reserveLinks.first()).toBeVisible();
+  }
+});
+
+test("home page links to the admin login placeholder", async ({ page }) => {
+  await page.goto("/");
+  const link = page.getByRole("link", { name: "ログイン画面" });
+  await expect(link).toHaveAttribute("href", "/admin/login");
 });
 
 test("html lang is set to ja", async ({ page }) => {
