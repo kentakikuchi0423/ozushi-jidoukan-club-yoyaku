@@ -5,63 +5,58 @@
 
 ---
 
-## 最終更新: 2026-04-22（Phase 2 クロージング: middleware + 監査ログ + retention + 運用 docs）
+## 最終更新: 2026-04-22（Phase 2 終盤 → Phase 3 着手: クラブ一覧ページ）
 
-### 今セッションでやったこと
-- **Next.js middleware を追加**（`src/middleware.ts`）:
-  - 全ルートで `@supabase/ssr` の session を refresh（access_token の自動更新）
-  - `/admin/*` への未ログインアクセスは `/admin/login?next=...` にリダイレクト。`/admin/login` 配下だけは除外
-  - matcher から静的アセットと画像ファイルを除外
-  - `/admin/login/page.tsx` にリダイレクト先のプレースホルダを配置（Phase 4 でフォームに置換予定）
-- **監査ログ書き込みラッパ**:
-  - `src/server/audit/log.ts` — `logAdminAction({ adminId, action, targetType, targetId, metadata })` を admin クライアント経由で INSERT
-  - INSERT 失敗は `AuditLogWriteError` を throw（"誰が何をしたか" を残さず管理操作だけ成功する状況を避ける）
-- **Retention cleanup SQL 関数を追加 → リモート適用**:
-  - `supabase/migrations/20260422010000_retention_cleanup.sql`（`pnpm db:push` で適用済み）
-  - `public.cleanup_expired_clubs(p_keep_days default 365)` — `start_at < now() - 365日` のクラブを DELETE（予約は cascade）、`audit_logs` に `retention.cleanup_clubs` を記録。下限 30 日で安全ガード
-  - `public.cleanup_old_audit_logs(p_keep_days default 1095)` — 3 年以上前の監査ログを DELETE、自身の実行も `retention.cleanup_audit_logs` として残す。下限 180 日
-  - どちらも SECURITY DEFINER + `search_path = public, pg_temp` + `revoke all ... from public`（secret key 経由でのみ呼べる）
-- **運用 docs を整備**（`docs/operations.md`）:
-  - Supabase プロジェクトセットアップ
-  - `pnpm db:push` の流し方
-  - **初期 super_admin の bootstrap**（Studio で `auth.users` 作成 → SQL Editor で `admins` + `admin_facilities` に 3 館分 INSERT）
-  - Retention cleanup の手動実行 / 自動化（Vercel Cron or pg_cron）
-  - DB パスワード / secret key の再発行手順
-  - README と `docs/architecture.md` からリンク
+### 今セッションでやったこと（Phase 2 クロージングから Phase 3 着手まで一気通貫）
+- **Phase 2 クロージング**:
+  - Next.js middleware（`src/middleware.ts`）で全ルートの Supabase セッション refresh と `/admin/*` のガード（未ログインは `/admin/login?next=...` リダイレクト）
+  - `/admin/login` プレースホルダ（Phase 4 でログインフォームに差し替え）
+  - 監査ログ書き込みラッパ `src/server/audit/log.ts`（失敗時は `AuditLogWriteError` throw）
+  - Retention cleanup SQL 関数 migration（`cleanup_expired_clubs` / `cleanup_old_audit_logs`、SECURITY DEFINER、リモート適用済み）
+  - 運用 docs `docs/operations.md`（Supabase セットアップ / `pnpm db:push` / 初期 super_admin bootstrap / retention 手動実行 / secret 再発行）
+- **Phase 3 着手**:
+  - `list_public_clubs()` RPC を追加（`supabase/migrations/20260422020000_public_club_listing.sql`、リモート適用済み）— 対象クラブ + 施設名 + confirmed/waitlisted 件数を `start_at desc` で返す SECURITY DEFINER 関数
+  - `src/lib/clubs/types.ts`: `ClubListing` 型、`deriveClubAvailability`（空きあり / 予約待ち / 終了）、`hasValidPhotoUrl`（http/https のみ許可）
+  - `src/lib/clubs/types.test.ts`: 7 ケース
+  - `src/lib/clubs/query.ts`: `fetchListableClubs()` — server component から RPC 呼び出し、`FacilityCode` で型絞り
+  - `src/lib/format.ts`: JST 固定の `Intl.DateTimeFormat` ベースフォーマッタ（ADR-0010）
+  - **`src/app/page.tsx` を全面書き換え**: Home = クラブ一覧。`ClubCard` が日付・時間・館バッジ・ステータス・定員/予約・写真リンク・「予約する」導線を表示。現状クラブ 0 件なので空状態が出る
+  - e2e smoke を新レイアウトに合わせ 3 ケースに更新（空状態 or クラブ行のどちらでも通る / admin ログイン導線 / `html[lang=ja]`）
 - **ローカルパイプライン all green**:
-  - `pnpm format:check` / `pnpm lint` / `pnpm typecheck` / `pnpm test`（5 files / **33 tests passed**）/ `pnpm build`（5 ルート、middleware 登録）/ `pnpm test:e2e`（**2 tests passed**）/ `pnpm db:push`（適用）
+  - `pnpm format:check` / `pnpm lint` / `pnpm typecheck` / `pnpm test`（6 files / **40 tests passed**）/ `pnpm build`（Home が dynamic、middleware 登録）/ `pnpm test:e2e`（**3 tests passed**）/ `pnpm db:push`（2 件適用）
 
 ### 現在地
-- **Phase 2 は 95%**。バックエンド側（スキーマ / RLS / 認証 / 権限 / 予約 RPC / 監査 / retention / middleware / bootstrap docs）が揃った。
-- 残るは Phase 4 に接続する admin ログインフォーム、Phase 6 の integration test と Vercel Cron の実稼働設定のみ。
-- Phase 3（利用者画面）の骨組みに入れる状態。
+- **Phase 2 は 95%**、**Phase 3 は 15%**。
+- 利用者トップ（クラブ一覧）が実 DB 経由で描画できる状態。クラブが登録されれば即座に出る。
+- Supabase プロジェクトはクラブ 0 件なので、見た目は空状態。クラブの投入は Phase 4（管理画面）実装か、Supabase Studio から手動 INSERT のどちらかで再現できる。
 
 ### 次にやること
-1. **Phase 3 着手**: `src/app/page.tsx` を差し替えて、Supabase からクラブ一覧（`clubs_select_public` ポリシー経由、日付降順・時間降順）を取得して表示。
-2. クラブ詳細ページ `/clubs/[id]` で予約入力 → 確認 → 完了（メール送信は Resend 登録後）。
-3. 予約確認画面 `/reservations?r=...&t=...` から `cancelReservation()` を呼ぶ UI。
-4. Phase 3 の UI を shadcn/ui でセットアップし、モバイルレイアウトも確認。
-5. キャンセル期限（2 営業日前 17 時）判定ユーティリティを `src/lib/reservations/cancellation-deadline.ts` に追加（ADR-0010、`date-fns-tz` + `@holiday-jp/holiday_jp`）。Phase 5 直前で良い。
+1. **クラブ詳細ページ** `/clubs/[id]`（Server Component）: `list_public_clubs` の 1 件を抽出 or 新 RPC `get_public_club(id)` を追加して、日付・時間・館名・対象年齢・説明・写真・予約フォーム導線を表示。`notFound()` で 404 もハンドル。
+2. **予約入力フォーム**: `/clubs/[id]/reserve`（Client Component + Server Action）。`reservationInputSchema` でクライアント側プレビュー検証 + Server Action で再検証 → `createReservation(clubId, input)` を呼ぶ。失敗時は Server Action が `ReservationInputError` / `ReservationConflictError` を catch して form に戻す。
+3. **完了画面** `/clubs/[id]/done?r=...&t=...`: reservation_number + 確認 URL を表示。メール送信は Resend 接続後（ユーザー操作必要）。
+4. **予約確認・キャンセル画面** `/reservations?r=...&t=...`: URL で受け取ったトークンをサーバー側で検証し、キャンセル Server Action を用意。
+5. **Resend 接続はユーザー操作**（アカウント作成 + ドメイン認証 + `RESEND_API_KEY` + `RESEND_FROM`）。メール送信テンプレートとラッパは、先に `.env` 設定なしでもビルドが通るよう書ける（呼び出し側 from を guard）。
 
 ### ブロッカー / 次にユーザー操作が必要になる地点
-- **Resend アカウントとドメイン認証**（Phase 3 でメール送信を実装する時）
-- **初期 super_admin の作成**（Phase 4 の管理画面を触り始める時、`docs/operations.md` §3 の手順でユーザーに実行依頼）
+- **Resend アカウント**（予約完了メール / 繰り上げ通知 / キャンセル確認）の実送信テストに必要
+- **初期 super_admin の作成**（Phase 4 の管理画面から実物のクラブを登録する時、`docs/operations.md` §3 の手順）
+  - もしくは Supabase Studio の SQL Editor で手動 INSERT してクラブを 1 件作れば、クラブ詳細 / 予約フォームの開発確認が進む
 - **GitHub リモート**（Phase 6 で `gh repo create` を依頼）
 - **Vercel 接続 + Cron 設定**（Phase 6 リリース時）
-- それまでは自走可能
 
 ### 直近コマンド結果
 - `pnpm format:check`: All matched files use Prettier code style!
 - `pnpm lint`: 0 warnings / 0 errors
 - `pnpm typecheck`: 0 errors
-- `pnpm test`: 5 files / **33 tests passed**
-- `pnpm build`: Compiled successfully (Next.js 16.2.4) / 3 static routes + middleware registered
-- `pnpm test:e2e`: **2 tests passed** (chromium) — middleware 通過下でも OK
-- `pnpm db:push`: `Applying migration 20260422010000_retention_cleanup.sql... Finished.`
+- `pnpm test`: 6 files / **40 tests passed**
+- `pnpm build`: Compiled successfully (Next.js 16.2.4)。Home は dynamic render。
+- `pnpm test:e2e`: **3 tests passed**
+- `pnpm db:push`: 2 migration 適用（reservation_rpcs / retention_cleanup / public_club_listing が反映済み）
 
 ### Git
 - ブランチ: `main`
 - リモート: 未設定
-- 本セッションのコミット（予定）:
-  - feat(phase-2): middleware + admin login placeholder + audit wrapper + retention SQL
-  - docs(phase-2): operations runbook + bump Phase 2 to 95%
+- 本セッションの主要コミット:
+  - `28b6917` feat(phase-2): middleware, audit wrapper, retention cleanup
+  - `bdba4a2` docs(phase-2): operations runbook and bump Phase 2 to 95%
+  - 次に: feat(phase-3) opening — public club list page（まだコミット前）
