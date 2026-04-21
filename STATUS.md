@@ -5,64 +5,63 @@
 
 ---
 
-## 最終更新: 2026-04-22（Phase 2 仕上げ前段・予約 RPC + 入力バリデーション）
+## 最終更新: 2026-04-22（Phase 2 クロージング: middleware + 監査ログ + retention + 運用 docs）
 
 ### 今セッションでやったこと
-- **zod を導入して予約フォーム入力 schema を実装**:
-  - `src/lib/reservations/input-schema.ts` — parentName / parentKana / childName / childKana / phone / email / notes の zod スキーマ
-  - ひらがな（U+3040–309F、長音、全角／半角空白）のみ許容、phone は `[0-9+\-() ]{7,20}`、email は `z.email()`、notes は 500 文字上限で空文字は `undefined` に正規化
-  - `input-schema.test.ts` で 9 ケース（成功 / カタカナ拒否 / 漢字拒否 / 空白拒否 / 電話形式 / メール形式 / 500 字上限 / notes オプショナル）
-- **予約ステータスの共有型**:
-  - `src/lib/reservations/status.ts` — `ReservationStatus` = `'confirmed' | 'waitlisted' | 'canceled'` と `isReservationStatus`
-- **予約確定・キャンセル RPC を migration として追加 → リモート DB に適用**:
-  - `supabase/migrations/20260422000000_reservation_rpcs.sql`
-  - `reservation_number_sequences` の CHECK を `100000..1000000` に緩め、上限 `_999999` まで確実に採番できるようにした
-  - `create_reservation(club_id, secure_token, form...)` SECURITY DEFINER:
-    - 同一クラブの並列予約を `clubs FOR UPDATE` でシリアライズ
-    - `reservation_number_sequences` を `UPDATE ... RETURNING next_value - 1` でアトミックに採番
-    - 確定済み件数で `confirmed` / `waitlisted` を決定（ADR-0005）
-    - クラブ開始済みなら 22023 エラー
-    - GRANT EXECUTE to anon/authenticated
-  - `cancel_reservation(reservation_number, secure_token)` SECURITY DEFINER:
-    - トークン一致を必須とする（ADR-0006）
-    - 既に canceled の場合は idempotent に no-op
-    - 元が confirmed のときは `clubs FOR UPDATE` を取ってから waitlist 先頭を `confirmed` に繰り上げ、繰り上げ対象の `reservation_number` / `email` を返す
-    - GRANT EXECUTE to anon/authenticated
-  - `pnpm db:push` で適用済み
-- **Node 側ラッパ**:
-  - `src/server/reservations/create.ts` — zod で入力検証 → `generateSecureToken()` → `supabase.rpc('create_reservation', ...)`。失敗は `ReservationInputError`（issue 情報付き）/ `ReservationConflictError`
-  - `src/server/reservations/cancel.ts` — 予約番号・トークンの形式を検証してから `supabase.rpc('cancel_reservation', ...)`。`P0002` を `ReservationNotFoundError` に正規化
+- **Next.js middleware を追加**（`src/middleware.ts`）:
+  - 全ルートで `@supabase/ssr` の session を refresh（access_token の自動更新）
+  - `/admin/*` への未ログインアクセスは `/admin/login?next=...` にリダイレクト。`/admin/login` 配下だけは除外
+  - matcher から静的アセットと画像ファイルを除外
+  - `/admin/login/page.tsx` にリダイレクト先のプレースホルダを配置（Phase 4 でフォームに置換予定）
+- **監査ログ書き込みラッパ**:
+  - `src/server/audit/log.ts` — `logAdminAction({ adminId, action, targetType, targetId, metadata })` を admin クライアント経由で INSERT
+  - INSERT 失敗は `AuditLogWriteError` を throw（"誰が何をしたか" を残さず管理操作だけ成功する状況を避ける）
+- **Retention cleanup SQL 関数を追加 → リモート適用**:
+  - `supabase/migrations/20260422010000_retention_cleanup.sql`（`pnpm db:push` で適用済み）
+  - `public.cleanup_expired_clubs(p_keep_days default 365)` — `start_at < now() - 365日` のクラブを DELETE（予約は cascade）、`audit_logs` に `retention.cleanup_clubs` を記録。下限 30 日で安全ガード
+  - `public.cleanup_old_audit_logs(p_keep_days default 1095)` — 3 年以上前の監査ログを DELETE、自身の実行も `retention.cleanup_audit_logs` として残す。下限 180 日
+  - どちらも SECURITY DEFINER + `search_path = public, pg_temp` + `revoke all ... from public`（secret key 経由でのみ呼べる）
+- **運用 docs を整備**（`docs/operations.md`）:
+  - Supabase プロジェクトセットアップ
+  - `pnpm db:push` の流し方
+  - **初期 super_admin の bootstrap**（Studio で `auth.users` 作成 → SQL Editor で `admins` + `admin_facilities` に 3 館分 INSERT）
+  - Retention cleanup の手動実行 / 自動化（Vercel Cron or pg_cron）
+  - DB パスワード / secret key の再発行手順
+  - README と `docs/architecture.md` からリンク
 - **ローカルパイプライン all green**:
-  - `pnpm format:check` / `pnpm lint` / `pnpm typecheck` / `pnpm test`（5 files / **33 tests passed**）/ `pnpm build` / `pnpm db:push`（適用）すべて exit 0
+  - `pnpm format:check` / `pnpm lint` / `pnpm typecheck` / `pnpm test`（5 files / **33 tests passed**）/ `pnpm build`（5 ルート、middleware 登録）/ `pnpm test:e2e`（**2 tests passed**）/ `pnpm db:push`（適用）
 
 ### 現在地
-- **Phase 2 は 85%**。予約の核心ロジック（アトミック採番・キャパシティ判定・繰り上げ）まで完成。
-- 残るは：admin middleware（セッション refresh と `/admin/*` のガード）、audit_logs 書き込みラッパ、retention cleanup、bootstrap 手順のドキュメント化、RPC の integration test。
+- **Phase 2 は 95%**。バックエンド側（スキーマ / RLS / 認証 / 権限 / 予約 RPC / 監査 / retention / middleware / bootstrap docs）が揃った。
+- 残るは Phase 4 に接続する admin ログインフォーム、Phase 6 の integration test と Vercel Cron の実稼働設定のみ。
 - Phase 3（利用者画面）の骨組みに入れる状態。
 
 ### 次にやること
-1. `src/middleware.ts` を追加して `/admin/*` の前で Supabase セッションを refresh し、未ログインは `/admin/login` にリダイレクト。Auth コールバックハンドラ `/auth/callback` も用意。
-2. `src/server/audit/` に `logAdminAction(action, targetType, targetId?, metadata?)` を admin client で INSERT。Phase 4 で各管理操作から呼ぶ。
-3. retention cleanup（1 年以上前のクラブ削除）を migration + Vercel Cron の設計。最短は pg_cron で日次 DELETE。
-4. `docs/architecture.md` or 新 doc に初期 super_admin の bootstrap 手順を書く（Supabase Studio で `auth.users` 作成 → `admins` / `admin_facilities` 挿入）。
-5. Phase 3 着手: `src/app/(user)/page.tsx` にクラブ一覧を `@/lib/supabase/server` 経由で表示。`clubs_select_public` ポリシーで anon でも読める。
+1. **Phase 3 着手**: `src/app/page.tsx` を差し替えて、Supabase からクラブ一覧（`clubs_select_public` ポリシー経由、日付降順・時間降順）を取得して表示。
+2. クラブ詳細ページ `/clubs/[id]` で予約入力 → 確認 → 完了（メール送信は Resend 登録後）。
+3. 予約確認画面 `/reservations?r=...&t=...` から `cancelReservation()` を呼ぶ UI。
+4. Phase 3 の UI を shadcn/ui でセットアップし、モバイルレイアウトも確認。
+5. キャンセル期限（2 営業日前 17 時）判定ユーティリティを `src/lib/reservations/cancellation-deadline.ts` に追加（ADR-0010、`date-fns-tz` + `@holiday-jp/holiday_jp`）。Phase 5 直前で良い。
 
-### ブロッカー / 未確定
-- **Resend アカウントとドメイン認証**（Phase 3 時にユーザー操作）
-- **GitHub リモート未設定**（Phase 6 前に `gh repo create` を依頼予定）
-- 予約 RPC の integration test は pg テストコンテナ or staging Supabase で Phase 6 に実施
+### ブロッカー / 次にユーザー操作が必要になる地点
+- **Resend アカウントとドメイン認証**（Phase 3 でメール送信を実装する時）
+- **初期 super_admin の作成**（Phase 4 の管理画面を触り始める時、`docs/operations.md` §3 の手順でユーザーに実行依頼）
+- **GitHub リモート**（Phase 6 で `gh repo create` を依頼）
+- **Vercel 接続 + Cron 設定**（Phase 6 リリース時）
+- それまでは自走可能
 
 ### 直近コマンド結果
 - `pnpm format:check`: All matched files use Prettier code style!
 - `pnpm lint`: 0 warnings / 0 errors
 - `pnpm typecheck`: 0 errors
 - `pnpm test`: 5 files / **33 tests passed**
-- `pnpm build`: Compiled successfully (Next.js 16.2.4)
-- `pnpm db:push`: `Applying migration 20260422000000_reservation_rpcs.sql... Finished.`
+- `pnpm build`: Compiled successfully (Next.js 16.2.4) / 3 static routes + middleware registered
+- `pnpm test:e2e`: **2 tests passed** (chromium) — middleware 通過下でも OK
+- `pnpm db:push`: `Applying migration 20260422010000_retention_cleanup.sql... Finished.`
 
 ### Git
 - ブランチ: `main`
 - リモート: 未設定
 - 本セッションのコミット（予定）:
-  - feat(phase-2): reservation create/cancel RPCs with zod input schema
-  - docs(phase-2): bump Phase 2 to 85%
+  - feat(phase-2): middleware + admin login placeholder + audit wrapper + retention SQL
+  - docs(phase-2): operations runbook + bump Phase 2 to 95%

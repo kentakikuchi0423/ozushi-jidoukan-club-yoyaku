@@ -259,4 +259,4 @@ TIMEZONE=Asia/Tokyo
 
 - Vercel に GitHub 連携でデプロイ
 - Preview 環境でもテスト送信メール（`MAIL_SANDBOX=true` 等のフラグ）
-- retention cron は Vercel Cron で `/api/cron/retention-cleanup`（サービスロール認証ヘッダ）
+- retention cron は Vercel Cron で `/api/cron/retention-cleanup`（サービスロール認証ヘッダ）。本体は `public.cleanup_expired_clubs()` / `public.cleanup_old_audit_logs()` SECURITY DEFINER 関数に寄せ済み（詳細は [docs/operations.md](./operations.md)）

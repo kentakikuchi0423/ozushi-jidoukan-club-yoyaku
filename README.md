@@ -21,6 +21,7 @@
 | 採用した設計判断 (ADR) | [docs/decisions.md](./docs/decisions.md) |
 | テスト戦略 | [docs/testing-strategy.md](./docs/testing-strategy.md) |
 | セキュリティレビュー | [docs/security-review.md](./docs/security-review.md) |
+| 運用（bootstrap / retention / パスワード再発行） | [docs/operations.md](./docs/operations.md) |
 
 ## 現在地
 

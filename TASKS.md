@@ -11,7 +11,7 @@
 | --- | --- | --- |
 | 0 | 探索と設計 | 100% |
 | 1 | 開発基盤 | 100% |
-| 2 | DB / 認証 / 権限 | 85% |
+| 2 | DB / 認証 / 権限 | 95% |
 | 3 | 利用者画面 | 0% |
 | 4 | 管理画面 | 0% |
 | 5 | 予約待ち / 繰り上げ / 期限管理 | 0% |
@@ -58,7 +58,7 @@
 
 ---
 
-## Phase 2: DB / 認証 / 権限 (85%)
+## Phase 2: DB / 認証 / 権限 (95%)
 
 **完了条件**: admin がログインでき、自分の館のクラブだけ閲覧できる最小ループが通る。予約テーブルの一意制約とトランザクションが動作する。
 
@@ -78,10 +78,13 @@
 - [x] `reservation_status` 共有型（`src/lib/reservations/status.ts`）
 - [x] 予約確定・繰り上げ RPC を migration として追加（`supabase/migrations/20260422000000_reservation_rpcs.sql`、SECURITY DEFINER、リモート適用済み）
 - [x] `src/server/reservations/create.ts` / `cancel.ts` の server wrapper
-- [ ] admin ログイン画面 + middleware（Phase 4 で着手予定、本 Phase では bootstrap のみ）
-- [ ] 監査ログ書き込みラッパ（`src/server/audit/`）
-- [ ] retention policy の SQL または cron 設計
+- [x] Next.js middleware（セッション refresh + `/admin/*` のガード）と `/admin/login` プレースホルダ
+- [x] 監査ログ書き込みラッパ（`src/server/audit/log.ts`、失敗時は throw）
+- [x] retention cleanup SQL 関数（`cleanup_expired_clubs` / `cleanup_old_audit_logs`、リモート適用済み）
+- [x] 初期 super_admin bootstrap 手順を docs 化（`docs/operations.md`）
 - [ ] 予約 RPC の integration test（pg テストコンテナ or Supabase 実 DB を Phase 6 に回す）
+- [ ] retention cron の Vercel Cron 設定（Phase 6 デプロイ時に実施）
+- [ ] admin ログインフォーム実装（Phase 4）
 
 ---
 
