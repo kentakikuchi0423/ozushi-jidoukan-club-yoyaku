@@ -99,6 +99,24 @@
   - Supabase Auth Helpers 等の既定 env 名が旧名のままのライブラリを使うときはラッパで吸収する
   - `docs/security-review.md` のチェック項目と `.claude/agents/security-reviewer.md` の lint 観点も新名に更新済み
 
+## ADR-0013 Supabase migration は Personal Access Token を使わず `--db-url` で push する
+
+- **Status**: Accepted（2026-04-21）
+- **Context**:
+  - `supabase link` + `supabase db push` はデフォルトで Personal Access Token（PAT）を必要とする
+  - Supabase の PAT は **アカウント配下の全プロジェクトを API 経由で操作できる強権限** で、プロジェクト単位・読み取り専用に絞る方法が現時点（2026-04）の Supabase ダッシュボードでは提供されていない
+  - 一方 `supabase db push --db-url <postgres-uri>` は対象プロジェクトの Postgres 接続のみを必要とし、PAT は不要
+- **Decision**:
+  - 本プロジェクトの migration 反映は **`--db-url` 経路に統一** する
+  - DB 接続文字列は `.env.local` の `SUPABASE_DB_URL` に置き、`pnpm db:push`（`scripts/db-push.sh`）がそれを読み込んで `supabase db push` を起動する
+  - 接続先は Direct connection または Session pooler（port 5432）。Transaction pooler（port 6543）は DDL / prepared statement 周りの互換性問題があるため migration では使わない
+  - `supabase link` は任意（ローカル実行での `supabase status` などに便利だが必須ではない）。link 済みでも `db:push` は `--db-url` を明示で渡す
+  - CI / 本番 migration 反映も同じパターン（GitHub Actions の secret に `SUPABASE_DB_URL` を入れる）
+- **Consequences**:
+  - PAT を発行した場合は用途を終えた直後に必ず revoke する運用
+  - DB パスワードを万一漏洩した場合は Supabase Studio で即 Reset database password → `SUPABASE_DB_URL` を更新
+  - `docs/security-review.md` §5「secrets / 運用」にも方針を追記する
+
 ## ADR-0011 Git ブランチ戦略: `main` + `feat/*` / `fix/*` / `chore/*`
 
 - **Status**: Accepted（2026-04-21）

@@ -15,3 +15,7 @@ next-env.d.ts
 
 # Claude Code metadata
 .claude/
+
+# Supabase CLI scratch (linked-project.json など、CLI が書き出すファイル)
+supabase/.temp/
+supabase/.branches/
