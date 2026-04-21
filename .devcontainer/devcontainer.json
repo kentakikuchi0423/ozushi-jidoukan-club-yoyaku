@@ -48,8 +48,5 @@
         ]
       }
     }
-  },
-  "mounts": [
-    "source=${localEnv:HOME}/.claude,target=/home/node/.claude,type=bind,consistency=cached"
-  ]
+  }
 }

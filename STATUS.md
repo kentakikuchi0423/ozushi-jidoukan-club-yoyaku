@@ -8,6 +8,7 @@
 ## 最終更新: 2026-04-21
 
 ### 今セッションでやったこと
+- **devcontainer 起動エラー修正**: `.devcontainer/devcontainer.json` の `mounts` 設定が Windows ホストで `${localEnv:HOME}` が未定義となり `source=/.claude` に解決されて `docker run` が失敗していた。ホストの Claude Code 設定をコンテナに持ち込む必要はない（ユーザーは WSL ホスト側から Claude Code を使っている）ため、`mounts` エントリを削除
 - リポジトリ初期状態調査（コード無し、CLAUDE.md のみ、git 未初期化）
 - `git init -b main` 実行。`main` ブランチ運用を決定
 - `.gitignore` 作成
