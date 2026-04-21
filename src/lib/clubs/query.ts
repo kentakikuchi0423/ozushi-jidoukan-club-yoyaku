@@ -20,6 +20,25 @@ interface ListPublicClubsRow {
   waitlisted_count: number;
 }
 
+function toClubListing(row: ListPublicClubsRow): ClubListing | null {
+  if (!isFacilityCode(row.facility_code)) return null;
+  return {
+    id: row.id,
+    facilityCode: row.facility_code,
+    facilityName: row.facility_name,
+    name: row.name,
+    startAt: row.start_at,
+    endAt: row.end_at,
+    capacity: row.capacity,
+    targetAgeMin: row.target_age_min,
+    targetAgeMax: row.target_age_max,
+    photoUrl: row.photo_url,
+    description: row.description,
+    confirmedCount: row.confirmed_count,
+    waitlistedCount: row.waitlisted_count,
+  };
+}
+
 /**
  * 公開クラブ一覧を `list_public_clubs` RPC 経由で取得する。
  *
@@ -34,24 +53,25 @@ export async function fetchListableClubs(): Promise<ClubListing[]> {
   }
 
   const rows = (data ?? []) as ListPublicClubsRow[];
-  const clubs: ClubListing[] = [];
-  for (const row of rows) {
-    if (!isFacilityCode(row.facility_code)) continue;
-    clubs.push({
-      id: row.id,
-      facilityCode: row.facility_code,
-      facilityName: row.facility_name,
-      name: row.name,
-      startAt: row.start_at,
-      endAt: row.end_at,
-      capacity: row.capacity,
-      targetAgeMin: row.target_age_min,
-      targetAgeMax: row.target_age_max,
-      photoUrl: row.photo_url,
-      description: row.description,
-      confirmedCount: row.confirmed_count,
-      waitlistedCount: row.waitlisted_count,
-    });
+  return rows
+    .map(toClubListing)
+    .filter((row): row is ClubListing => row !== null);
+}
+
+/**
+ * 単一クラブの詳細を `get_public_club(id)` RPC 経由で取得する。
+ * 該当が無い（削除済み／1 年以上前／存在しない id）場合は null を返す。
+ */
+export async function fetchClubDetail(id: string): Promise<ClubListing | null> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.rpc("get_public_club", {
+    p_id: id,
+  });
+  if (error) {
+    throw new Error(`failed to fetch club detail: ${error.message}`);
   }
-  return clubs;
+
+  const rows = (data ?? []) as ListPublicClubsRow[];
+  if (rows.length === 0) return null;
+  return toClubListing(rows[0]);
 }

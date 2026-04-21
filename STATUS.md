@@ -5,7 +5,7 @@
 
 ---
 
-## 最終更新: 2026-04-22（Phase 2 終盤 → Phase 3 着手: クラブ一覧ページ）
+## 最終更新: 2026-04-22（Phase 3 半分: 詳細 + 予約フォーム + 完了画面）
 
 ### 今セッションでやったこと（Phase 2 クロージングから Phase 3 着手まで一気通貫）
 - **Phase 2 クロージング**:
@@ -30,12 +30,29 @@
 - 利用者トップ（クラブ一覧）が実 DB 経由で描画できる状態。クラブが登録されれば即座に出る。
 - Supabase プロジェクトはクラブ 0 件なので、見た目は空状態。クラブの投入は Phase 4（管理画面）実装か、Supabase Studio から手動 INSERT のどちらかで再現できる。
 
+### 追加でやったこと（同セッション・Phase 3 継続）
+- **クラブ詳細ページ** `/clubs/[id]`:
+  - `get_public_club(p_id uuid)` SECURITY DEFINER RPC を migration で追加、`pnpm db:push` で適用（`list_public_clubs` と同じ列形で単一行）
+  - `fetchClubDetail(id)` を `src/lib/clubs/query.ts` に追加（not found は null）
+  - Server Component で詳細表示（館バッジ・日時・対象年齢・定員/予約・写真リンク・説明 + `<ReservationForm />`）
+  - `availability === "ended"` なら form を出さず「受付終了」文面、`"waitlist"` なら事前に予約待ちである旨を案内
+- **予約フォーム + 利用規約確認画面**:
+  - `src/app/clubs/[id]/reservation-form.tsx` Client Component、state で `draft ↔ preview` を切替
+  - `reservationInputSchema` でクライアント側の軽い検証（UX 用）、Server Action 側でも再検証（security boundary）
+  - preview ステップで利用規約 4 項目（先着順 / キャンセル期限 / 無断欠席原則禁止 / キャンセル続くと利用停止あり）を明示
+  - 「内容を確認する」→ 「予約を確定する」の 2 アクション、送信中は disabled
+- **Server Action** `createReservationAction(clubId, input)`:
+  - zod + RPC の二重検証、成功時は `/clubs/[id]/done?r=...&t=...&s=...&p=...` に `redirect()`
+  - `ReservationInputError` / `ReservationConflictError` / その他を serialize して返し、form 側がメッセージを表示
+- **完了画面** `/clubs/[id]/done`:
+  - `searchParams` から `r`, `t`, `s`, `p` を取り、不正なら `notFound()`
+  - 予約番号 + 予約確認 URL（`NEXT_PUBLIC_SITE_URL` + `/reservations?r=...&t=...`）を表示し、第三者に共有しないよう警告
+  - waitlisted の場合は順位 `p` を表示
+
 ### 次にやること
-1. **クラブ詳細ページ** `/clubs/[id]`（Server Component）: `list_public_clubs` の 1 件を抽出 or 新 RPC `get_public_club(id)` を追加して、日付・時間・館名・対象年齢・説明・写真・予約フォーム導線を表示。`notFound()` で 404 もハンドル。
-2. **予約入力フォーム**: `/clubs/[id]/reserve`（Client Component + Server Action）。`reservationInputSchema` でクライアント側プレビュー検証 + Server Action で再検証 → `createReservation(clubId, input)` を呼ぶ。失敗時は Server Action が `ReservationInputError` / `ReservationConflictError` を catch して form に戻す。
-3. **完了画面** `/clubs/[id]/done?r=...&t=...`: reservation_number + 確認 URL を表示。メール送信は Resend 接続後（ユーザー操作必要）。
-4. **予約確認・キャンセル画面** `/reservations?r=...&t=...`: URL で受け取ったトークンをサーバー側で検証し、キャンセル Server Action を用意。
-5. **Resend 接続はユーザー操作**（アカウント作成 + ドメイン認証 + `RESEND_API_KEY` + `RESEND_FROM`）。メール送信テンプレートとラッパは、先に `.env` 設定なしでもビルドが通るよう書ける（呼び出し側 from を guard）。
+1. **予約確認・キャンセル画面** `/reservations?r=...&t=...`: URL トークンを server 側で検証し、予約の状態（確定/待ち/キャンセル済）を表示。Server Action `cancelReservationAction(r, t)` を用意し、「キャンセルする」ボタンで呼ぶ。キャンセル後は繰り上げ情報を画面に反映。
+2. **E2E シナリオ**: 「クラブ一覧 → 詳細 → フォーム入力 → 確認 → 予約確定 → 完了 → 確認 URL → キャンセル → 再度確認」を Playwright で通す。シード用の migration またはテスト前フックでクラブ 1 件を用意する（Phase 6 整備可能だが、最小限 1 本書いてから着手しても良い）。
+3. **メール送信基盤**: `src/server/mail/` に Resend ラッパ（`confirmed` / `waitlisted` / `promoted` / `canceled` のテンプレ）。Resend アカウント未作成でも `.env.local` 未設定時はログ出力に fallback するようにしておき、Phase 3 クロージングは Resend 準備後に。
 
 ### ブロッカー / 次にユーザー操作が必要になる地点
 - **Resend アカウント**（予約完了メール / 繰り上げ通知 / キャンセル確認）の実送信テストに必要
