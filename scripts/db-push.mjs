@@ -98,6 +98,15 @@ const child = spawn(
   { stdio: "inherit", cwd: scratchDir },
 );
 
+// Ctrl-C / kill を受け取ったら子プロセスに転送し、scratch dir は `exit` ハンドラ
+// 側で片付ける。親だけが signal を受けて先に exit すると orphan になるため、
+// ここでは exit せずに子の終了を待つ。
+function forward(signal) {
+  if (!child.killed) child.kill(signal);
+}
+process.on("SIGINT", () => forward("SIGINT"));
+process.on("SIGTERM", () => forward("SIGTERM"));
+
 child.on("exit", (code, signal) => {
   rmSync(scratchDir, { recursive: true, force: true });
   if (signal) {
