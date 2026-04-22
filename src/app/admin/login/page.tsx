@@ -1,24 +1,34 @@
 import type { Metadata } from "next";
 
+import { LoginForm } from "./login-form";
+
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "管理者ログイン",
 };
 
-// Phase 2 時点では middleware の遷移先として存在させるだけ。
-// 実フォーム・supabase.auth.signInWithPassword 呼び出し・失敗時の
-// エラーメッセージ等は Phase 4（管理画面）で実装する。
-export default function AdminLoginPage() {
+interface Props {
+  searchParams: Promise<{ next?: string }>;
+}
+
+export default async function AdminLoginPage({ searchParams }: Props) {
+  const { next } = await searchParams;
+
   return (
-    <main className="flex flex-1 flex-col items-center justify-center px-6 py-16">
-      <div className="w-full max-w-md space-y-6 text-center">
-        <h1 className="text-2xl font-bold">管理者ログイン</h1>
-        <p className="text-sm leading-7 text-zinc-600">
-          このページはまだ準備中です。ログイン機能は Phase
-          4（管理画面）で実装予定です。
-        </p>
-        <p className="text-xs text-zinc-500">
-          先に進みたい場合は、Supabase Studio から直接ログインしてください。
-        </p>
+    <main className="mx-auto w-full max-w-md flex-1 px-4 py-12 sm:px-6">
+      <div className="space-y-6 rounded-lg border border-zinc-200 bg-white p-6 sm:p-8">
+        <header className="space-y-1 text-center">
+          <p className="text-sm font-medium tracking-wide text-zinc-500">
+            大洲市児童館クラブ予約
+          </p>
+          <h1 className="text-2xl font-bold">管理者ログイン</h1>
+          <p className="text-xs leading-6 text-zinc-600">
+            登録済みのメールアドレスとパスワードでログインしてください。
+          </p>
+        </header>
+
+        <LoginForm next={next} />
       </div>
     </main>
   );

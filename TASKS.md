@@ -12,9 +12,9 @@
 | 0 | 探索と設計 | 100% |
 | 1 | 開発基盤 | 100% |
 | 2 | DB / 認証 / 権限 | 95% |
-| 3 | 利用者画面 | 90% |
-| 4 | 管理画面 | 0% |
-| 5 | 予約待ち / 繰り上げ / 期限管理 | 0% |
+| 3 | 利用者画面 | 95% |
+| 4 | 管理画面 | 15% |
+| 5 | 予約待ち / 繰り上げ / 期限管理 | 50% |
 | 6 | テスト / セキュリティ / 仕上げ | 0% |
 
 ---
@@ -88,7 +88,7 @@
 
 ---
 
-## Phase 3: 利用者画面 (90%)
+## Phase 3: 利用者画面 (95%)
 
 **完了条件**: 一般利用者がクラブ一覧から予約 → 確認メール受信 → 予約確認画面からキャンセルまで、E2E で通る。
 
@@ -106,38 +106,40 @@
 - [x] confirmed / waitlisted / promoted / canceled の 4 テンプレート + 書式テスト
 - [x] `createReservationAction` / `cancelReservationAction` への fire-and-forget 組み込み
 - [x] テストクラブ投入 SQL と Resend 未検証ドメイン運用を `docs/operations.md` に追記
-- [ ] 利用者 E2E テスト（予約 → 完了 → キャンセル）。seed クラブ投入 & 動作確認後に Phase 6 で
+- [x] キャンセル期限表示とサーバー側の再チェック（2 営業日前 17 時 JST、`cancellation-deadline.ts`）
+- [x] 利用者 E2E テスト骨格（`e2e/reservation-flow.spec.ts`、opt-in、予約 → 完了 → キャンセル）
 
 ---
 
-## Phase 4: 管理画面 (0%)
+## Phase 4: 管理画面 (15%)
 
 **完了条件**: 各館 admin が自館のクラブを CRUD でき、super_admin のみがアカウント追加できる。全ての管理操作が audit_logs に記録される。
 
-- [ ] ログイン / ログアウト
-- [ ] ダッシュボード（新規登録 / クラブ一覧 / パスワード変更 導線）
+- [x] ログイン / ログアウト（`/admin/login` + `loginAction` + `logoutAction`、`next` パラメータは `/admin*` だけに制限）
+- [x] ダッシュボード骨格 `/admin`（display_name、管理館、super_admin バッジ、メニュー準備中カード）
 - [ ] クラブ新規登録（自分の館のみ選択可）
 - [ ] クラブ一覧（自分の館のみ）
 - [ ] クラブ編集
 - [ ] パスワード変更
 - [ ] super_admin のみ アカウント追加画面
 - [ ] 写真リンクの外部 URL validation
-- [ ] モバイル対応
+- [ ] モバイル対応の仕上げ
 - [ ] 管理者 E2E テスト
 
 ---
 
-## Phase 5: 予約待ち / 繰り上げ / 期限管理 (0%)
+## Phase 5: 予約待ち / 繰り上げ / 期限管理 (50%)
 
 **完了条件**: キャンセル → 繰り上げ → 通知メール の流れが DB トランザクション安全に動く。1年経過クラブが自動削除される。
 
-- [ ] 定員超過時の waitlist 入り
-- [ ] キャンセル時の自動繰り上げ（先頭）
-- [ ] 繰り上げ通知メール
-- [ ] キャンセル期限（2営業日前17時）のチェック
-- [ ] retention cleanup（1年以上前のクラブと予約削除）
-- [ ] 状態遷移テスト
-- [ ] 競合（同時予約）テスト
+- [x] 定員超過時の waitlist 入り（`create_reservation` RPC）
+- [x] キャンセル時の自動繰り上げ（`cancel_reservation` RPC、`clubs FOR UPDATE` 保護下）
+- [x] 繰り上げ通知メール（`notifyReservationPromoted`、admin client で相手 token 取得）
+- [x] キャンセル期限（2営業日前17時）のチェック（UI + Server Action）
+- [x] retention cleanup SQL 関数（`cleanup_expired_clubs` / `cleanup_old_audit_logs`）
+- [ ] retention cron の Vercel Cron 設定（Phase 6 デプロイ時）
+- [ ] 状態遷移 integration test（Phase 6）
+- [ ] 競合（同時予約）integration test（Phase 6）
 
 ---
 
