@@ -104,4 +104,39 @@ test("user can create a reservation via the browser", async ({ page }) => {
   // 予約番号が表示されていることを確認（`ozu_123456` 形式）
   const mainText = await page.locator("main").innerText();
   expect(mainText).toMatch(/(ozu|kita|toku)_\d{6}/);
+
+  // ここからキャンセルフローを続ける。done ページの URL に r と t が入っている
+  // ので、そのまま /reservations?r=...&t=... に遷移してキャンセルする。
+  const doneUrl = new URL(page.url());
+  const reservationNumber = doneUrl.searchParams.get("r");
+  const secureToken = doneUrl.searchParams.get("t");
+  expect(reservationNumber).toBeTruthy();
+  expect(secureToken).toBeTruthy();
+
+  await page.goto(`/reservations?r=${reservationNumber}&t=${secureToken}`);
+  await page.waitForLoadState("networkidle");
+
+  await expect(
+    page.getByRole("heading", { name: "予約内容の確認" }),
+  ).toBeVisible();
+  // 作成直後は confirmed か waitlisted のどちらか
+  await expect(
+    page.getByText(/ご予約は確定しています|現在は予約待ちです/),
+  ).toBeVisible();
+
+  // CancelForm のハイドレーション完了を待つ
+  await page.waitForSelector("html[data-cancel-form-ready='true']");
+
+  await page.getByRole("button", { name: "この予約をキャンセルする" }).click();
+  await page.getByRole("button", { name: "キャンセルを確定する" }).click();
+
+  // router.refresh() 経由で Server Component が再描画され、status が canceled
+  // になってキャンセル済み copy が表示される
+  await expect(page.getByText("この予約はキャンセル済みです")).toBeVisible({
+    timeout: 15_000,
+  });
+  // キャンセルボタン自体が消えていること
+  await expect(
+    page.getByRole("button", { name: "この予約をキャンセルする" }),
+  ).toHaveCount(0);
 });

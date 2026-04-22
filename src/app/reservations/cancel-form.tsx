@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 
 import { cancelReservationAction } from "./actions";
 
@@ -10,13 +10,26 @@ type Stage = "idle" | "confirming" | "done";
 interface Props {
   reservationNumber: string;
   secureToken: string;
+  deadlineLabel: string;
 }
 
-export function CancelForm({ reservationNumber, secureToken }: Props) {
+export function CancelForm({
+  reservationNumber,
+  secureToken,
+  deadlineLabel,
+}: Props) {
   const [stage, setStage] = useState<Stage>("idle");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
+
+  // E2E でハイドレーション完了を検知するためのマーカー
+  useEffect(() => {
+    document.documentElement.dataset.cancelFormReady = "true";
+    return () => {
+      delete document.documentElement.dataset.cancelFormReady;
+    };
+  }, []);
 
   function handleCancelClick() {
     setError(null);
@@ -48,7 +61,7 @@ export function CancelForm({ reservationNumber, secureToken }: Props) {
     <section className="mt-8 space-y-3 rounded-lg border border-zinc-200 bg-white p-4 sm:p-6">
       <h2 className="text-sm font-semibold text-zinc-700">予約のキャンセル</h2>
       <p className="text-xs leading-5 text-zinc-600">
-        キャンセルは開催日の 2 営業日前 17 時までにお願いします。
+        キャンセルは <strong>{deadlineLabel}</strong> までお手続きいただけます。
         それ以降のキャンセルや無断欠席は他の利用者への影響が大きいため原則お控えください。
       </p>
 

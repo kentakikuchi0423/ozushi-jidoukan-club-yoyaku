@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { isCancellable } from "@/lib/reservations/cancellation-deadline";
 import {
   notifyReservationCanceled,
   notifyReservationPromoted,
@@ -21,6 +22,7 @@ export type CancelActionResult =
     }
   | { ok: false; kind: "invalid"; message: string }
   | { ok: false; kind: "not_found"; message: string }
+  | { ok: false; kind: "deadline_passed"; message: string }
   | { ok: false; kind: "unknown"; message: string };
 
 /**
@@ -38,6 +40,15 @@ export async function cancelReservationAction(
     reservationNumber,
     secureToken,
   ).catch(() => null);
+
+  // 既にキャンセル期限を過ぎていれば、RPC を叩かずにここで止める
+  if (beforeCancel && !isCancellable(beforeCancel.club.startAt)) {
+    return {
+      ok: false,
+      kind: "deadline_passed",
+      message: "キャンセル期限を過ぎています。各館へ直接ご連絡ください。",
+    };
+  }
 
   try {
     const result = await cancelReservation(reservationNumber, secureToken);

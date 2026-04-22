@@ -2,6 +2,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 
+import {
+  computeCancellationDeadline,
+  isCancellable,
+} from "@/lib/reservations/cancellation-deadline";
 import { isReservationNumber } from "@/lib/reservations/number";
 import type { ReservationStatus } from "@/lib/reservations/status";
 import { formatJstDate, formatJstTime } from "@/lib/format";
@@ -57,12 +61,44 @@ export default async function ReservationLookupPage({ searchParams }: Props) {
       <ApplicantSection reservation={reservation} />
 
       {reservation.status !== "canceled" && (
-        <CancelForm
-          reservationNumber={reservation.reservationNumber}
-          secureToken={t}
-        />
+        <CancelSection reservation={reservation} secureToken={t} />
       )}
     </main>
+  );
+}
+
+function CancelSection({
+  reservation,
+  secureToken,
+}: {
+  reservation: ReservationDetail;
+  secureToken: string;
+}) {
+  const deadline = computeCancellationDeadline(reservation.club.startAt);
+  const cancellable = isCancellable(reservation.club.startAt);
+  const deadlineLabel = `${formatJstDate(deadline)} ${formatJstTime(deadline)}`;
+
+  if (!cancellable) {
+    return (
+      <section className="mt-8 space-y-3 rounded-lg border border-zinc-200 bg-white p-4 sm:p-6">
+        <h2 className="text-sm font-semibold text-zinc-700">
+          予約のキャンセル
+        </h2>
+        <p className="rounded-md bg-zinc-100 p-3 text-sm text-zinc-700">
+          キャンセル期限（{deadlineLabel}
+          ）を過ぎているため、このページからはキャンセルできません。
+          体調不良などでご参加が難しくなった場合は、各館へ直接ご連絡ください。
+        </p>
+      </section>
+    );
+  }
+
+  return (
+    <CancelForm
+      reservationNumber={reservation.reservationNumber}
+      secureToken={secureToken}
+      deadlineLabel={deadlineLabel}
+    />
   );
 }
 
