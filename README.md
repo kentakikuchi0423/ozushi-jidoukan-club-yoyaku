@@ -21,27 +21,30 @@
 | 採用した設計判断 (ADR) | [docs/decisions.md](./docs/decisions.md) |
 | テスト戦略 | [docs/testing-strategy.md](./docs/testing-strategy.md) |
 | セキュリティレビュー | [docs/security-review.md](./docs/security-review.md) |
-| 運用（bootstrap / retention / パスワード再発行） | [docs/operations.md](./docs/operations.md) |
+| 運用（bootstrap / retention / メール / Cron） | [docs/operations.md](./docs/operations.md) |
 
 ## 現在地
 
 - **Phase 1（開発基盤）**: 完了
-- **Phase 2（DB / 認証 / 権限）**: 進行中
-  - Supabase プロジェクト作成済み、初期スキーマの migration 適用済み
-  - 予約番号・secure token のドメインロジックと unit test 整備済み
-  - 認証 / 権限 enforcement は未着手
+- **Phase 2（DB / 認証 / 権限）**: 95%（残: RPC integration test、Phase 6 に回す）
+- **Phase 3（利用者画面）**: 95%（予約作成→確認→キャンセル、メール、締切チェック、E2E まで通過）
+- **Phase 4（管理画面）**: 75%（ログイン / ダッシュボード / クラブ CRUD / パスワード変更 / アカウント招待、E2E 済み）
+- **Phase 5（予約待ち・繰り上げ・期限管理）**: 80%（RPC・メール・締切・retention cron 済み。Integration test は Phase 6）
+- **Phase 6（仕上げ）**: 30%（セキュリティレビュー整理、ヘッダー、E2E、Cron、docs）
 
 進捗の詳細は [STATUS.md](./STATUS.md) を参照。
 
 ## 技術スタック
 
-- Next.js 16 (App Router) + React 19 + TypeScript strict
-- Tailwind CSS v4（必要に応じて shadcn/ui を Phase 3 で導入予定）
-- Supabase (PostgreSQL / Auth / RLS) — DB と管理者認証
-- Resend — メール送信（Phase 3 以降）
-- Vercel — ホスティング（Phase 6 付近）
-- Vitest — ユニットテスト
-- Playwright — E2E テスト
+- **Next.js 16** (App Router) + React 19 + TypeScript strict
+- **Tailwind CSS v4**
+- **Supabase**（PostgreSQL / Auth / RLS、Session pooler 経由で migration）
+- **Resend** — 予約通知メール
+- **zod** — server / client 二重入力検証
+- **date-fns-tz + @holiday-jp/holiday_jp** — JST 業務日計算
+- **Vercel** — ホスティング + Cron（retention cleanup）
+- **Vitest** — ユニットテスト
+- **Playwright** — E2E テスト
 
 採用理由と制約は [docs/decisions.md](./docs/decisions.md) の ADR を参照。
 
@@ -58,12 +61,17 @@ sudo $(which pnpm) exec playwright install-deps chromium
 
 ## セットアップ
 
-1. `.env.example` を `.env.local` にコピーし、各値を埋める
-   - Supabase の `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` / `SUPABASE_SECRET_KEY`
-   - 2025-11 以降の新規 Supabase プロジェクトは publishable / secret キーのみ発行される（ADR-0012）
-   - `SUPABASE_DB_URL` は Supabase Studio の **Session pooler (port 5432)** 接続文字列。IPv4 環境では必須（ADR-0013）
-2. `pnpm install`
-3. `pnpm db:push` — 未適用の migration があればリモート DB に反映
+1. `.env.example` を `.env.local` にコピーし、各値を埋める。必須のもの:
+   - Supabase 3 点（`NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` / `SUPABASE_SECRET_KEY`）
+   - `SUPABASE_DB_URL`（Session pooler (port 5432) 形式、ADR-0013）
+   - `NEXT_PUBLIC_SITE_URL`（予約確認 URL のベース）
+2. オプション:
+   - `RESEND_API_KEY` / `RESEND_FROM_ADDRESS`（未設定でもアプリは動く）
+   - `CRON_SECRET`（Vercel デプロイ後に設定、未設定時は `/api/cron/*` が 503）
+   - 初回 super_admin 作成用の `ADMIN_BOOTSTRAP_EMAIL` / `ADMIN_BOOTSTRAP_PASSWORD`
+3. `pnpm install`
+4. `pnpm db:push` — 未適用の migration がリモート DB に反映される
+5. [docs/operations.md §3](./docs/operations.md) に従い、初期 super_admin を Supabase Studio で作成
 
 ## コマンド
 
@@ -81,29 +89,52 @@ pnpm test:e2e       # Playwright (build → start → test)
 pnpm db:push        # supabase/migrations/ を $SUPABASE_DB_URL に反映
 ```
 
+### opt-in の重い E2E
+
+```bash
+# 利用者フロー（予約→完了→キャンセル、実 DB に書き込む）
+RUN_RESERVATION_FLOW_E2E=1 PORT=3100 pnpm test:e2e e2e/reservation-flow.spec.ts
+
+# 管理フロー（ログイン→クラブ新規登録→編集→削除→ログアウト）
+RUN_ADMIN_FLOW_E2E=1 PORT=3100 pnpm test:e2e e2e/admin-flow.spec.ts
+```
+
 ## ディレクトリ構成
 
 ```
 .
 ├── src/
-│   ├── app/                    # Next.js App Router（利用者画面 + 管理画面）
-│   ├── lib/                    # UI 非依存のドメインロジック（client / server 共用）
-│   │   ├── facility.ts
-│   │   └── reservations/
-│   └── server/                 # server-only（secret key を参照するもの、Web Crypto 等）
-│       └── reservations/
+│   ├── app/
+│   │   ├── (利用者)                 # /, /clubs/[id], /clubs/[id]/done, /reservations
+│   │   ├── admin/                   # /admin, /admin/login, /admin/clubs/*, /admin/password, /admin/accounts
+│   │   ├── api/cron/                # /api/cron/retention-cleanup
+│   │   └── middleware.ts            # 全ルートで Supabase セッション refresh + /admin/* ガード
+│   ├── lib/                         # UI 非依存のドメイン（server/client 共用）
+│   │   ├── clubs/                   # ClubListing 型、query、input-schema
+│   │   ├── facility.ts              # 3 館コード / ID マップ
+│   │   ├── format.ts                # JST 日時フォーマッタ
+│   │   ├── reservations/            # 予約番号、status、入力スキーマ、キャンセル締切
+│   │   └── supabase/                # browser / server クライアント（publishable）
+│   └── server/                      # server-only（SUPABASE_SECRET_KEY 参照）
+│       ├── auth/                    # session, permissions, guards, profile, admin-list
+│       ├── audit/                   # logAdminAction
+│       ├── clubs/                   # fetchClubForAdmin
+│       ├── env.ts                   # secret key + Resend + CRON_SECRET
+│       ├── mail/                    # Resend wrapper + 4 templates + notify
+│       ├── reservations/            # create / cancel / lookup / secure-token
+│       └── supabase/admin.ts        # secret key クライアント
 ├── supabase/
-│   ├── config.toml             # Supabase CLI プロジェクト設定
-│   ├── migrations/             # 20260421000000_initial_schema.sql など
-│   └── seed.sql                # 開発用 seed（個人情報は入れない）
-├── scripts/
-│   └── db-push.mjs             # pnpm db:push のラッパ
-├── e2e/                        # Playwright
-├── docs/                       # 要件・アーキ・ADR・未確定事項・テスト方針・セキュリティ
-└── .claude/                    # Claude Code のエージェント・スキル・設定
+│   ├── config.toml
+│   ├── migrations/                  # DB スキーマ + RPC + retention
+│   └── seed.sql
+├── scripts/db-push.mjs              # `pnpm db:push` ラッパ
+├── e2e/                             # Playwright
+├── docs/                            # 要件・アーキ・ADR・運用・テスト・セキュリティ
+├── vercel.json                      # Cron 設定
+└── .claude/                         # Claude Code のエージェント・スキル・設定
 ```
 
-## Git リモート
+## Git リモート / デプロイ
 
 remote 未設定。GitHub 公開リポジトリを作成した後、以下で設定する。
 
@@ -114,6 +145,8 @@ git push -u origin main
 
 公開前に **secrets が含まれていないこと**、**個人情報を含む fixture が無いこと** を `git log -p` でレビューする。
 
+Vercel デプロイ時の環境変数・Cron 設定は [docs/operations.md](./docs/operations.md) §4 / §6 を参照。
+
 ## ライセンス
 
-未定（Phase 6 までに決定予定）。
+未定（Phase 6 の最終確認で決定）。
