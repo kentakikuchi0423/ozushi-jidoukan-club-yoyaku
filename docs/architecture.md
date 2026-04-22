@@ -1,262 +1,327 @@
 # architecture
 
 技術スタック、データモデル、主要フローを記述する。
+**本ファイルは実装済みの状態を反映する**（2026-04 時点、Phase 2–6 実装後）。
 採用理由の詳細は [decisions.md](./decisions.md) に ADR として置く。
 
 ---
 
-## 1. 技術スタック（初期案）
+## 1. 技術スタック（実装済み）
 
 | レイヤ | 採用 | 用途 |
 | --- | --- | --- |
 | ランタイム | Node.js 20 LTS | |
-| パッケージマネージャ | pnpm | lockfile の厳格さ・速度 |
-| フレームワーク | Next.js 15+ (App Router) | SSR / Server Actions / Route Handlers（Phase 1 実績: 16.2） |
-| 言語 | TypeScript (strict) | |
-| UI | Tailwind CSS + shadcn/ui | 保守しやすさと低コスト |
-| DB / Auth | Supabase (PostgreSQL) | 低コスト、RLS、Auth 同梱 |
-| ORM / Query | 初期は Supabase JS SDK + SQL migration。必要に応じて Drizzle 検討 | |
-| メール | Resend | 開発はテスト送信、本番は独自ドメイン |
-| ホスティング | Vercel | Next.js 親和性 / Cron |
-| テスト | Vitest + Playwright | |
+| パッケージマネージャ | pnpm 10 | lockfile の厳格さ・速度（ADR-0003） |
+| フレームワーク | Next.js 16.2 (App Router) | RSC / Server Actions / Route Handlers（ADR-0001） |
+| 言語 | TypeScript 5 (strict) | |
+| UI | Tailwind CSS v4 | 保守しやすさと低コスト。shadcn/ui は未導入（v1 では不要） |
+| DB / Auth | Supabase (PostgreSQL / Auth / RLS) | 低コスト、RLS、Auth 同梱（ADR-0002, 0014） |
+| Query | Supabase JS SDK + SQL migration | RPC と SECURITY DEFINER 関数で特権処理（ADR-0004, 0005） |
+| 日付 | `date-fns-tz` + `@holiday-jp/holiday_jp` | JST 業務日計算（ADR-0010） |
+| バリデーション | zod 4 | クライアント／サーバー二重検証 |
+| メール | Resend 6 | 4 テンプレート（confirmed / waitlisted / promoted / canceled） |
+| ホスティング | Vercel | Next.js 親和性 + Cron |
+| テスト | Vitest 4 + Playwright 1.59 | ユニット + E2E（ADR-0009） |
 | 開発環境 | VS Code devcontainer | 再現性 |
 
-## 2. リポジトリ構成（Phase 1 以降の予定）
+## 2. リポジトリ構成（実装済み）
 
 ```
-/
+.
 ├── src/
 │   ├── app/
-│   │   ├── (user)/            # 利用者向け画面
-│   │   │   ├── page.tsx       # クラブ一覧
-│   │   │   ├── clubs/[id]/    # 予約入力 → 確認 → 完了
-│   │   │   └── reservations/  # 予約確認 / キャンセル
-│   │   ├── admin/             # 管理者画面
-│   │   │   ├── login/
-│   │   │   ├── dashboard/
-│   │   │   ├── clubs/
-│   │   │   ├── accounts/      # super_admin のみ
-│   │   │   └── password/
-│   │   └── api/               # Route Handlers（必要に応じて）
-│   ├── lib/
-│   │   ├── db/                # supabase client, queries
-│   │   ├── auth/              # server-side session helpers
-│   │   ├── mail/              # resend wrapper
-│   │   ├── reservations/      # reservation domain logic
-│   │   └── validation/        # zod schemas
-│   ├── components/            # UI コンポーネント
-│   └── server/                # server-only ユーティリティ（重要ロジック）
+│   │   ├── page.tsx                       # 利用者トップ（クラブ一覧）
+│   │   ├── layout.tsx                     # skip-to-content、Noto Sans JP、noindex
+│   │   ├── clubs/
+│   │   │   ├── [id]/page.tsx              # クラブ詳細 + 予約フォーム
+│   │   │   ├── [id]/reservation-form.tsx  # Client Component (draft→preview)
+│   │   │   ├── [id]/actions.ts            # createReservationAction
+│   │   │   └── [id]/done/page.tsx         # 予約完了
+│   │   ├── reservations/
+│   │   │   ├── page.tsx                   # 予約確認（r + t クエリ）
+│   │   │   ├── cancel-form.tsx
+│   │   │   └── actions.ts                 # cancelReservationAction
+│   │   ├── admin/
+│   │   │   ├── page.tsx                   # ダッシュボード
+│   │   │   ├── actions.ts                 # logoutAction
+│   │   │   ├── login/                     # ログインフォーム + Server Action
+│   │   │   ├── clubs/                     # CRUD（list / new / [id]/edit）
+│   │   │   ├── password/                  # パスワード変更
+│   │   │   └── accounts/                  # super_admin のみ: 招待
+│   │   ├── api/cron/
+│   │   │   └── retention-cleanup/route.ts # Vercel Cron の入口
+│   │   └── middleware.ts                  # session refresh + /admin ガード + CSP nonce
+│   ├── lib/                               # UI 非依存（client / server 共用）
+│   │   ├── clubs/                         # ClubListing 型 / query / input-schema
+│   │   ├── facility.ts                    # 3 館コード ↔ ID マップ
+│   │   ├── format.ts                      # JST 日時フォーマッタ + datetime-local 変換
+│   │   ├── reservations/                  # 予約番号 / status / 入力 schema / キャンセル締切
+│   │   ├── env.ts                         # NEXT_PUBLIC_ 環境変数
+│   │   └── supabase/                      # browser / server クライアント（publishable）
+│   └── server/                            # server-only（secret key 参照）
+│       ├── auth/                          # session / guards / permissions / profile / admin-list
+│       ├── audit/log.ts                   # logAdminAction
+│       ├── clubs/admin-detail.ts          # admin 向け単一取得
+│       ├── env.ts                         # SUPABASE_SECRET_KEY / RESEND_* / CRON_SECRET
+│       ├── mail/                          # send + 4 templates + notify
+│       ├── reservations/                  # create / cancel / lookup / secure-token
+│       └── supabase/admin.ts              # secret key クライアント（RLS バイパス）
 ├── supabase/
-│   ├── migrations/
-│   └── seed.sql
-├── tests/
-│   ├── unit/                  # vitest
-│   └── e2e/                   # playwright
-├── docs/
-└── ...
+│   ├── config.toml
+│   ├── migrations/                        # 5 本（schema / rpcs / retention / listing / detail / fix）
+│   └── seed.sql                           # placeholder（PII 禁止方針）
+├── scripts/db-push.mjs                    # `pnpm db:push` ラッパ
+├── e2e/                                   # Playwright: smoke / permission-guard / reservation-flow / admin-flow
+├── docs/                                  # 要件・アーキ・ADR・運用・テスト・セキュリティ
+├── vercel.json                            # Cron スケジュール
+├── next.config.ts                         # セキュリティヘッダー
+└── .claude/                               # Claude Code の設定・エージェント・スキル
 ```
 
-## 3. データモデル（初期案）
+## 3. データモデル（実装済み）
 
 ### 3.1 ER サマリ
 
 ```
 facilities 1 ── * clubs 1 ── * reservations
-admins * ── * facilities  (via admin_facilities)
+auth.users 1 ── 1 admins * ── * facilities (via admin_facilities)
 admins 1 ── * audit_logs
+reservation_number_sequences (facility_code PK)
 ```
 
-### 3.2 テーブル（擬似 DDL）
+### 3.2 テーブル（実装済み DDL 抜粋、詳細は `supabase/migrations/20260421000000_initial_schema.sql`）
 
 ```sql
--- 施設（固定3件）
-create table facilities (
-  id         smallint primary key,
-  code       text not null unique check (code in ('ozu','kita','toku')),
-  name       text not null
+create table public.facilities (
+  id smallint primary key,
+  code text not null unique check (code in ('ozu','kita','toku')),
+  name text not null
 );
 
--- 管理者
-create table admins (
-  id            uuid primary key default gen_random_uuid(),
-  email         citext not null unique,
-  password_hash text,  -- Supabase Auth に委譲する場合は null 可
-  created_at    timestamptz not null default now(),
-  updated_at    timestamptz not null default now()
+-- 管理者は auth.users の拡張プロフィール（ADR-0014）
+create table public.admins (
+  id uuid primary key references auth.users(id) on delete cascade,
+  display_name text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
 );
 
--- admin と館の多対多（権限）
-create table admin_facilities (
-  admin_id    uuid not null references admins(id) on delete cascade,
-  facility_id smallint not null references facilities(id),
+create table public.admin_facilities (
+  admin_id uuid not null references public.admins(id) on delete cascade,
+  facility_id smallint not null references public.facilities(id),
   primary key (admin_id, facility_id)
 );
 
--- クラブ
-create table clubs (
-  id              uuid primary key default gen_random_uuid(),
-  facility_id     smallint not null references facilities(id),
-  name            text not null,
-  start_at        timestamptz not null,
-  end_at          timestamptz not null check (end_at > start_at),
-  capacity        integer not null check (capacity > 0),
-  target_age_min  integer,
-  target_age_max  integer,
-  photo_url       text,
-  description     text,
-  created_at      timestamptz not null default now(),
-  created_by      uuid references admins(id),
-  deleted_at      timestamptz
+create table public.clubs (
+  id uuid primary key default gen_random_uuid(),
+  facility_id smallint not null references public.facilities(id),
+  name text not null check (length(name) between 1 and 100),
+  start_at timestamptz not null,
+  end_at timestamptz not null check (end_at > start_at),
+  capacity integer not null check (capacity > 0 and capacity <= 1000),
+  target_age_min integer check (target_age_min is null or between 0 and 120),
+  target_age_max integer check (target_age_max is null or between 0 and 120),
+  photo_url text check (photo_url is null or photo_url ~ '^https?://'),
+  description text check (description is null or length(description) <= 2000),
+  created_at timestamptz not null default now(),
+  created_by uuid references public.admins(id),
+  deleted_at timestamptz,
+  check (target_age_min is null or target_age_max is null
+         or target_age_max >= target_age_min)
 );
-create index clubs_start_at_desc on clubs (start_at desc);
 
--- 予約
-create type reservation_status as enum ('confirmed','waitlisted','canceled');
+create type public.reservation_status as enum ('confirmed','waitlisted','canceled');
 
-create table reservations (
-  id                  uuid primary key default gen_random_uuid(),
-  club_id             uuid not null references clubs(id) on delete cascade,
-  reservation_number  text not null unique,   -- ozu_123456 等
-  secure_token        text not null unique,   -- 32文字以上乱数
-  status              reservation_status not null,
-  waitlist_position   integer,                -- waitlisted の時のみ採番
-  parent_name         text not null,
-  parent_kana         text not null,
-  child_name          text not null,
-  child_kana          text not null,
-  phone               text not null,
-  email               citext not null,
-  notes               text,
-  created_at          timestamptz not null default now(),
-  canceled_at         timestamptz
+create table public.reservations (
+  id uuid primary key default gen_random_uuid(),
+  club_id uuid not null references public.clubs(id) on delete cascade,
+  reservation_number text not null unique
+    check (reservation_number ~ '^(ozu|kita|toku)_[0-9]{6}$'),
+  secure_token text not null unique check (length(secure_token) >= 32),
+  status public.reservation_status not null,
+  waitlist_position integer,
+  parent_name text not null,
+  parent_kana text not null,
+  child_name text not null,
+  child_kana text not null,
+  phone text not null check (phone ~ '^[0-9+\-() ]{7,20}$'),
+  email citext not null check (email ~ '^[^@\s]+@[^@\s]+\.[^@\s]+$'),
+  notes text check (notes is null or length(notes) <= 500),
+  created_at timestamptz not null default now(),
+  canceled_at timestamptz,
+  check ((status = 'waitlisted' and waitlist_position is not null and waitlist_position > 0)
+         or (status <> 'waitlisted' and waitlist_position is null)),
+  check ((status = 'canceled' and canceled_at is not null)
+         or (status <> 'canceled' and canceled_at is null))
 );
-create index reservations_club_status on reservations (club_id, status);
-create index reservations_club_waitlist on reservations (club_id, waitlist_position)
+
+-- 重要: (club_id, waitlist_position) は waitlisted 限定で unique
+create unique index reservations_club_waitlist_unique
+  on public.reservations (club_id, waitlist_position)
   where status = 'waitlisted';
 
--- 予約番号の採番用（prefix ごとにシーケンシャル）
-create table reservation_number_sequences (
-  facility_code text primary key,
-  next_value    integer not null default 100000  -- 6桁固定の初期値
+-- 予約番号採番（1 行 per 館、UPDATE ... RETURNING でアトミック）
+create table public.reservation_number_sequences (
+  facility_code text primary key references public.facilities(code),
+  next_value integer not null default 100000
+    check (next_value between 100000 and 1000000)
 );
 
--- 監査ログ
-create table audit_logs (
-  id          bigserial primary key,
-  admin_id    uuid references admins(id),
-  action      text not null,           -- 'club.create','club.update', ...
+create table public.audit_logs (
+  id bigserial primary key,
+  admin_id uuid references public.admins(id),
+  action text not null,
   target_type text not null,
-  target_id   text,
-  metadata    jsonb not null default '{}'::jsonb,
-  created_at  timestamptz not null default now()
+  target_id text,
+  metadata jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now()
 );
 ```
 
-### 3.3 RLS 方針
+### 3.3 RLS 方針（実装済み）
 
-- Supabase の **Row Level Security** を原則すべてのテーブルで **ON**
-- 利用者クライアント（publishable key、旧 anon key 相当）は以下のみ許可
-  - `clubs` の SELECT（`deleted_at is null` かつ `start_at >= now() - interval '1 year'` の条件付きビュー経由）
-  - `reservations` の INSERT（ただし実際の予約確定はサーバーサイドの関数で行う）
-  - `reservations` の SELECT / UPDATE は **secure_token 一致時のみ** 許可（または Route Handler 経由のみ）
-- 管理操作は **secret key（旧 service_role key 相当）を使った Route Handler / Server Action のみ**
-- RLS に頼り切らず、アプリ側でも必ず権限チェック（二重化）
+すべてのテーブルで RLS を ON。policy の有無とロールの組み合わせで許可を決める:
+
+- **facilities**: anon / authenticated に SELECT 許可（公開マスタ）
+- **clubs**:
+  - `clubs_select_public`: anon / authenticated に `deleted_at is null and start_at >= now() - interval '1 year'` の SELECT
+  - `clubs_admin_facility`: authenticated で `admin_facilities` に該当館を持つ admin に CRUD 許可
+- **reservations**: policy 未定義 → anon / authenticated からは一切見えない。`get_my_reservation` / `create_reservation` / `cancel_reservation` の SECURITY DEFINER 関数だけがアクセス
+- **admins**: 認証済みユーザは自分の行だけ SELECT
+- **admin_facilities**: 認証済みユーザは自分の行だけ SELECT
+- **reservation_number_sequences**: policy 無し → secret key のみ
+- **audit_logs**: 認証済みユーザは自分の監査ログだけ SELECT。INSERT / UPDATE / DELETE は secret key 経由のみ
+
+RLS に頼り切らず、Server Action / Route Handler 側でも `requireFacilityPermission` / `requireSuperAdmin` で二重にチェックする。
+
+### 3.4 SECURITY DEFINER 関数（実装済み）
+
+| 関数 | 呼び元 | 役割 |
+| --- | --- | --- |
+| `create_reservation(club_id, secure_token, form 8 項目)` | `supabase.rpc` from server client | `clubs FOR UPDATE` + 容量判定 + 連番採番 + 予約 INSERT |
+| `cancel_reservation(reservation_number, secure_token)` | 同上 | トークン検証 + キャンセル + 繰り上げ |
+| `get_my_reservation(reservation_number, secure_token)` | 同上 | 予約確認画面の読み取り |
+| `list_public_clubs()` | 同上 | 利用者向けクラブ一覧（件数集計つき） |
+| `get_public_club(id)` | 同上 | クラブ詳細 1 件 |
+| `cleanup_expired_clubs(keep_days default 365)` | Vercel Cron（secret key） | retention |
+| `cleanup_old_audit_logs(keep_days default 1095)` | 同上 | retention |
+
+すべて `set search_path = public, pg_temp` を設定し、anon/authenticated には必要最小限だけ EXECUTE を GRANT。
 
 ## 4. 予約処理フロー
 
-### 4.1 予約確定
+### 4.1 予約確定（実装済み）
 
 ```
-Client submit
-  └→ Server Action: createReservation(clubId, form)
-       ├─ zod validate
-       ├─ begin transaction
-       │   ├─ SELECT ... FOR UPDATE on clubs (row lock)
-       │   ├─ count current confirmed
-       │   ├─ if count < capacity:
-       │   │    status = 'confirmed'
-       │   ├─ else:
-       │   │    status = 'waitlisted'
-       │   │    waitlist_position = max(position) + 1
-       │   ├─ generate reservation_number (UPDATE ... RETURNING on reservation_number_sequences)
-       │   ├─ generate secure_token (crypto.randomBytes)
+Client: /clubs/[id] のフォーム submit
+  └→ Server Action: createReservationAction(clubId, input)
+       ├─ zod validate (reservationInputSchema)
+       ├─ generate secure_token (Web Crypto, 32 bytes base64url)
+       ├─ RPC: create_reservation(club_id, secure_token, 8 form fields)
+       │   ├─ SELECT ... FOR UPDATE on clubs
+       │   ├─ count confirmed → status = 'confirmed' or 'waitlisted'
+       │   ├─ UPDATE reservation_number_sequences SET next_value = next_value + 1
+       │   │     RETURNING next_value - 1
        │   └─ INSERT reservations
-       └─ send email via Resend (confirmed / waitlisted 区別)
+       ├─ notifyReservationCreated (confirmed / waitlisted のテンプレ分岐、fire-and-forget)
+       └─ redirect → /clubs/[id]/done?r=...&t=...&s=...&p=...
 ```
 
-- 行ロック + 原子的 UPDATE により定員超過を防止
-- 採番は **専用テーブルの原子的 UPDATE RETURNING** で衝突回避
-- メール送信は commit 後のタイミングで実施（失敗時は監査ログに残す）
-
-### 4.2 キャンセル
+### 4.2 キャンセル + 繰り上げ（実装済み）
 
 ```
-Client: 予約番号 + secure_token で accessing
-  └→ Server Action: cancelReservation(number, token)
-       ├─ verify token
-       ├─ check cancellation deadline (2営業日前17時、タイムゾーン: Asia/Tokyo)
-       ├─ begin transaction
-       │   ├─ UPDATE reservations SET status='canceled', canceled_at=now()
-       │   ├─ if 元が 'confirmed':
-       │   │    SELECT 先頭 waitlisted (waitlist_position ASC)
-       │   │    UPDATE その行 status='confirmed', waitlist_position=null
-       │   │    → 繰り上げ通知対象として保持
-       │   └─ 繰り上げ対象がいない場合は空き復活のみ
-       └─ send cancellation mail + (必要なら) 繰り上げ通知メール
+Client: /reservations?r=...&t=... の「キャンセルする」
+  └→ Server Action: cancelReservationAction(r, t)
+       ├─ fetchMyReservation(r, t) でトークン検証 + キャンセル前の情報を snapshot
+       ├─ isCancellable(clubStartAt) で 2 営業日前 17:00 JST を確認（祝日含む）
+       ├─ RPC: cancel_reservation(r, t)
+       │   ├─ SELECT reservations FOR UPDATE (token 一致)
+       │   ├─ UPDATE status='canceled', canceled_at=now()
+       │   └─ if 元が confirmed: clubs FOR UPDATE 取得 → waitlist 先頭を confirmed に昇格
+       ├─ notifyReservationCanceled (fire-and-forget)
+       └─ if promotion が発生: notifyReservationPromoted（相手の secure_token を admin client で取得）
 ```
 
-### 4.3 Retention Cleanup
+### 4.3 Retention cleanup（実装済み）
 
-- 日次バッチ（Supabase cron または Vercel Cron）
-- `delete from clubs where start_at < now() - interval '1 year'`
-  - `reservations` は `on delete cascade` で同時削除
-- 実行結果を audit_logs に記録
+- Vercel Cron が日次 18:00 UTC（= 翌 03:00 JST）に `/api/cron/retention-cleanup` を GET
+- Route Handler が `Bearer <CRON_SECRET>` を検証し、`cleanup_expired_clubs()` + `cleanup_old_audit_logs()` を順に呼ぶ
+- 実行結果は `audit_logs` に `retention.cleanup_clubs` / `retention.cleanup_audit_logs`（`admin_id = null`）で残る
 
-## 5. 認証 / 認可
+## 5. 認証 / 認可（実装済み）
 
 ### 5.1 利用者
-- 認証なし。予約確認は `reservation_number + secure_token`（メールリンク）
+- 認証なし。予約確認は `reservation_number + secure_token`（メール本文の URL 経由）
+- `get_my_reservation(r, t)` RPC が両方一致時のみ行を返す
 
 ### 5.2 管理者
-- Supabase Auth の email/password で開始（ADR 参照）
-- 館権限は `admin_facilities` で管理
-- すべての管理系 Route Handler / Server Action で以下を検証
-  1. 認証されているか
-  2. 対象 facility_id に対する権限があるか
-  3. 操作種別（read / write / super_admin）の許可があるか
-- super_admin = `admin_facilities` で 3館全てを持つ admin
+- Supabase Auth の email/password で認証（ADR-0014）。ID = メールアドレス
+- `@supabase/ssr` の cookie ベースセッション。middleware で毎リクエスト refresh
+- 館権限は `admin_facilities` で管理（ADR-0007）
+- Server Action / RSC の冒頭で `requireAdmin` / `requireFacilityPermission` / `requireSuperAdmin` を呼ぶ
+- `/admin/*` は middleware が未ログイン時に `/admin/login?next=...` へリダイレクト
 
-### 5.3 監査ログに残す操作
-- クラブ作成 / 更新 / 削除
-- アカウント作成 / 削除 / 権限変更
-- パスワード変更
-- ログイン失敗の集約（個別メールは残さず件数のみ）
+### 5.3 監査ログに残す操作（実装済み）
+- `club.create` / `club.update` / `club.delete`
+- `admin.create` / `admin.password_change`
+- `retention.cleanup_clubs` / `retention.cleanup_audit_logs`
+
+PII（氏名・電話・メール）は原則 metadata に含めない。`admin.create` は招待時のメールと館コードだけ残す（identification 用）。
 
 ## 6. メール（Resend）
 
-- テンプレート: `confirmed`, `waitlisted`, `promoted`, `canceled`
-- 本文には予約番号・クラブ情報・キャンセル期限・確認 URL
-- 個人情報のログ回避のため、Resend の metadata には最小限のみ
+| タグ | テンプレート | 送信先 | 内容 |
+| --- | --- | --- | --- |
+| `reservation.confirmed` | `confirmed.ts` | 申込者 | 予約番号、日時、キャンセル期限、確認 URL |
+| `reservation.waitlisted` | `waitlisted.ts` | 申込者 | 予約番号、日時、順位、確認 URL |
+| `reservation.promoted` | `promoted.ts` | 繰り上がった人 | 繰り上がり通知、日時、確認 URL |
+| `reservation.canceled` | `canceled.ts` | キャンセル実行者 | キャンセル受領、日時（URL は含めない） |
 
-## 7. 環境変数（.env.example の予定）
+すべて text-only。`src/server/mail/send.ts` は `RESEND_API_KEY` / `RESEND_FROM_ADDRESS` が未設定なら `console.warn` で tag のみ記録して no-op する（dev / CI 用）。ログには宛先・件名・本文を出さない（PII 保護）。
+
+## 7. 環境変数（実装済み、`.env.example` と同期）
 
 ```
-# Supabase（2025-11 以降の新規プロジェクトは publishable / secret のみ）
+# Supabase（2025-11 以降の publishable / secret 方式、ADR-0012）
 NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=   # "sb_publishable_..."（旧 anon key の値も可）
-SUPABASE_SECRET_KEY=                    # "sb_secret_..."（旧 service_role key の値も可、サーバー専用）
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
+SUPABASE_SECRET_KEY=                    # server-only、NEXT_PUBLIC_ を付けない
 
-# Resend
-RESEND_API_KEY=
-RESEND_FROM=
+# Supabase CLI（migration 用、ADR-0013）
+SUPABASE_DB_URL=                        # Session pooler (port 5432) の URI
 
 # App
-APP_BASE_URL=http://localhost:3000
-TIMEZONE=Asia/Tokyo
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+
+# Resend（optional、未設定なら console fallback）
+RESEND_API_KEY=
+RESEND_FROM_ADDRESS=
+
+# 初回 super_admin bootstrap 用（seed 後削除）
+ADMIN_BOOTSTRAP_EMAIL=
+ADMIN_BOOTSTRAP_PASSWORD=
+
+# Vercel Cron（optional、未設定なら /api/cron/* が 503）
+CRON_SECRET=
 ```
 
-## 8. デプロイ
+## 8. セキュリティヘッダー（実装済み）
+
+`next.config.ts` が全ルートに:
+- `X-Frame-Options: DENY`
+- `X-Content-Type-Options: nosniff`
+- `Referrer-Policy: strict-origin-when-cross-origin`
+- `Strict-Transport-Security: max-age=63072000; includeSubDomains; preload`
+- `Permissions-Policy: camera=(), microphone=(), geolocation=(), browsing-topics=()`
+
+`src/middleware.ts` が本番のみ（`NODE_ENV === 'production'`）:
+- リクエスト毎に nonce を生成 → `x-nonce` ヘッダで Next.js に渡す
+- `Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-<n>' 'strict-dynamic'; style-src 'self' 'unsafe-inline'; connect-src 'self' <supabase-origin>; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'`
+
+## 9. デプロイ
 
 - Vercel に GitHub 連携でデプロイ
-- Preview 環境でもテスト送信メール（`MAIL_SANDBOX=true` 等のフラグ）
-- retention cron は Vercel Cron で `/api/cron/retention-cleanup`（サービスロール認証ヘッダ）。本体は `public.cleanup_expired_clubs()` / `public.cleanup_old_audit_logs()` SECURITY DEFINER 関数に寄せ済み（詳細は [docs/operations.md](./operations.md)）
+- Environment Variables に上記 env を設定（`CRON_SECRET` を含む）
+- Cron Jobs で `/api/cron/retention-cleanup` をスケジュール確認
+- 初回 super_admin は Supabase Studio で auth.users + `admins` + `admin_facilities` を手動セット（[docs/operations.md §3](./operations.md)）
+- Resend の送信元ドメインを本番移行前に検証する（未検証の間は `onboarding@resend.dev` で Resend 所有アドレス宛のみ送達）

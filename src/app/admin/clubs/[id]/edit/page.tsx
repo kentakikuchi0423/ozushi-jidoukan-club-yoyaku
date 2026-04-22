@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
-import { toZonedTime } from "date-fns-tz";
 
+import { utcIsoToDatetimeLocalJst } from "@/lib/format";
 import {
   AuthenticationRequiredError,
   requireAdmin,
@@ -42,8 +42,8 @@ export default async function AdminClubEditPage({ params }: Props) {
   const initial: ClubFormValues = {
     facilityCode: club.facilityCode,
     name: club.name,
-    startAt: toDatetimeLocalJst(club.startAt),
-    endAt: toDatetimeLocalJst(club.endAt),
+    startAt: utcIsoToDatetimeLocalJst(club.startAt),
+    endAt: utcIsoToDatetimeLocalJst(club.endAt),
     capacity: club.capacity,
     targetAgeMin: club.targetAgeMin,
     targetAgeMax: club.targetAgeMax,
@@ -93,13 +93,4 @@ export default async function AdminClubEditPage({ params }: Props) {
       </section>
     </main>
   );
-}
-
-/** UTC ISO を JST の datetime-local 形式（YYYY-MM-DDTHH:MM）に変換する。 */
-function toDatetimeLocalJst(iso: string): string {
-  const zoned = toZonedTime(new Date(iso), "Asia/Tokyo");
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${zoned.getFullYear()}-${pad(zoned.getMonth() + 1)}-${pad(
-    zoned.getDate(),
-  )}T${pad(zoned.getHours())}:${pad(zoned.getMinutes())}`;
 }

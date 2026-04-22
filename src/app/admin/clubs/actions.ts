@@ -2,10 +2,10 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { fromZonedTime } from "date-fns-tz";
 
 import { clubInputSchema } from "@/lib/clubs/input-schema";
 import { FACILITY_ID_BY_CODE } from "@/lib/facility";
+import { datetimeLocalJstToUtcIso } from "@/lib/format";
 import {
   FacilityPermissionDeniedError,
   requireAdmin,
@@ -41,11 +41,6 @@ function collectFieldErrors(
   return out;
 }
 
-function datetimeLocalToUtcIso(localValue: string): string {
-  // `YYYY-MM-DDTHH:MM` または `...:SS` を受け取り、JST として解釈して UTC に変換
-  return fromZonedTime(localValue, "Asia/Tokyo").toISOString();
-}
-
 /** 新規クラブを登録する。 */
 export async function createClubAction(
   rawInput: unknown,
@@ -75,8 +70,8 @@ export async function createClubAction(
   }
 
   const admin = getSupabaseAdminClient();
-  const startAtUtc = datetimeLocalToUtcIso(input.startAt);
-  const endAtUtc = datetimeLocalToUtcIso(input.endAt);
+  const startAtUtc = datetimeLocalJstToUtcIso(input.startAt);
+  const endAtUtc = datetimeLocalJstToUtcIso(input.endAt);
   const { data, error } = await admin
     .from("clubs")
     .insert({
@@ -172,8 +167,8 @@ export async function updateClubAction(
     .update({
       facility_id: FACILITY_ID_BY_CODE[input.facilityCode],
       name: input.name,
-      start_at: datetimeLocalToUtcIso(input.startAt),
-      end_at: datetimeLocalToUtcIso(input.endAt),
+      start_at: datetimeLocalJstToUtcIso(input.startAt),
+      end_at: datetimeLocalJstToUtcIso(input.endAt),
       capacity: input.capacity,
       target_age_min: input.targetAgeMin,
       target_age_max: input.targetAgeMax,
