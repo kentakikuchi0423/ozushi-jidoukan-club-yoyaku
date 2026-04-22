@@ -25,4 +25,7 @@ export const serverEnv = {
   // Resend はオプション扱い。未設定ならメール送信を no-op にする（ログのみ）。
   resendApiKey: optionalEnv(process.env.RESEND_API_KEY),
   resendFromAddress: optionalEnv(process.env.RESEND_FROM_ADDRESS),
+  // Vercel Cron の `/api/cron/*` は Bearer <CRON_SECRET> で保護する。
+  // 未設定ならエンドポイントは 503 を返して無効化される。
+  cronSecret: optionalEnv(process.env.CRON_SECRET),
 } as const;

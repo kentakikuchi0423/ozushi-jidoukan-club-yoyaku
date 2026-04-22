@@ -14,8 +14,8 @@
 | 2 | DB / 認証 / 権限 | 95% |
 | 3 | 利用者画面 | 95% |
 | 4 | 管理画面 | 75% |
-| 5 | 予約待ち / 繰り上げ / 期限管理 | 50% |
-| 6 | テスト / セキュリティ / 仕上げ | 0% |
+| 5 | 予約待ち / 繰り上げ / 期限管理 | 80% |
+| 6 | テスト / セキュリティ / 仕上げ | 30% |
 
 ---
 
@@ -128,7 +128,7 @@
 
 ---
 
-## Phase 5: 予約待ち / 繰り上げ / 期限管理 (50%)
+## Phase 5: 予約待ち / 繰り上げ / 期限管理 (80%)
 
 **完了条件**: キャンセル → 繰り上げ → 通知メール の流れが DB トランザクション安全に動く。1年経過クラブが自動削除される。
 
@@ -137,23 +137,27 @@
 - [x] 繰り上げ通知メール（`notifyReservationPromoted`、admin client で相手 token 取得）
 - [x] キャンセル期限（2営業日前17時）のチェック（UI + Server Action）
 - [x] retention cleanup SQL 関数（`cleanup_expired_clubs` / `cleanup_old_audit_logs`）
-- [ ] retention cron の Vercel Cron 設定（Phase 6 デプロイ時）
+- [x] retention cron の Route Handler + `vercel.json`（`Bearer CRON_SECRET` 認証、`audit_logs` 記録）
 - [ ] 状態遷移 integration test（Phase 6）
 - [ ] 競合（同時予約）integration test（Phase 6）
 
 ---
 
-## Phase 6: テスト / セキュリティ / 仕上げ (0%)
+## Phase 6: テスト / セキュリティ / 仕上げ (30%)
 
 **完了条件**: docs/security-review.md のチェックリストが全て済み、主要フローが E2E で通る。公開前の最終確認が完了している。
 
-- [ ] unit test カバレッジ確認
-- [ ] integration test
-- [ ] E2E（利用者 + 管理者）
-- [ ] 権限越権テスト
-- [ ] CSRF / XSS / SQLi 観点レビュー
-- [ ] レート制限 / Bot 対策の要否判断
-- [ ] 個人情報ログ出力チェック
-- [ ] UI ポリッシュ（アクセシビリティ含む）
-- [ ] 運用ドキュメント（本番メール切替、バックアップ、障害対応）
-- [ ] README 更新
+- [ ] unit test カバレッジ確認（`pnpm test --coverage` で見ながら穴埋め）
+- [ ] integration test（pg テストコンテナ or Supabase 実 DB で予約 RPC の状態遷移と競合）
+- [x] E2E: 利用者フロー（`e2e/reservation-flow.spec.ts`、opt-in）
+- [x] E2E: 管理者 CRUD フロー（`e2e/admin-flow.spec.ts`、opt-in）
+- [ ] 権限越権テスト（別館 admin で他館クラブ編集 → 403、anon で Server Action → 401）
+- [x] CSRF / XSS / SQLi 観点レビュー（`docs/security-review.md` §3）
+- [ ] レート制限 / Bot 対策（当面 Supabase 既定 + 必要に応じて hCaptcha 検討、Phase 6 後半）
+- [x] 個人情報ログ出力チェック（Server Action / mail wrapper が tag / code のみログ）
+- [x] セキュリティヘッダー（X-Frame-Options / HSTS / Referrer-Policy / Permissions-Policy）
+- [ ] CSP（nonce ベース、Phase 6 後半）
+- [ ] `pnpm audit` の結果整理と Dependabot
+- [ ] UI ポリッシュ（モバイル / アクセシビリティ、WCAG 2.1 AA 目標）
+- [x] 運用ドキュメント（`docs/operations.md` bootstrap / retention / Cron / secret ローテーション）
+- [ ] README の最終整備（デプロイ手順、env 一覧の更新、ライセンス）

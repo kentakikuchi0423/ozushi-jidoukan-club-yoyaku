@@ -93,19 +93,39 @@ select public.cleanup_expired_clubs();
 select public.cleanup_old_audit_logs();
 ```
 
-### 自動実行（未実装、Phase 6 で導入予定）
+### 自動実行（Vercel Cron、実装済み）
 
-選択肢は 2 つ:
+Vercel Cron + Route Handler（`src/app/api/cron/retention-cleanup/route.ts`）
+で毎日 18:00 UTC（= 翌 03:00 JST）に起動するよう `vercel.json` に登録済み。
+本体は `cleanup_expired_clubs` + `cleanup_old_audit_logs` の RPC を順に叩くだけ。
 
-- **Vercel Cron** + Route Handler（推奨）: `/api/cron/retention-cleanup` を作り、
-  `SUPABASE_SECRET_KEY` で `supabase-js` 経由に `.rpc('cleanup_expired_clubs')`
-  を呼ぶ。`vercel.json` に `crons` 定義を入れ、`CRON_SECRET` ヘッダで保護。
-- **pg_cron**（Supabase Studio Database → Extensions）: 有効化後、SQL で
-  `cron.schedule('retention-clubs-daily', '0 3 * * *', 'select public.cleanup_expired_clubs();')`
-  のように登録。プラン / 制約に注意。
+**本番デプロイ前に必ず設定すること**:
 
-実行結果は `audit_logs` に `retention.cleanup_clubs` / `retention.cleanup_audit_logs`
-として記録される（`admin_id = null`）。
+1. 32 バイト以上のランダム文字列を用意（例: `openssl rand -base64 48`）
+2. Vercel Dashboard → Project Settings → Environment Variables で
+   `CRON_SECRET` を追加（production + preview）
+3. Vercel Dashboard → Cron Jobs で `/api/cron/retention-cleanup` がスケジュール
+   登録されていることを確認
+
+`CRON_SECRET` が未設定のままだとエンドポイントは 503 を返すだけで何もしない
+（ステージングや dev で誤って叩いても安全）。実行結果は `audit_logs` に
+`retention.cleanup_clubs` / `retention.cleanup_audit_logs` として記録される
+（`admin_id = null`）。
+
+### pg_cron（別案）
+
+Vercel Cron を使わない場合は Supabase Studio → Database → Extensions で
+`pg_cron` を有効化し、以下のように登録する:
+
+```sql
+select cron.schedule(
+  'retention-clubs-daily',
+  '0 18 * * *',
+  $$ select public.cleanup_expired_clubs(); $$
+);
+```
+
+ただし Supabase の無料プランでは `pg_cron` は利用不可。
 
 ## 5. 動作確認用のテストクラブ投入
 
