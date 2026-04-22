@@ -17,6 +17,12 @@ export const FACILITY_ID_BY_CODE: Record<FacilityCode, number> = {
   toku: 3,
 };
 
+export const FACILITY_CODE_BY_ID: Record<number, FacilityCode> = {
+  1: "ozu",
+  2: "kita",
+  3: "toku",
+};
+
 export function isFacilityCode(value: string): value is FacilityCode {
   return (FACILITY_CODES as readonly string[]).includes(value);
 }

@@ -88,14 +88,12 @@ export default async function AdminDashboardPage() {
             title="パスワード変更"
             description="ログイン用のパスワードを変更します。"
             href="/admin/password"
-            disabled
           />
           {isSuper && (
             <MenuCard
               title="アカウント追加"
               description="新しい管理者アカウントを招待します（super_admin のみ）。"
               href="/admin/accounts"
-              disabled
             />
           )}
         </section>

@@ -11,9 +11,11 @@ export default defineConfig({
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
     exclude: ["node_modules", ".next", "e2e", "tests-e2e"],
     // devcontainer の CPU / メモリが豊富ではなく、`next dev` が常駐している
-    // 時にデフォルトの並列 fork でワーカー起動タイムアウトが頻発するため、
-    // 同時実行数を 2 まで絞る。
+    // 時に並列 fork だとワーカー起動タイムアウトが頻発するため単一プロセスで
+    // 逐次実行する。vitest の公開型に `poolOptions` が載っていないので
+    // ts-expect-error で一時的に許可する。
     pool: "forks",
+    // @ts-expect-error poolOptions is not yet in vitest/config's public types.
     poolOptions: {
       forks: { singleFork: true },
     },
