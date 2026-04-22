@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 
 import {
   reservationInputSchema,
@@ -49,6 +49,16 @@ export function ReservationForm({ clubId }: { clubId: string }) {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  // E2E でハイドレーション完了を検知するためのマーカー。
+  // useEffect は hydrate 完了後にのみ実行されるので、data 属性が付いていれば
+  // React のイベントハンドラも wire up 済みとみなせる。
+  useEffect(() => {
+    document.documentElement.dataset.reservationFormReady = "true";
+    return () => {
+      delete document.documentElement.dataset.reservationFormReady;
+    };
+  }, []);
 
   function updateField<K extends keyof DraftValues>(key: K, value: string) {
     setValues((prev) => ({ ...prev, [key]: value }));
