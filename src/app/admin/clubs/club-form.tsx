@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 
 import { FACILITY_NAMES, type FacilityCode } from "@/lib/facility";
 import type { ClubActionResult } from "./actions";
@@ -49,6 +49,7 @@ export function ClubForm({
   const [formError, setFormError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [deleting, startDeletion] = useTransition();
+  const errorRef = useRef<HTMLParagraphElement>(null);
 
   useEffect(() => {
     document.documentElement.dataset.clubFormReady = "true";
@@ -56,6 +57,10 @@ export function ClubForm({
       delete document.documentElement.dataset.clubFormReady;
     };
   }, []);
+
+  useEffect(() => {
+    if (formError) errorRef.current?.focus();
+  }, [formError]);
 
   function update<K extends keyof ClubFormValues>(
     key: K,
@@ -104,8 +109,10 @@ export function ClubForm({
     <form onSubmit={handleSubmit} className="space-y-5" noValidate>
       {formError && (
         <p
+          ref={errorRef}
+          tabIndex={-1}
           role="alert"
-          className="rounded-md bg-red-50 p-3 text-sm text-red-800"
+          className="rounded-md bg-red-50 p-3 text-sm text-red-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500"
         >
           {formError}
         </p>

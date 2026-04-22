@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 
 import {
   reservationInputSchema,
@@ -166,12 +166,18 @@ function DraftStep({
   onChange,
   onSubmit,
 }: DraftStepProps) {
+  const errorRef = useRef<HTMLParagraphElement>(null);
+  useEffect(() => {
+    if (formError) errorRef.current?.focus();
+  }, [formError]);
   return (
     <form onSubmit={onSubmit} className="space-y-4" noValidate>
       {formError && (
         <p
+          ref={errorRef}
+          tabIndex={-1}
           role="alert"
-          className="rounded-md bg-red-50 p-3 text-sm text-red-800"
+          className="rounded-md bg-red-50 p-3 text-sm text-red-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500"
         >
           {formError}
         </p>
