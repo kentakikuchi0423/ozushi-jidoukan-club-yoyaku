@@ -13,7 +13,7 @@
 | 1 | 開発基盤 | 100% |
 | 2 | DB / 認証 / 権限 | 95% |
 | 3 | 利用者画面 | 95% |
-| 4 | 管理画面 | 15% |
+| 4 | 管理画面 | 75% |
 | 5 | 予約待ち / 繰り上げ / 期限管理 | 50% |
 | 6 | テスト / セキュリティ / 仕上げ | 0% |
 
@@ -84,7 +84,7 @@
 - [x] 初期 super_admin bootstrap 手順を docs 化（`docs/operations.md`）
 - [ ] 予約 RPC の integration test（pg テストコンテナ or Supabase 実 DB を Phase 6 に回す）
 - [ ] retention cron の Vercel Cron 設定（Phase 6 デプロイ時に実施）
-- [ ] admin ログインフォーム実装（Phase 4）
+- [x] admin ログインフォーム実装（Phase 4 に移動、完了）
 
 ---
 
@@ -111,20 +111,20 @@
 
 ---
 
-## Phase 4: 管理画面 (15%)
+## Phase 4: 管理画面 (75%)
 
 **完了条件**: 各館 admin が自館のクラブを CRUD でき、super_admin のみがアカウント追加できる。全ての管理操作が audit_logs に記録される。
 
 - [x] ログイン / ログアウト（`/admin/login` + `loginAction` + `logoutAction`、`next` パラメータは `/admin*` だけに制限）
-- [x] ダッシュボード骨格 `/admin`（display_name、管理館、super_admin バッジ、メニュー準備中カード）
-- [ ] クラブ新規登録（自分の館のみ選択可）
-- [ ] クラブ一覧（自分の館のみ）
-- [ ] クラブ編集
-- [ ] パスワード変更
-- [ ] super_admin のみ アカウント追加画面
-- [ ] 写真リンクの外部 URL validation
-- [ ] モバイル対応の仕上げ
-- [ ] 管理者 E2E テスト
+- [x] ダッシュボード `/admin`（display_name、管理館、super_admin バッジ、メニュー 4 枚が実リンク化）
+- [x] クラブ新規登録 `/admin/clubs/new`（自分の館のみ選択可、INSERT + 監査ログ）
+- [x] クラブ一覧 `/admin/clubs`（自分の館で絞り、予約状況バッジ + 編集リンク）
+- [x] クラブ編集 `/admin/clubs/[id]/edit`（UPDATE + ソフト削除、監査ログ）
+- [x] パスワード変更 `/admin/password`（現パス再認証 + 新パス複雑性 + updateUser + 監査ログ）
+- [x] super_admin のみ アカウント追加画面 `/admin/accounts`（invite + admins/admin_facilities INSERT + 監査ログ、管理者一覧表示）
+- [x] 写真リンクの外部 URL validation（`clubInputSchema` で http(s) 限定）
+- [ ] モバイル対応の仕上げ（Phase 6 の UI ポリッシュで実施）
+- [ ] 管理者 E2E テスト（Phase 6）
 
 ---
 
