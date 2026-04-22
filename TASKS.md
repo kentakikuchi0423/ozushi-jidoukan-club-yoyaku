@@ -15,7 +15,7 @@
 | 3 | 利用者画面 | 95% |
 | 4 | 管理画面 | 75% |
 | 5 | 予約待ち / 繰り上げ / 期限管理 | 80% |
-| 6 | テスト / セキュリティ / 仕上げ | 55% |
+| 6 | テスト / セキュリティ / 仕上げ | 65% |
 
 ---
 
@@ -147,7 +147,8 @@
 
 **完了条件**: docs/security-review.md のチェックリストが全て済み、主要フローが E2E で通る。公開前の最終確認が完了している。
 
-- [ ] unit test カバレッジ確認（`pnpm test --coverage` で見ながら穴埋め）
+- [x] unit test カバレッジ確認（`pnpm test --coverage` を回して、format / status / guards error class / templates shared の pure modules を追加。DB タッチする wrapper は integration test に回す）
+- [ ] Next.js 16 の middleware → proxy 命名 deprecation 対応（`next build` で warning）
 - [ ] integration test（pg テストコンテナ or Supabase 実 DB で予約 RPC の状態遷移と競合）
 - [x] E2E: 利用者フロー（`e2e/reservation-flow.spec.ts`、opt-in）
 - [x] E2E: 管理者 CRUD フロー（`e2e/admin-flow.spec.ts`、opt-in）
