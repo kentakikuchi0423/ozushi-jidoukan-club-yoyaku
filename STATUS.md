@@ -5,66 +5,61 @@
 
 ---
 
-## 最終更新: 2026-04-22（Phase 4–6 を一気通し: 管理 E2E / 管理 CRUD / Retention Cron / Security headers / Guard E2E / README）
+## 最終更新: 2026-04-22（Phase 6 深掘り: CSP nonce / a11y / focus management）
 
-### 今セッションの到達点（大まかな節目）
-**"動く v1" 相当の機能がすべて揃い、E2E で検証済み。残るのは本番リリース前の
-ポリッシュ（CSP nonce / a11y / integration test / rate limit）。**
+### 今セッションで追加された硬さ（前回チェックポイント以降）
+1. **CSP nonce**（`src/middleware.ts`）:
+   - リクエスト毎に 16 バイト base64 nonce を生成、`x-nonce` ヘッダで Next.js に渡す（hydration inline script に自動付与）
+   - `Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-<n>' 'strict-dynamic'; style-src 'self' 'unsafe-inline'; connect-src 'self' <supabase>; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'`
+   - 本番のみ（`NODE_ENV === "production"`）。dev の HMR は壊さない
+2. **A11y ベース**:
+   - `src/app/layout.tsx` に skip-to-content リンク（`href="#main-content"`、focus 時に表示）
+   - reservation-form / club-form / login-form / password-form / invite-form の全入力に `aria-invalid` / `aria-describedby` / `aria-required`、エラー/ヒント段落に id
+   - required の `*` を `aria-hidden` に（スクリーンリーダーに "star" と読ませない）
+   - 入力要素は `focus-visible:outline-2 outline-offset-2 outline-zinc-500`
+   - 送信失敗時、form-level エラー `<p role="alert" tabIndex={-1}>` に自動 focus（reservation-form / club-form）
+3. **E2E 拡張**:
+   - `permission-guard.spec.ts` に CSP nonce 検証 + skip-link DOM 検証を追加
+   - **default 13 / opt-in 2（reservation / admin）すべて green**。CSP 下でも admin CRUD E2E は 9.7 秒で通る
+4. **docs/security-review.md**: CSP を「済」に、2026-04-22 Phase 6 深掘りエントリを追加
 
-### 今セッションで動くようになったもの
-1. **Phase 4 管理画面の完成域**:
-   - ログイン / ダッシュボード / クラブ CRUD / パスワード変更 / アカウント招待（super_admin のみ）
-   - Playwright `e2e/admin-flow.spec.ts`（opt-in）で login → 新規登録 → 一覧 → 編集 → 削除 → ログアウトを 9.6 秒で green
-   - Playwright `e2e/permission-guard.spec.ts`（default）: 未ログインの /admin/* が login へ redirect、`/api/cron/*` が 401/503、セキュリティヘッダー 4 種を一括検証（8 ケース green）
-2. **Phase 5 クロージング**:
-   - Retention cleanup の Route Handler `/api/cron/retention-cleanup`（`Bearer CRON_SECRET` 認証、未設定時 503）
-   - `vercel.json` に daily 18:00 UTC スケジュール
-   - `docs/operations.md` に Vercel Cron セットアップ手順
-3. **Phase 6 着手**:
-   - セキュリティヘッダー（X-Frame-Options / HSTS / Referrer-Policy / X-Content-Type-Options / Permissions-Policy）を `next.config.ts` で全ルートに適用
-   - `docs/security-review.md` のチェック項目をほぼ「済」に更新。残「対応中」は CSP nonce / rate limit / Sentry / Supabase backup / Dependabot
-   - `pnpm audit`: No known vulnerabilities
-   - `README.md` を現状に合わせ全面更新（Phase 進捗、env 一覧、opt-in E2E、ディレクトリ構成）
-4. **付随して入った**: `playwright.config.ts` から `.env.local` を読む小さな dotenv パーサ、`ADMIN_BOOTSTRAP_*` / `CRON_SECRET` の env.example 記載、`FACILITY_CODE_BY_ID` 追加
+### 最新進捗
+- Phase 1 / 2 / 3: **95%+ 完了**
+- Phase 4: **75%**
+- Phase 5: **80%**
+- **Phase 6: 55%**（前回 30% → CSP、a11y、E2E 拡張で +25）
 
-### 現在地（Phase 進捗）
-- Phase 1 / 2 / 3: **95%+ 完了**（残りは integration test のみ、Phase 6 に一括）
-- **Phase 4: 75%**（機能すべて実装 + E2E 済。残りは UI ポリッシュとモバイル微調整）
-- **Phase 5: 80%**（RPC / メール / retention Cron 済。残りは integration test）
-- **Phase 6: 30%**（E2E 3 本、security headers、docs、pnpm audit 済。残りは下記）
-
-### 本番リリース前に残っている作業（全部 Phase 6）
+### 残っている作業（本番リリース前の polish）
 | 項目 | 規模 | メモ |
 | --- | --- | --- |
-| RPC integration test | 中 | pg テストコンテナ or Supabase staging に対して予約確定・キャンセル・繰り上げの状態遷移と並列競合を検証 |
-| CSP（nonce ベース） | 中 | Next.js の inline hydration script に対応する nonce wiring が必要 |
-| Rate limit / Bot 対策 | 小〜中 | 児童館規模では当面不要判断も可。必要なら Vercel Edge Middleware or hCaptcha |
-| UI / a11y ポリッシュ | 中 | skip-to-content / focus management / モバイル細部 / WCAG 2.1 AA |
-| Dependabot + Sentry | 小 | GitHub + Vercel 接続後に作業 |
-| README のライセンス決定 | 小 | 公開時 |
+| Integration test（RPC 状態遷移・並列競合） | 中 | Supabase staging か pg container が必要 |
+| 権限越権 E2E（別館 admin が他館を触れない） | 小〜中 | 2 人目の admin を投入してから |
+| レート制限 / Bot 対策 | 小〜中 | 児童館規模では当面不要判断も可 |
+| Dependabot + Sentry | 小 | GitHub / Vercel 接続後 |
+| UI ポリッシュ深掘り（モバイル細部、focus on stage transitions など） | 中 | 実機検証と組み合わせ |
+| ライセンス決定 | 小 | ユーザー判断 |
+| Supabase バックアップの運用方針 | 小 | プラン確認 |
 
 ### 次のユーザー操作タイミング
-上記は全て自走で進めらます。ユーザー操作が必要になるのは次のいずれか:
-- **Resend の送信元ドメイン検証**（本番で実メール配信するとき）
-- **GitHub リポジトリ作成 + Vercel 接続 + Cron secret 設定**（公開デプロイするとき、`docs/operations.md` §6 に手順）
-- 現状でさらに触りたい機能追加や UX 調整の依頼
+ここまで全部自走でした。**次に必要なのは以下のいずれか**:
+- **本番リリース準備**: GitHub リポジトリ作成 + Vercel 接続 + `CRON_SECRET` 設定 + Resend ドメイン検証（[docs/operations.md](./docs/operations.md)）
+- **実機で触ってフィードバック**: UI の文言・挙動・スマホ表示などで調整したい点があれば指示
+- **新機能追加の要望**（v1 の要件はすべて網羅済み）
 
 ### 直近コマンド結果
 - `pnpm format:check` / `lint` / `typecheck`: all green
-- `pnpm build`: 13 routes（`/api/cron/retention-cleanup` 追加）+ middleware
-- `pnpm test:e2e e2e/permission-guard.spec.ts`: 8 passed
-- `pnpm test:e2e e2e/reservation-flow.spec.ts`（opt-in）: 1 passed
-- `pnpm test:e2e e2e/admin-flow.spec.ts`（opt-in）: 1 passed
-- `pnpm test`: 単体テスト（vitest 4 の worker flake 起きうるが、実行されたものは全通過）
+- `pnpm build`: 13 routes（`/`, `/admin/*` 7 枚, `/clubs/*` 2 枚, `/reservations`, `/api/cron/retention-cleanup`, `/_not-found`）+ middleware
+- `pnpm test:e2e`（default）: **13 passed / 2 skipped**
+- `RUN_ADMIN_FLOW_E2E=1 pnpm test:e2e e2e/admin-flow.spec.ts`: **1 passed**（CSP 下でも OK）
+- `RUN_RESERVATION_FLOW_E2E=1 pnpm test:e2e e2e/reservation-flow.spec.ts`: **1 passed**
 - `pnpm audit`: No known vulnerabilities
 
 ### Git
 - ブランチ: `main`
 - リモート: 未設定
-- 本セッションの主要コミット:
-  - `992eca3` feat(phase-4): admin club CRUD
-  - `31f41fa` feat(phase-4): password change + super_admin account invite
-  - `c40834e` docs(phase-4): Phase 4 75%
-  - `dfca977` test(phase-4): admin CRUD flow E2E + .env.local loader
-  - `e687fd2` feat(phase-5/6): retention cron + security headers + docs audit
-  - `53c3616` test(phase-6): permission-guard E2E + README refresh
+- 本セッションの最新 5 コミット:
+  - `f04e3f0` feat(phase-6): focus-manage the form error alert on submit failure
+  - `a9a3769` feat(phase-6): CSP nonce via middleware + a11y basics
+  - `c2013a7` docs(status): v1-complete checkpoint
+  - `53c3616` test(phase-6): permission-guard E2E + README refresh for v1 readiness
+  - `e687fd2` feat(phase-5/6): retention cron endpoint + security headers + docs audit
