@@ -78,13 +78,11 @@ export default async function AdminDashboardPage() {
             title="クラブを新規登録"
             description="担当する館のクラブを新しく登録します。"
             href="/admin/clubs/new"
-            disabled
           />
           <MenuCard
             title="クラブ一覧"
             description="担当する館のクラブを一覧で確認・編集します。"
             href="/admin/clubs"
-            disabled
           />
           <MenuCard
             title="パスワード変更"
