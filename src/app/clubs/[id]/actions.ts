@@ -2,7 +2,9 @@
 
 import { redirect } from "next/navigation";
 
+import { fetchClubDetail } from "@/lib/clubs/query";
 import { reservationInputSchema } from "@/lib/reservations/input-schema";
+import { notifyReservationCreated } from "@/server/mail/notify";
 import {
   createReservation,
   ReservationConflictError,
@@ -68,7 +70,35 @@ export async function createReservationAction(
     };
   }
 
-  // 3) 成功時のみ redirect（try/catch の外で throw する）
+  // 3) 通知メール送信（fire-and-forget。失敗してもユーザー導線は止めない）
+  //    status が 'canceled' で返ることはないため narrowing だけ行う
+  if (result.status !== "canceled") {
+    try {
+      const club = await fetchClubDetail(clubId);
+      if (club) {
+        await notifyReservationCreated({
+          reservationNumber: result.reservationNumber,
+          secureToken: result.secureToken,
+          status: result.status,
+          waitlistPosition: result.waitlistPosition,
+          parentName: parsed.data.parentName,
+          email: parsed.data.email,
+          facilityName: club.facilityName,
+          clubName: club.name,
+          clubStartAt: club.startAt,
+          clubEndAt: club.endAt,
+        });
+      }
+    } catch (mailError) {
+      console.error("[mail] notifyReservationCreated failed", {
+        tag: "reservation.created",
+        error:
+          mailError instanceof Error ? mailError.message : String(mailError),
+      });
+    }
+  }
+
+  // 4) redirect（try/catch の外で throw する）
   const params = new URLSearchParams({
     r: result.reservationNumber,
     t: result.secureToken,

@@ -3,10 +3,15 @@
 import { revalidatePath } from "next/cache";
 
 import {
+  notifyReservationCanceled,
+  notifyReservationPromoted,
+} from "@/server/mail/notify";
+import {
   cancelReservation,
   InvalidReservationIdentifierError,
   ReservationNotFoundError,
 } from "@/server/reservations/cancel";
+import { fetchMyReservation } from "@/server/reservations/lookup";
 
 export type CancelActionResult =
   | {
@@ -27,10 +32,52 @@ export async function cancelReservationAction(
   reservationNumber: string,
   secureToken: string,
 ): Promise<CancelActionResult> {
+  // 通知用に事前にキャンセル前の情報を取っておく（キャンセル後は secure_token 経由
+  // で再取得できない可能性もあるため）
+  const beforeCancel = await fetchMyReservation(
+    reservationNumber,
+    secureToken,
+  ).catch(() => null);
+
   try {
     const result = await cancelReservation(reservationNumber, secureToken);
     // キャッシュ無効化して、元の URL（?r=...&t=...）を再度開くと canceled が見える
     revalidatePath("/reservations");
+
+    // キャンセル確認メール（fire-and-forget）
+    if (result.canceled && beforeCancel) {
+      try {
+        await notifyReservationCanceled({
+          reservationNumber: beforeCancel.reservationNumber,
+          parentName: beforeCancel.parentName,
+          email: beforeCancel.email,
+          facilityName: beforeCancel.club.facilityName,
+          clubName: beforeCancel.club.name,
+          clubStartAt: beforeCancel.club.startAt,
+          clubEndAt: beforeCancel.club.endAt,
+        });
+      } catch (mailError) {
+        console.error("[mail] notifyReservationCanceled failed", {
+          tag: "reservation.canceled",
+          error:
+            mailError instanceof Error ? mailError.message : String(mailError),
+        });
+      }
+    }
+
+    // 繰り上げ通知メール（相手は別人なので admin client 経由で取得して送る）
+    if (result.promotedReservationNumber) {
+      try {
+        await notifyReservationPromoted(result.promotedReservationNumber);
+      } catch (mailError) {
+        console.error("[mail] notifyReservationPromoted failed", {
+          tag: "reservation.promoted",
+          error:
+            mailError instanceof Error ? mailError.message : String(mailError),
+        });
+      }
+    }
+
     return {
       ok: true,
       promotedReservationNumber: result.promotedReservationNumber,

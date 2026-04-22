@@ -12,7 +12,7 @@
 | 0 | 探索と設計 | 100% |
 | 1 | 開発基盤 | 100% |
 | 2 | DB / 認証 / 権限 | 95% |
-| 3 | 利用者画面 | 75% |
+| 3 | 利用者画面 | 90% |
 | 4 | 管理画面 | 0% |
 | 5 | 予約待ち / 繰り上げ / 期限管理 | 0% |
 | 6 | テスト / セキュリティ / 仕上げ | 0% |
@@ -88,7 +88,7 @@
 
 ---
 
-## Phase 3: 利用者画面 (75%)
+## Phase 3: 利用者画面 (90%)
 
 **完了条件**: 一般利用者がクラブ一覧から予約 → 確認メール受信 → 予約確認画面からキャンセルまで、E2E で通る。
 
@@ -102,9 +102,11 @@
 - [x] 確認画面 + 利用規約表示（フォーム内 2-step: draft → preview）
 - [x] 完了画面 `/clubs/[id]/done?r=&t=&s=&p=`（予約番号・確認 URL 表示）
 - [x] 予約確認・キャンセル画面 `/reservations?r=...&t=...`（`get_my_reservation` RPC + `CancelForm`）
-- [ ] メール送信基盤（Resend。ユーザー操作 = アカウント作成 / ドメイン認証 / `RESEND_API_KEY` 設定後に着手）
-- [ ] キャンセル確認メール / 予約待ち順位通知メール / 繰り上げ通知メール（同上）
-- [ ] 利用者 E2E テスト（予約 → 完了 → キャンセル）。seed クラブの導入後
+- [x] メール送信基盤（`src/server/mail/`、Resend、未設定時 console fallback、PII はログに出さない）
+- [x] confirmed / waitlisted / promoted / canceled の 4 テンプレート + 書式テスト
+- [x] `createReservationAction` / `cancelReservationAction` への fire-and-forget 組み込み
+- [x] テストクラブ投入 SQL と Resend 未検証ドメイン運用を `docs/operations.md` に追記
+- [ ] 利用者 E2E テスト（予約 → 完了 → キャンセル）。seed クラブ投入 & 動作確認後に Phase 6 で
 
 ---
 

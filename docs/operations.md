@@ -107,13 +107,85 @@ select public.cleanup_old_audit_logs();
 実行結果は `audit_logs` に `retention.cleanup_clubs` / `retention.cleanup_audit_logs`
 として記録される（`admin_id = null`）。
 
-## 5. DB パスワードの再発行
+## 5. 動作確認用のテストクラブ投入
+
+Phase 4（管理画面）が無い期間は、クラブを Supabase Studio の SQL Editor から
+直接 INSERT して動作確認する。個人情報は入れず、名前は「テスト」で始めること。
+
+```sql
+-- 翌月開催のテスト用クラブ（大洲児童館 / 定員 2 名）
+insert into public.clubs (
+  facility_id,
+  name,
+  start_at,
+  end_at,
+  capacity,
+  target_age_min,
+  target_age_max,
+  photo_url,
+  description
+) values (
+  1,  -- 1=大洲児童館、2=喜多児童館、3=徳森児童センター
+  'テスト用 こども英会話（初級）',
+  (now() + interval '30 days')::date + time '10:00' at time zone 'Asia/Tokyo',
+  (now() + interval '30 days')::date + time '12:00' at time zone 'Asia/Tokyo',
+  2,
+  3,
+  6,
+  null,
+  E'動作確認用のテストクラブです。実際の開催予定ではありません。\n\nお気軽にご参加ください。'
+);
+
+-- 登録されたか確認（id を控える）
+select id, facility_id, name, start_at, capacity
+  from public.clubs
+  where name like 'テスト用%'
+  order by created_at desc
+  limit 5;
+```
+
+確認後、クラブ一覧ページ（`/`）で該当クラブが表示されれば OK。
+動作確認を終えたら:
+
+```sql
+-- 該当クラブと紐づく予約（cascade 対象）まとめて削除
+delete from public.clubs where name like 'テスト用%';
+```
+
+## 6. Resend（メール送信）
+
+`src/server/mail/` が `RESEND_API_KEY` / `RESEND_FROM_ADDRESS` を見てメールを
+送る。どちらも未設定なら `console.warn` で「スキップした」旨だけ記録して
+no-op になる。
+
+### 未検証ドメインでのテスト送信
+
+Resend の「未検証ドメイン」運用時は以下の制約がある:
+
+- `From:` は `onboarding@resend.dev` のみ許可される
+- `To:` は **Resend アカウント作成時のメールアドレス** にしか届かない（それ以外は API が 403 で失敗する）
+
+したがって、テスト時は予約フォームの「メールアドレス」欄に Resend
+アカウント所有者のメールアドレスを入れること。本番運用前に Resend で
+送信元ドメインを検証（SPF / DKIM / DMARC）し、`RESEND_FROM_ADDRESS` を
+自社ドメイン（例: `no-reply@ozu-city.example.jp`）に差し替える。
+
+### 送信内容のカテゴリ
+
+| タグ | 送信タイミング | 送信先 |
+| --- | --- | --- |
+| `reservation.confirmed` | 予約確定時 | お申込み者 |
+| `reservation.waitlisted` | 予約待ち入り時 | お申込み者 |
+| `reservation.promoted` | キャンセルで繰り上がった時 | 繰り上がった人 |
+| `reservation.canceled` | キャンセル手続き完了時 | キャンセル実行者 |
+
+## 7. DB パスワードの再発行
 
 Supabase Studio → Project Settings → Database → **Reset database password**。
 発行後は `.env.local` の `SUPABASE_DB_URL` を新パスワードで書き換える（DB URL
 のパスワード部分のみ差し替えれば OK）。
 
-## 6. Secret key の再発行（万一流出した場合）
+## 8. Secret key の再発行（万一流出した場合）
 
 1. Studio → Project Settings → API → `sb_secret_...` を **Revoke** → 新キー発行
 2. `.env.local` の `SUPABASE_SECRET_KEY` を更新

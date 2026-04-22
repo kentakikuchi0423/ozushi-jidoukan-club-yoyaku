@@ -13,9 +13,16 @@ function requiredEnv(name: string, value: string | undefined): string {
   return value;
 }
 
+function optionalEnv(value: string | undefined): string | null {
+  return value && value.trim() !== "" ? value : null;
+}
+
 export const serverEnv = {
   supabaseSecretKey: requiredEnv(
     "SUPABASE_SECRET_KEY",
     process.env.SUPABASE_SECRET_KEY,
   ),
+  // Resend はオプション扱い。未設定ならメール送信を no-op にする（ログのみ）。
+  resendApiKey: optionalEnv(process.env.RESEND_API_KEY),
+  resendFromAddress: optionalEnv(process.env.RESEND_FROM_ADDRESS),
 } as const;
