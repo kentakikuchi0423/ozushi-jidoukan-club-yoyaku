@@ -3,10 +3,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 
 import { isReservationNumber } from "@/lib/reservations/number";
-import {
-  isReservationStatus,
-  type ReservationStatus,
-} from "@/lib/reservations/status";
+import { isReservationStatus } from "@/lib/reservations/status";
 import { publicEnv } from "@/lib/env";
 
 export const dynamic = "force-dynamic";

@@ -61,6 +61,33 @@ describe("reservationInputSchema", () => {
     expect(badPhone.success).toBe(false);
   });
 
+  it("normalizes full-width digits/space/paren in phone to half-width", () => {
+    const cases = [
+      "０９０-１２３４-５６７８",
+      "090　1234　5678",
+      "（090）1234-5678",
+    ];
+    for (const phone of cases) {
+      const result = reservationInputSchema.safeParse({ ...validInput, phone });
+      expect(result.success, `failed for ${phone}`).toBe(true);
+      if (result.success) {
+        // NFKC 後は DB の CHECK 制約と同じ `^[0-9+\-() ]{7,20}$` にマッチする
+        expect(result.data.phone).toMatch(/^[0-9+\-() ]{7,20}$/);
+      }
+    }
+  });
+
+  it("normalizes full-width characters in email to half-width", () => {
+    const result = reservationInputSchema.safeParse({
+      ...validInput,
+      email: "ＴＥＳＴ@example.com",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.email).toBe("TEST@example.com");
+    }
+  });
+
   it("rejects an invalid email", () => {
     const badEmail = reservationInputSchema.safeParse({
       ...validInput,

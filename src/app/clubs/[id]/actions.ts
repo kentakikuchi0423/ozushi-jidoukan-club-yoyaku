@@ -55,6 +55,10 @@ export async function createReservationAction(
       return { ok: false, kind: "input", fieldErrors };
     }
     if (error instanceof ReservationConflictError) {
+      console.error("[reservations.create] action rejected as conflict", {
+        tag: "reservation.conflict",
+        message: error.message,
+      });
       return {
         ok: false,
         kind: "conflict",
@@ -62,6 +66,10 @@ export async function createReservationAction(
           "ただいま予約処理が混み合っています。少し時間をおいて、もう一度お試しください。",
       };
     }
+    console.error("[reservations.create] action unknown error", {
+      tag: "reservation.unknown",
+      message: error instanceof Error ? error.message : String(error),
+    });
     return {
       ok: false,
       kind: "unknown",

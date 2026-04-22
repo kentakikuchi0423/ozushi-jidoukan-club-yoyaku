@@ -79,6 +79,13 @@ export async function createReservation(
   });
 
   if (error) {
+    // DB の CHECK 制約違反などは `details` に行の値が入ってくるので
+    // PII が漏れないよう `code` / `message` / `hint` のみログに残す。
+    console.error("[reservations.create] RPC error", {
+      code: error.code,
+      message: error.message,
+      hint: error.hint,
+    });
     throw new ReservationConflictError(
       `create_reservation RPC failed: ${error.message}`,
     );
