@@ -15,7 +15,7 @@
 | 3 | 利用者画面 | 95% |
 | 4 | 管理画面 | 75% |
 | 5 | 予約待ち / 繰り上げ / 期限管理 | 80% |
-| 6 | テスト / セキュリティ / 仕上げ | 30% |
+| 6 | テスト / セキュリティ / 仕上げ | 55% |
 
 ---
 
@@ -143,7 +143,7 @@
 
 ---
 
-## Phase 6: テスト / セキュリティ / 仕上げ (30%)
+## Phase 6: テスト / セキュリティ / 仕上げ (55%)
 
 **完了条件**: docs/security-review.md のチェックリストが全て済み、主要フローが E2E で通る。公開前の最終確認が完了している。
 
@@ -151,13 +151,17 @@
 - [ ] integration test（pg テストコンテナ or Supabase 実 DB で予約 RPC の状態遷移と競合）
 - [x] E2E: 利用者フロー（`e2e/reservation-flow.spec.ts`、opt-in）
 - [x] E2E: 管理者 CRUD フロー（`e2e/admin-flow.spec.ts`、opt-in）
+- [x] E2E: 未ログイン時の /admin/* リダイレクト、/api/cron/* の 401/503、セキュリティヘッダー、CSP、skip-link（`e2e/permission-guard.spec.ts`）
 - [ ] 権限越権テスト（別館 admin で他館クラブ編集 → 403、anon で Server Action → 401）
 - [x] CSRF / XSS / SQLi 観点レビュー（`docs/security-review.md` §3）
 - [ ] レート制限 / Bot 対策（当面 Supabase 既定 + 必要に応じて hCaptcha 検討、Phase 6 後半）
 - [x] 個人情報ログ出力チェック（Server Action / mail wrapper が tag / code のみログ）
 - [x] セキュリティヘッダー（X-Frame-Options / HSTS / Referrer-Policy / Permissions-Policy）
-- [ ] CSP（nonce ベース、Phase 6 後半）
-- [ ] `pnpm audit` の結果整理と Dependabot
-- [ ] UI ポリッシュ（モバイル / アクセシビリティ、WCAG 2.1 AA 目標）
+- [x] CSP（nonce ベース、middleware で本番のみ付与）
+- [x] a11y 基礎（skip-to-content、フォーム `aria-invalid` / `aria-describedby` / `aria-required`、focus-visible outline）
+- [x] `pnpm audit`（No known vulnerabilities、初回確認済み）
+- [ ] Dependabot 設定（GitHub 接続後）
+- [ ] UI ポリッシュ（モバイル / アクセシビリティ、WCAG 2.1 AA 目標、残タスク：focus management on stage transitions 等）
 - [x] 運用ドキュメント（`docs/operations.md` bootstrap / retention / Cron / secret ローテーション）
-- [ ] README の最終整備（デプロイ手順、env 一覧の更新、ライセンス）
+- [x] README の最終整備（デプロイ手順、env 一覧の更新、opt-in E2E）
+- [ ] ライセンス決定（Phase 6 公開前）

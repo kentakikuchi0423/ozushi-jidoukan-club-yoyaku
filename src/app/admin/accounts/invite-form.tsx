@@ -95,13 +95,20 @@ export function InviteAdminForm() {
           id="invite-email"
           type="email"
           required
+          aria-required="true"
           autoComplete="off"
+          aria-invalid={fieldErrors.email ? true : undefined}
+          aria-describedby={
+            fieldErrors.email ? "invite-email-error" : undefined
+          }
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           className={inputClass(fieldErrors.email)}
         />
         {fieldErrors.email && (
-          <p className="text-xs text-red-700">{fieldErrors.email}</p>
+          <p id="invite-email-error" className="text-xs text-red-700">
+            {fieldErrors.email}
+          </p>
         )}
       </div>
 
@@ -116,12 +123,18 @@ export function InviteAdminForm() {
           id="invite-display-name"
           type="text"
           maxLength={100}
+          aria-invalid={fieldErrors.displayName ? true : undefined}
+          aria-describedby={
+            fieldErrors.displayName ? "invite-display-name-error" : undefined
+          }
           value={displayName}
           onChange={(e) => setDisplayName(e.target.value)}
           className={inputClass(fieldErrors.displayName)}
         />
         {fieldErrors.displayName && (
-          <p className="text-xs text-red-700">{fieldErrors.displayName}</p>
+          <p id="invite-display-name-error" className="text-xs text-red-700">
+            {fieldErrors.displayName}
+          </p>
         )}
       </div>
 

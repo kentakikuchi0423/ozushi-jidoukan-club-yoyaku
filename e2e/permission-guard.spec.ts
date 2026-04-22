@@ -59,3 +59,24 @@ test("home page responds 200 and carries the security headers", async ({
   );
   expect(res.headers()["strict-transport-security"]).toMatch(/max-age=/);
 });
+
+test("home page sets a nonce-based CSP in production", async ({ request }) => {
+  const res = await request.get("/");
+  const csp = res.headers()["content-security-policy"];
+  expect(csp, "CSP header should be present").toBeTruthy();
+  expect(csp).toMatch(/script-src [^;]*'nonce-[A-Za-z0-9+\/=_-]+'/);
+  expect(csp).toMatch(/frame-ancestors 'none'/);
+  expect(csp).toMatch(/object-src 'none'/);
+});
+
+test("skip-to-content link is in the DOM on the home page", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const skipLink = page.getByRole("link", {
+    name: "メインコンテンツへスキップ",
+  });
+  await expect(skipLink).toHaveAttribute("href", "#main-content");
+  // #main-content が存在し、tabIndex=-1 でプログラム的にフォーカス可能
+  await expect(page.locator("#main-content")).toBeAttached();
+});

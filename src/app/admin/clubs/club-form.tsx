@@ -123,6 +123,7 @@ export function ClubForm({
           onChange={(e) =>
             update("facilityCode", e.target.value as FacilityCode)
           }
+          {...fieldAriaProps("facilityCode", fieldErrors.facilityCode)}
           className={selectClass(fieldErrors.facilityCode)}
         >
           {availableFacilities.map((code) => (
@@ -141,6 +142,7 @@ export function ClubForm({
           value={values.name}
           maxLength={100}
           onChange={(e) => update("name", e.target.value)}
+          {...fieldAriaProps("name", fieldErrors.name)}
           className={inputClass(fieldErrors.name)}
         />
       </FieldGroup>
@@ -157,6 +159,7 @@ export function ClubForm({
             type="datetime-local"
             value={values.startAt}
             onChange={(e) => update("startAt", e.target.value)}
+            {...fieldAriaProps("startAt", fieldErrors.startAt)}
             className={inputClass(fieldErrors.startAt)}
           />
         </FieldGroup>
@@ -167,6 +170,7 @@ export function ClubForm({
             type="datetime-local"
             value={values.endAt}
             onChange={(e) => update("endAt", e.target.value)}
+            {...fieldAriaProps("endAt", fieldErrors.endAt)}
             className={inputClass(fieldErrors.endAt)}
           />
         </FieldGroup>
@@ -188,6 +192,7 @@ export function ClubForm({
             onChange={(e) =>
               update("capacity", Number.parseInt(e.target.value, 10))
             }
+            {...fieldAriaProps("capacity", fieldErrors.capacity)}
             className={inputClass(fieldErrors.capacity)}
           />
         </FieldGroup>
@@ -212,6 +217,7 @@ export function ClubForm({
                   : Number.parseInt(e.target.value, 10),
               )
             }
+            {...fieldAriaProps("targetAgeMin", fieldErrors.targetAgeMin, true)}
             className={inputClass(fieldErrors.targetAgeMin)}
           />
         </FieldGroup>
@@ -236,6 +242,7 @@ export function ClubForm({
                   : Number.parseInt(e.target.value, 10),
               )
             }
+            {...fieldAriaProps("targetAgeMax", fieldErrors.targetAgeMax, true)}
             className={inputClass(fieldErrors.targetAgeMax)}
           />
         </FieldGroup>
@@ -254,6 +261,7 @@ export function ClubForm({
           inputMode="url"
           value={values.photoUrl}
           onChange={(e) => update("photoUrl", e.target.value)}
+          {...fieldAriaProps("photoUrl", fieldErrors.photoUrl, true)}
           className={inputClass(fieldErrors.photoUrl)}
         />
       </FieldGroup>
@@ -271,6 +279,7 @@ export function ClubForm({
           maxLength={2000}
           value={values.description}
           onChange={(e) => update("description", e.target.value)}
+          {...fieldAriaProps("description", fieldErrors.description, true)}
           className={inputClass(fieldErrors.description)}
         />
       </FieldGroup>
@@ -326,16 +335,31 @@ function FieldGroup({
       </label>
       {children}
       {error ? (
-        <p className="text-xs text-red-700">{error}</p>
+        <p id={`${id}-error`} className="text-xs text-red-700">
+          {error}
+        </p>
       ) : hint ? (
-        <p className="text-xs text-zinc-500">{hint}</p>
+        <p id={`${id}-hint`} className="text-xs text-zinc-500">
+          {hint}
+        </p>
       ) : null}
     </div>
   );
 }
 
+function fieldAriaProps(id: string, error?: string, hasHint = false) {
+  return {
+    "aria-invalid": error ? (true as const) : undefined,
+    "aria-describedby": error
+      ? `${id}-error`
+      : hasHint
+        ? `${id}-hint`
+        : undefined,
+  };
+}
+
 function inputClass(error?: string): string {
-  return `w-full rounded-md border px-3 py-2 text-sm shadow-sm focus:outline-none ${
+  return `w-full rounded-md border px-3 py-2 text-sm shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-500 ${
     error
       ? "border-red-400 focus:border-red-500"
       : "border-zinc-300 focus:border-zinc-500"

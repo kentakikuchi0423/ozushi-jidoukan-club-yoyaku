@@ -38,6 +38,7 @@ export function LoginForm({ next }: Props) {
       {error && (
         <p
           role="alert"
+          id="admin-login-error"
           className="rounded-md bg-red-50 p-3 text-sm text-red-800"
         >
           {error}
@@ -57,9 +58,12 @@ export function LoginForm({ next }: Props) {
           name="email"
           autoComplete="email"
           required
+          aria-required="true"
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? "admin-login-error" : undefined}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-zinc-500 focus:outline-none"
+          className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-500"
         />
       </div>
 
@@ -76,9 +80,12 @@ export function LoginForm({ next }: Props) {
           name="password"
           autoComplete="current-password"
           required
+          aria-required="true"
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? "admin-login-error" : undefined}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-zinc-500 focus:outline-none"
+          className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-500"
         />
       </div>
 

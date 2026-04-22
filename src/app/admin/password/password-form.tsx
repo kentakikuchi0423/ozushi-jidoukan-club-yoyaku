@@ -109,24 +109,32 @@ function Field({
   autoComplete: string;
   hint?: string;
 }) {
+  const inputId = `password-${id}`;
+  const hintId = `${inputId}-hint`;
   return (
     <div className="space-y-1">
       <label
-        htmlFor={`password-${id}`}
+        htmlFor={inputId}
         className="block text-sm font-medium text-zinc-700"
       >
         {label}
       </label>
       <input
-        id={`password-${id}`}
+        id={inputId}
         type="password"
         required
+        aria-required="true"
         autoComplete={autoComplete}
+        aria-describedby={hint ? hintId : undefined}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-zinc-500 focus:outline-none"
+        className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-500"
       />
-      {hint && <p className="text-xs text-zinc-500">{hint}</p>}
+      {hint && (
+        <p id={hintId} className="text-xs text-zinc-500">
+          {hint}
+        </p>
+      )}
     </div>
   );
 }

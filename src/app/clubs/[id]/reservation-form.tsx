@@ -249,12 +249,18 @@ function DraftStep({
           onChange={(e) => onChange("notes", e.target.value)}
           rows={3}
           maxLength={500}
-          className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-zinc-500 focus:outline-none"
+          aria-invalid={fieldErrors.notes ? true : undefined}
+          aria-describedby={fieldErrors.notes ? "notes-error" : "notes-hint"}
+          className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-500"
         />
         {fieldErrors.notes && (
-          <p className="text-xs text-red-700">{fieldErrors.notes}</p>
+          <p id="notes-error" className="text-xs text-red-700">
+            {fieldErrors.notes}
+          </p>
         )}
-        <p className="text-xs text-zinc-500">500 字以内</p>
+        <p id="notes-hint" className="text-xs text-zinc-500">
+          500 字以内
+        </p>
       </div>
 
       <button
@@ -290,11 +296,16 @@ function Field({
   hint,
   required,
 }: FieldProps) {
+  const describedBy = error ? `${id}-error` : hint ? `${id}-hint` : undefined;
   return (
     <div className="space-y-1">
       <label htmlFor={id} className="block text-sm font-medium text-zinc-700">
         {label}
-        {required && <span className="ml-1 text-red-600">*</span>}
+        {required && (
+          <span className="ml-1 text-red-600" aria-hidden="true">
+            *
+          </span>
+        )}
       </label>
       <input
         id={id}
@@ -304,16 +315,22 @@ function Field({
         onChange={(e) => onChange(e.target.value)}
         autoComplete={autoComplete}
         aria-invalid={error ? true : undefined}
-        className={`w-full rounded-md border px-3 py-2 text-sm shadow-sm focus:outline-none ${
+        aria-describedby={describedBy}
+        aria-required={required ? true : undefined}
+        className={`w-full rounded-md border px-3 py-2 text-sm shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-500 ${
           error
             ? "border-red-400 focus:border-red-500"
             : "border-zinc-300 focus:border-zinc-500"
         }`}
       />
       {error ? (
-        <p className="text-xs text-red-700">{error}</p>
+        <p id={`${id}-error`} className="text-xs text-red-700">
+          {error}
+        </p>
       ) : hint ? (
-        <p className="text-xs text-zinc-500">{hint}</p>
+        <p id={`${id}-hint`} className="text-xs text-zinc-500">
+          {hint}
+        </p>
       ) : null}
     </div>
   );
