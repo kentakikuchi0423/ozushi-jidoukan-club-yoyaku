@@ -27,6 +27,7 @@ function preprocessInput(raw: unknown): unknown {
 
 const facilityCodeSchema = z.enum(
   FACILITY_CODES as unknown as [FacilityCode, ...FacilityCode[]],
+  { message: "館を選択してください" },
 );
 
 export const clubInputSchema = z.preprocess(
@@ -34,19 +35,36 @@ export const clubInputSchema = z.preprocess(
   z
     .object({
       facilityCode: facilityCodeSchema,
-      name: z.string().min(1).max(100),
+      name: z
+        .string()
+        .min(1, { message: "クラブ名を入力してください" })
+        .max(100, { message: "クラブ名は 100 字以内で入力してください" }),
       startAt: z.string().regex(datetimeLocalRegex, {
         message: "日時の形式が正しくありません",
       }),
       endAt: z.string().regex(datetimeLocalRegex, {
         message: "日時の形式が正しくありません",
       }),
-      capacity: z.number().int().min(1).max(1000),
-      targetAgeMin: z.number().int().min(0).max(120).nullable(),
-      targetAgeMax: z.number().int().min(0).max(120).nullable(),
+      capacity: z
+        .number({ message: "定員を数値で入力してください" })
+        .int({ message: "定員は整数で入力してください" })
+        .min(1, { message: "定員は 1 名以上で入力してください" })
+        .max(1000, { message: "定員は 1000 名以下で入力してください" }),
+      targetAgeMin: z
+        .number({ message: "対象年齢を数値で入力してください" })
+        .int({ message: "対象年齢は整数で入力してください" })
+        .min(0, { message: "対象年齢は 0 歳以上で入力してください" })
+        .max(120, { message: "対象年齢は 120 歳以下で入力してください" })
+        .nullable(),
+      targetAgeMax: z
+        .number({ message: "対象年齢を数値で入力してください" })
+        .int({ message: "対象年齢は整数で入力してください" })
+        .min(0, { message: "対象年齢は 0 歳以上で入力してください" })
+        .max(120, { message: "対象年齢は 120 歳以下で入力してください" })
+        .nullable(),
       photoUrl: z
         .string()
-        .max(2048)
+        .max(2048, { message: "写真 URL が長すぎます（2048 字まで）" })
         .refine((v) => v === "" || photoUrlRegex.test(v), {
           message: "http:// または https:// で始まる URL を入力してください",
         })
@@ -54,7 +72,7 @@ export const clubInputSchema = z.preprocess(
         .nullable(),
       description: z
         .string()
-        .max(2000)
+        .max(2000, { message: "説明は 2000 字以内で入力してください" })
         .transform((v) => (v === "" ? null : v))
         .nullable(),
     })

@@ -28,11 +28,14 @@ const phoneRegex = /^[0-9+\-() ]{7,20}$/;
 
 const personSchema = z
   .object({
-    name: z.string().min(1).max(100),
+    name: z
+      .string()
+      .min(1, { message: "お名前を入力してください" })
+      .max(100, { message: "お名前は 100 字以内で入力してください" }),
     kana: z
       .string()
-      .min(1)
-      .max(100)
+      .min(1, { message: "ふりがなを入力してください" })
+      .max(100, { message: "ふりがなは 100 字以内で入力してください" })
       .regex(hiragana, { message: "ひらがなで入力してください" }),
   })
   .strict();
@@ -83,10 +86,13 @@ export const reservationInputSchema = z.preprocess(
     phone: z
       .string()
       .regex(phoneRegex, { message: "電話番号の形式が正しくありません" }),
-    email: z.string().email().max(320),
+    email: z
+      .string()
+      .email({ message: "メールアドレスの形式が正しくありません" })
+      .max(320, { message: "メールアドレスが長すぎます" }),
     notes: z
       .string()
-      .max(500)
+      .max(500, { message: "備考は 500 字以内で入力してください" })
       .optional()
       .transform((v) => (v && v.length > 0 ? v : undefined)),
   }),

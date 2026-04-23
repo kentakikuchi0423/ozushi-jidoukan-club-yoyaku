@@ -24,17 +24,25 @@ export type AddAdminResult =
 
 const facilityCodeSchema = z.enum(
   FACILITY_CODES as unknown as [FacilityCode, ...FacilityCode[]],
+  { message: "館の指定が正しくありません" },
 );
 
 const addAdminSchema = z.object({
-  email: z.string().trim().email().max(320),
+  email: z
+    .string()
+    .trim()
+    .email({ message: "メールアドレスの形式が正しくありません" })
+    .max(320, { message: "メールアドレスが長すぎます" }),
   displayName: z
     .string()
     .trim()
-    .max(100)
+    .max(100, { message: "表示名は 100 字以内で入力してください" })
     .optional()
     .transform((v) => (v && v.length > 0 ? v : null)),
-  facilityCodes: z.array(facilityCodeSchema).min(1).max(3),
+  facilityCodes: z
+    .array(facilityCodeSchema)
+    .min(1, { message: "館を 1 つ以上選択してください" })
+    .max(3, { message: "館は最大 3 つまでです" }),
 });
 
 function collectFieldErrors(
@@ -46,6 +54,28 @@ function collectFieldErrors(
     if (!(key in out)) out[key] = issue.message;
   }
   return out;
+}
+
+/**
+ * Supabase Auth の招待エラー（英語）をユーザ向け日本語メッセージに変換する。
+ * 元の `error.message` をそのまま画面に出すと英語が露出するため、既知のパターンを
+ * マップし、それ以外は汎用の日本語メッセージにフォールバックする。
+ */
+function translateInviteError(error: { message?: string } | null): string {
+  const raw = error?.message?.toLowerCase() ?? "";
+  if (
+    raw.includes("already been registered") ||
+    raw.includes("already exists")
+  ) {
+    return "このメールアドレスは既に登録済みです。\n別のアドレスを指定するか、該当ユーザーにパスワードの再設定をご案内ください。";
+  }
+  if (raw.includes("invalid") && raw.includes("email")) {
+    return "メールアドレスの形式が正しくありません。\nもう一度ご確認ください。";
+  }
+  if (raw.includes("rate") || raw.includes("too many")) {
+    return "短時間に招待が集中しています。\nしばらく待ってからもう一度お試しください。";
+  }
+  return "招待メールの送信に失敗しました。\nメールアドレスやネットワーク状態を確認してから、もう一度お試しください。";
 }
 
 /**
@@ -98,9 +128,7 @@ export async function addAdminAction(
     return {
       ok: false,
       kind: "invite_failed",
-      message:
-        inviteError?.message ??
-        "招待メールの送信に失敗しました。\n既に登録済みのアドレスかどうか確認してください。",
+      message: translateInviteError(inviteError),
     };
   }
   const newUserId = invite.user.id;
