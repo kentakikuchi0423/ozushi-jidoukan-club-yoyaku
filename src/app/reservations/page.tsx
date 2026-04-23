@@ -199,8 +199,10 @@ function ApplicantSection({ reservation }: { reservation: ReservationDetail }) {
     <section className="mt-6 space-y-3 rounded-lg border border-zinc-200 bg-white p-4 sm:p-6">
       <h2 className="text-sm font-semibold text-zinc-700">お申込み内容</h2>
 
-      <PeopleList label="保護者" people={reservation.parents} />
       <PeopleList label="お子さま" people={reservation.children} />
+      {reservation.parents.length > 0 && (
+        <PeopleList label="保護者" people={reservation.parents} />
+      )}
 
       <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm text-zinc-700">
         <dt className="text-zinc-500">電話</dt>

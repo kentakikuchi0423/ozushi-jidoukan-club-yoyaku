@@ -62,9 +62,8 @@ test("user can create a reservation via the browser", async ({ page }) => {
   await expect(submitButton).toBeEnabled();
 
   // fill → 値がちゃんと React state に入ったかを toHaveValue で担保する
+  // 保護者は任意入力になったので fill しない。お子さまだけで先に進めて OK 判定。
   const cases: Array<[string, string]> = [
-    ["#parents-0-name", "テスト 太郎"],
-    ["#parents-0-kana", "てすと たろう"],
     ["#children-0-name", "テスト 花子"],
     ["#children-0-kana", "てすと はなこ"],
     ["#phone", "090-1234-5678"],

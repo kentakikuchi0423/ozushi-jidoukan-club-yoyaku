@@ -27,9 +27,11 @@ interface DraftValues {
 }
 
 const EMPTY_PERSON: Person = { name: "", kana: "" };
+// children は 1 名以上が必須、parents は任意。parents の初期値を空配列にしておく
+// ことで、ユーザが「＋保護者を追加」を押さない限り送信されない。
 const EMPTY: DraftValues = {
-  parents: [{ ...EMPTY_PERSON }],
   children: [{ ...EMPTY_PERSON }],
+  parents: [],
   phone: "",
   email: "",
   notes: "",
@@ -73,8 +75,10 @@ export function ReservationForm({ clubId }: { clubId: string }) {
   }
 
   function removePerson(kind: "parents" | "children", index: number) {
+    // UI 側の削除ボタン表示条件（PeopleSection の canRemove）が下限を制御する。
+    // ここでは不正な index / 既に空のケースだけ弾く。
     setValues((prev) => {
-      if (prev[kind].length <= 1) return prev;
+      if (prev[kind].length === 0) return prev;
       return { ...prev, [kind]: prev[kind].filter((_, i) => i !== index) };
     });
   }
@@ -87,8 +91,13 @@ export function ReservationForm({ clubId }: { clubId: string }) {
   }
 
   function validateLocally(): ReservationInput | null {
+    // 保護者は任意。両方空のままの行は送信前に落とす（未入力として扱う）。
+    // 片方だけ埋まった行は残してバリデーション側でエラーを出させる。
+    const trimmedParents = values.parents.filter(
+      (p) => p.name.trim().length > 0 || p.kana.trim().length > 0,
+    );
     const input = {
-      parents: values.parents,
+      parents: trimmedParents,
       children: values.children,
       phone: values.phone,
       email: values.email,
@@ -231,16 +240,6 @@ function DraftStep({
       )}
 
       <PeopleSection
-        kind="parents"
-        legend="保護者"
-        values={values.parents}
-        fieldErrors={fieldErrors}
-        onChange={onChangePerson}
-        onAdd={onAddPerson}
-        onRemove={onRemovePerson}
-      />
-
-      <PeopleSection
         kind="children"
         legend="お子さま"
         values={values.children}
@@ -248,6 +247,18 @@ function DraftStep({
         onChange={onChangePerson}
         onAdd={onAddPerson}
         onRemove={onRemovePerson}
+        required
+      />
+
+      <PeopleSection
+        kind="parents"
+        legend="保護者"
+        values={values.parents}
+        fieldErrors={fieldErrors}
+        onChange={onChangePerson}
+        onAdd={onAddPerson}
+        onRemove={onRemovePerson}
+        required={false}
       />
 
       <div className="space-y-4 border-t border-zinc-200 pt-6">
@@ -326,6 +337,8 @@ interface PeopleSectionProps {
   ) => void;
   onAdd: (kind: "parents" | "children") => void;
   onRemove: (kind: "parents" | "children", index: number) => void;
+  /** true のとき最低 1 名必須。* 印とセクション下限（1 → 削除不可）を表示する。 */
+  required: boolean;
 }
 
 function PeopleSection({
@@ -336,14 +349,19 @@ function PeopleSection({
   onChange,
   onAdd,
   onRemove,
+  required,
 }: PeopleSectionProps) {
   const arrayError = fieldErrors[kind];
   const canAdd = values.length < MAX_PEOPLE;
-  const canRemove = values.length > 1;
+  // 必須セクション（お子さま）は最低 1 名を残す。
+  // 任意セクション（保護者）は全件削除できる（＝未入力に戻せる）。
+  const canRemove = required ? values.length > 1 : values.length > 0;
+  const isEmpty = values.length === 0;
+
   return (
     <fieldset className="space-y-4 rounded-md border border-zinc-200 p-4">
       <legend className="px-1 text-sm font-semibold text-zinc-700">
-        {legend}（1 名以上）
+        {legend}
       </legend>
 
       {arrayError && (
@@ -382,16 +400,16 @@ function PeopleSection({
               error={nameErr}
               onChange={(v) => onChange(kind, index, "name", v)}
               autoComplete={kind === "parents" && index === 0 ? "name" : "off"}
-              required
+              required={required}
             />
             <Field
               id={`${kind}-${index}-kana`}
-              label="お名前（ひらがな）"
+              label="お名前(ひらがな)"
               value={person.kana}
               error={kanaErr}
               onChange={(v) => onChange(kind, index, "kana", v)}
               hint="ひらがなで入力してください"
-              required
+              required={required}
             />
           </div>
         );
@@ -403,7 +421,7 @@ function PeopleSection({
           onClick={() => onAdd(kind)}
           className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
         >
-          ＋ {legend}をもう 1 人追加
+          {isEmpty ? `＋ ${legend}を追加` : `＋ ${legend}をもう 1 人追加`}
         </button>
       )}
     </fieldset>
@@ -500,9 +518,20 @@ function PreviewStep({
       )}
 
       <section className="rounded-md bg-zinc-50 p-4 text-sm">
-        <PeoplePreview legend="保護者" values={values.parents} />
-        <hr className="my-3 border-zinc-200" />
         <PeoplePreview legend="お子さま" values={values.children} />
+        {values.parents.some(
+          (p) => p.name.trim().length > 0 || p.kana.trim().length > 0,
+        ) && (
+          <>
+            <hr className="my-3 border-zinc-200" />
+            <PeoplePreview
+              legend="保護者"
+              values={values.parents.filter(
+                (p) => p.name.trim().length > 0 || p.kana.trim().length > 0,
+              )}
+            />
+          </>
+        )}
         <hr className="my-3 border-zinc-200" />
         <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2">
           <dt className="text-zinc-500">電話番号</dt>

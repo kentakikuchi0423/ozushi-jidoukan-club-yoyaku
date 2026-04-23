@@ -3,13 +3,13 @@ import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 
 import { fetchListableClubs } from "@/lib/clubs/query";
-import { ClubCard } from "@/components/clubs/club-card";
 import { ClubFilterBar } from "@/components/clubs/filter-bar";
 import {
   applyClubFilters,
   parseFacilityFilter,
   parseStatusFilter,
 } from "@/components/clubs/filter-utils";
+import { VirtualClubList } from "@/components/clubs/virtual-club-list";
 import { FACILITY_NAMES } from "@/lib/facility";
 import {
   AuthenticationRequiredError,
@@ -119,13 +119,7 @@ export default async function AdminClubsListPage({ searchParams }: Props) {
                 : "公開中のクラブはまだありません。"}
             </div>
           ) : (
-            <ul className="flex flex-col gap-4">
-              {filtered.map((club) => (
-                <li key={club.id}>
-                  <ClubCard club={club} variant="admin" />
-                </li>
-              ))}
-            </ul>
+            <VirtualClubList clubs={filtered} variant="admin" />
           )}
         </>
       )}

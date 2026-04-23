@@ -1,13 +1,13 @@
 import Link from "next/link";
 
 import { fetchListableClubs } from "@/lib/clubs/query";
-import { ClubCard } from "@/components/clubs/club-card";
 import { ClubFilterBar } from "@/components/clubs/filter-bar";
 import {
   applyClubFilters,
   parseFacilityFilter,
   parseStatusFilter,
 } from "@/components/clubs/filter-utils";
+import { VirtualClubList } from "@/components/clubs/virtual-club-list";
 import { FACILITY_CODES } from "@/lib/facility";
 
 // クラブ一覧（利用者向けトップページ）。
@@ -76,13 +76,7 @@ export default async function HomePage({ searchParams }: Props) {
             : "現在予約できるクラブはありません。"}
         </div>
       ) : (
-        <ul className="flex flex-col gap-4">
-          {filtered.map((club) => (
-            <li key={club.id}>
-              <ClubCard club={club} variant="public" />
-            </li>
-          ))}
-        </ul>
+        <VirtualClubList clubs={filtered} variant="public" />
       )}
     </main>
   );

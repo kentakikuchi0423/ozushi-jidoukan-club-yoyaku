@@ -75,10 +75,11 @@ function normalizeTopLevel(raw: unknown): unknown {
 export const reservationInputSchema = z.preprocess(
   normalizeTopLevel,
   z.object({
+    // 保護者は任意（0 名でも OK）。入力した場合は各行で name/kana を要求する。
     parents: z
       .array(personSchema)
-      .min(1, { message: "保護者を 1 名以上入力してください" })
-      .max(MAX_PEOPLE, { message: `保護者は ${MAX_PEOPLE} 名までです` }),
+      .max(MAX_PEOPLE, { message: `保護者は ${MAX_PEOPLE} 名までです` })
+      .default([]),
     children: z
       .array(personSchema)
       .min(1, { message: "お子さまを 1 名以上入力してください" })

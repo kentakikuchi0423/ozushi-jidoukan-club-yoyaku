@@ -34,12 +34,25 @@ describe("reservationInputSchema", () => {
     }
   });
 
-  it("rejects an empty parents array", () => {
+  it("allows an empty parents array (optional)", () => {
     const result = reservationInputSchema.safeParse({
       ...validInput,
       parents: [],
     });
-    expect(result.success).toBe(false);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.parents).toEqual([]);
+    }
+  });
+
+  it("defaults parents to [] when absent", () => {
+    const noParents = { ...validInput } as Partial<typeof validInput>;
+    delete noParents.parents;
+    const result = reservationInputSchema.safeParse(noParents);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.parents).toEqual([]);
+    }
   });
 
   it("rejects an empty children array", () => {
