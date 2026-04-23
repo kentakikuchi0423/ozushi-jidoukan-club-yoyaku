@@ -15,7 +15,7 @@
 | 3 | 利用者画面 | 95% |
 | 4 | 管理画面 | 75% |
 | 5 | 予約待ち / 繰り上げ / 期限管理 | 80% |
-| 6 | テスト / セキュリティ / 仕上げ | 65% |
+| 6 | テスト / セキュリティ / 仕上げ | 75% |
 
 ---
 
@@ -143,12 +143,12 @@
 
 ---
 
-## Phase 6: テスト / セキュリティ / 仕上げ (55%)
+## Phase 6: テスト / セキュリティ / 仕上げ (75%)
 
 **完了条件**: docs/security-review.md のチェックリストが全て済み、主要フローが E2E で通る。公開前の最終確認が完了している。
 
 - [x] unit test カバレッジ確認（`pnpm test --coverage` を回して、format / status / guards error class / templates shared の pure modules を追加。DB タッチする wrapper は integration test に回す）
-- [ ] Next.js 16 の middleware → proxy 命名 deprecation 対応（`next build` で warning）
+- [x] Next.js 16 の middleware → proxy 命名 deprecation 対応（`src/proxy.ts` + `export function proxy`、warning 解消）
 - [ ] integration test（pg テストコンテナ or Supabase 実 DB で予約 RPC の状態遷移と競合）
 - [x] E2E: 利用者フロー（`e2e/reservation-flow.spec.ts`、opt-in）
 - [x] E2E: 管理者 CRUD フロー（`e2e/admin-flow.spec.ts`、opt-in）
@@ -163,6 +163,7 @@
 - [x] `pnpm audit`（No known vulnerabilities、初回確認済み）
 - [ ] Dependabot 設定（GitHub 接続後）
 - [ ] UI ポリッシュ（モバイル / アクセシビリティ、WCAG 2.1 AA 目標、残タスク：focus management on stage transitions 等）
-- [x] 運用ドキュメント（`docs/operations.md` bootstrap / retention / Cron / secret ローテーション）
+- [x] 運用ドキュメント（`docs/operations.md` bootstrap / retention / Cron / secret ローテーション / §9 本番デプロイ runbook）
 - [x] README の最終整備（デプロイ手順、env 一覧の更新、opt-in E2E）
+- [x] ステージ遷移アクセシビリティ（`aria-live` announce）
 - [ ] ライセンス決定（Phase 6 公開前）
