@@ -128,26 +128,37 @@ export function ReservationForm({ clubId }: { clubId: string }) {
     setStage("draft");
   }
 
-  if (stage === "preview") {
-    return (
-      <PreviewStep
-        values={values}
-        pending={pending}
-        formError={formError}
-        onBack={handleBackToDraft}
-        onConfirm={handleConfirm}
-      />
-    );
-  }
-
   return (
-    <DraftStep
-      values={values}
-      fieldErrors={fieldErrors}
-      formError={formError}
-      onChange={updateField}
-      onSubmit={handleGoToPreview}
-    />
+    <>
+      {/* スクリーンリーダー向けのステージ遷移アナウンス。aria-live で読み上げる */}
+      <div
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+        role="status"
+      >
+        {stage === "preview"
+          ? "入力内容の確認画面に進みました。"
+          : "入力画面です。"}
+      </div>
+      {stage === "preview" ? (
+        <PreviewStep
+          values={values}
+          pending={pending}
+          formError={formError}
+          onBack={handleBackToDraft}
+          onConfirm={handleConfirm}
+        />
+      ) : (
+        <DraftStep
+          values={values}
+          fieldErrors={fieldErrors}
+          formError={formError}
+          onChange={updateField}
+          onSubmit={handleGoToPreview}
+        />
+      )}
+    </>
   );
 }
 

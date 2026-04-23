@@ -3,7 +3,8 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { publicEnv } from "@/lib/env";
 
-// アプリ共通の middleware。
+// アプリ共通の proxy（Next.js 16 で `middleware.ts` → `proxy.ts` に改名された
+// 同じ仕組み。機能は旧 middleware と同一）。
 //
 // 目的:
 //  1. 全ルートで Supabase Auth のセッションを refresh し、access_token が期限切れ
@@ -15,8 +16,8 @@ import { publicEnv } from "@/lib/env";
 //     `x-nonce` リクエストヘッダを見て自動で `nonce=` を付与する。
 //     開発中は HMR などで inline script が増えるため CSP は無効化する。
 //
-// middleware は server component ではないため `next/headers` の cookies() は
-// 使えない。ここでは NextRequest / NextResponse の cookie API を直接 wire する。
+// Server Component ではないため `next/headers` の cookies() は使えない。
+// ここでは NextRequest / NextResponse の cookie API を直接 wire する。
 
 const ADMIN_LOGIN_PATHS = ["/admin/login"];
 const IS_PROD = process.env.NODE_ENV === "production";
@@ -45,7 +46,7 @@ function buildCsp(nonce: string, supabaseOrigin: string): string {
   ].join("; ");
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const nonce = IS_PROD ? buildNonce() : null;
 
   // リクエストヘッダに x-nonce を差し込むと、RSC レンダリング中に Next.js が

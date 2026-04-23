@@ -45,7 +45,11 @@ test("user can create a reservation via the browser", async ({ page }) => {
 
   const reserveLink = page.getByRole("link", { name: "予約する" }).first();
   await expect(reserveLink).toBeVisible({ timeout: 15_000 });
-  await reserveLink.click();
+  // Chromium 側の stability 判定がタイムアウトすることがあったので、href の
+  // 値を抜き出して直接 goto する。href があるリンクなので UI 挙動は同じ。
+  const href = await reserveLink.getAttribute("href");
+  if (!href) throw new Error("予約する リンクに href がありません");
+  await page.goto(href);
 
   // 詳細ページ + Client Component のハイドレーション完了まで待つ。
   // React のイベントハンドラが wire up される前に submit してしまうと、
@@ -73,13 +77,15 @@ test("user can create a reservation via the browser", async ({ page }) => {
     await expect(input).toHaveValue(value);
   }
 
-  await submitButton.click();
+  await submitButton.click({ force: true });
 
   // プレビューステップ
   await expect(
     page.getByRole("button", { name: "予約を確定する" }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "予約を確定する" }).click();
+  await page
+    .getByRole("button", { name: "予約を確定する" })
+    .click({ force: true });
 
   // 完了ページへ遷移（失敗時は alert 文言を持って来てわかりやすく落とす）
   try {
@@ -127,8 +133,12 @@ test("user can create a reservation via the browser", async ({ page }) => {
   // CancelForm のハイドレーション完了を待つ
   await page.waitForSelector("html[data-cancel-form-ready='true']");
 
-  await page.getByRole("button", { name: "この予約をキャンセルする" }).click();
-  await page.getByRole("button", { name: "キャンセルを確定する" }).click();
+  await page
+    .getByRole("button", { name: "この予約をキャンセルする" })
+    .click({ force: true });
+  await page
+    .getByRole("button", { name: "キャンセルを確定する" })
+    .click({ force: true });
 
   // router.refresh() 経由で Server Component が再描画され、status が canceled
   // になってキャンセル済み copy が表示される

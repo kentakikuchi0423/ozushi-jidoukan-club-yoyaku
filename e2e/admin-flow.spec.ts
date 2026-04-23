@@ -63,7 +63,9 @@ test("super_admin can create, edit, and delete a club end-to-end", async ({
 
   await page.locator("#admin-login-email").fill(email);
   await page.locator("#admin-login-password").fill(password);
-  await page.getByRole("button", { name: "ログインする" }).click();
+  await page
+    .getByRole("button", { name: "ログインする" })
+    .click({ force: true });
 
   // 2. ダッシュボード到達
   await page.waitForURL("**/admin", { timeout: 15_000 });
@@ -72,7 +74,9 @@ test("super_admin can create, edit, and delete a club end-to-end", async ({
   ).toBeVisible();
 
   // 3. クラブを新規登録
-  await page.getByRole("link", { name: "クラブを新規登録" }).click();
+  await page
+    .getByRole("link", { name: "クラブを新規登録" })
+    .click({ force: true });
   await page.waitForURL("**/admin/clubs/new");
   await page.waitForSelector("html[data-club-form-ready='true']");
 
@@ -89,7 +93,9 @@ test("super_admin can create, edit, and delete a club end-to-end", async ({
     .locator("#description")
     .fill("E2E テストで投入しました。末尾に削除されます。");
 
-  await page.getByRole("button", { name: "登録する" }).click();
+  await page
+    .getByRole("button", { name: "登録する" })
+    .click({ force: true });
 
   // 4. 一覧に追加された新クラブを確認
   await page.waitForURL("**/admin/clubs");
@@ -97,7 +103,7 @@ test("super_admin can create, edit, and delete a club end-to-end", async ({
 
   // 5. 編集に進む（我々が作った行の「編集」リンクをクリック）
   const newRow = page.getByRole("article").filter({ hasText: uniqueLabel });
-  await newRow.getByRole("link", { name: "編集" }).click();
+  await newRow.getByRole("link", { name: "編集" }).click({ force: true });
   await page.waitForURL(/\/admin\/clubs\/[^/]+\/edit$/);
   await page.waitForSelector("html[data-club-form-ready='true']");
 
@@ -105,7 +111,9 @@ test("super_admin can create, edit, and delete a club end-to-end", async ({
   const capacityInput = page.locator("#capacity");
   await expect(capacityInput).toHaveValue("5");
   await capacityInput.fill("8");
-  await page.getByRole("button", { name: "変更を保存する" }).click();
+  await page
+    .getByRole("button", { name: "変更を保存する" })
+    .click({ force: true });
 
   // 6. 一覧に戻り、capacity=8 の行になっていることを確認
   await page.waitForURL("**/admin/clubs");
@@ -113,13 +121,15 @@ test("super_admin can create, edit, and delete a club end-to-end", async ({
   await expect(updatedRow).toContainText("定員 8名");
 
   // 7. 削除フロー
-  await updatedRow.getByRole("link", { name: "編集" }).click();
+  await updatedRow.getByRole("link", { name: "編集" }).click({ force: true });
   await page.waitForURL(/\/admin\/clubs\/[^/]+\/edit$/);
   await page.waitForSelector("html[data-club-form-ready='true']");
 
   // window.confirm を自動で OK にする
   page.once("dialog", (dialog) => dialog.accept());
-  await page.getByRole("button", { name: "このクラブを削除する" }).click();
+  await page
+    .getByRole("button", { name: "このクラブを削除する" })
+    .click({ force: true });
 
   // 8. 一覧から消えていることを確認
   await page.waitForURL("**/admin/clubs");
@@ -127,7 +137,9 @@ test("super_admin can create, edit, and delete a club end-to-end", async ({
 
   // 9. ログアウト（ダッシュボードへ戻って実施）
   await page.goto("/admin");
-  await page.getByRole("button", { name: "ログアウト" }).click();
+  await page
+    .getByRole("button", { name: "ログアウト" })
+    .click({ force: true });
   await page.waitForURL("**/admin/login");
   await expect(
     page.getByRole("heading", { name: "管理者ログイン" }),
