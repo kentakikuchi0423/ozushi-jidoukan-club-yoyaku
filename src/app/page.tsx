@@ -43,7 +43,7 @@ export default async function HomePage({ searchParams }: Props) {
         </Link>
       </div>
 
-      <header className="mb-8 space-y-2 text-center sm:text-left">
+      <header className="mb-8 space-y-2">
         <p className="text-sm font-medium tracking-wide text-zinc-500">
           大洲市児童館クラブ予約
         </p>

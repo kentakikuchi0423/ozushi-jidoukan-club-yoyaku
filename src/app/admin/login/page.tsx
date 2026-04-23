@@ -40,7 +40,7 @@ export default async function AdminLoginPage({ searchParams }: Props) {
       </nav>
 
       <div className="space-y-6 rounded-lg border border-zinc-200 bg-white p-6 sm:p-8">
-        <header className="space-y-1 text-center">
+        <header className="space-y-1">
           <p className="text-sm font-medium tracking-wide text-zinc-500">
             大洲市児童館クラブ予約
           </p>
