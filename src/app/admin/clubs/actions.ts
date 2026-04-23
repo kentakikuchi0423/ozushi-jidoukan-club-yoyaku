@@ -72,16 +72,30 @@ export async function createClubAction(
   const admin = getSupabaseAdminClient();
   const startAtUtc = datetimeLocalJstToUtcIso(input.startAt);
   const endAtUtc = datetimeLocalJstToUtcIso(input.endAt);
+  // 参照先プログラムが有効（soft delete されていない）か確認
+  const { data: program, error: programError } = await admin
+    .from("club_programs")
+    .select("id, deleted_at")
+    .eq("id", input.programId)
+    .maybeSingle<{ id: string; deleted_at: string | null }>();
+  if (programError || !program || program.deleted_at) {
+    return {
+      ok: false,
+      kind: "input",
+      fieldErrors: {
+        programId: "選択したクラブ・事業が見つからないか、削除済みです。",
+      },
+    };
+  }
+
   const { data, error } = await admin
     .from("clubs")
     .insert({
       facility_id: FACILITY_ID_BY_CODE[input.facilityCode],
-      name: input.name,
+      program_id: input.programId,
       start_at: startAtUtc,
       end_at: endAtUtc,
       capacity: input.capacity,
-      target_age_min: input.targetAgeMin,
-      target_age_max: input.targetAgeMax,
       photo_url: input.photoUrl,
       description: input.description,
       created_by: ctx.adminId,
@@ -110,7 +124,7 @@ export async function createClubAction(
     targetId: data.id,
     metadata: {
       facilityCode: input.facilityCode,
-      name: input.name,
+      programId: input.programId,
     },
   });
 
@@ -162,16 +176,31 @@ export async function updateClubAction(
   // 変更「元」の権限も持っていることを上の fetchClubForAdmin で保証。
 
   const admin = getSupabaseAdminClient();
+  // 参照先プログラムが有効か確認（既存クラブが削除済みプログラムを持っていても、
+  // 更新時には有効なプログラムへ差し替えられる運用）
+  const { data: program, error: programError } = await admin
+    .from("club_programs")
+    .select("id, deleted_at")
+    .eq("id", input.programId)
+    .maybeSingle<{ id: string; deleted_at: string | null }>();
+  if (programError || !program || program.deleted_at) {
+    return {
+      ok: false,
+      kind: "input",
+      fieldErrors: {
+        programId: "選択したクラブ・事業が見つからないか、削除済みです。",
+      },
+    };
+  }
+
   const { error } = await admin
     .from("clubs")
     .update({
       facility_id: FACILITY_ID_BY_CODE[input.facilityCode],
-      name: input.name,
+      program_id: input.programId,
       start_at: datetimeLocalJstToUtcIso(input.startAt),
       end_at: datetimeLocalJstToUtcIso(input.endAt),
       capacity: input.capacity,
-      target_age_min: input.targetAgeMin,
-      target_age_max: input.targetAgeMax,
       photo_url: input.photoUrl,
       description: input.description,
     })
@@ -198,7 +227,8 @@ export async function updateClubAction(
     metadata: {
       facilityCodeBefore: existing.facilityCode,
       facilityCodeAfter: input.facilityCode,
-      name: input.name,
+      programIdBefore: existing.programId,
+      programIdAfter: input.programId,
     },
   });
 
@@ -247,7 +277,7 @@ export async function deleteClubAction(
     targetId: clubId,
     metadata: {
       facilityCode: existing.facilityCode,
-      name: existing.name,
+      programId: existing.programId,
     },
   });
 

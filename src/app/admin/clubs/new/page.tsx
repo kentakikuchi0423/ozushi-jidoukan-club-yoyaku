@@ -6,6 +6,7 @@ import {
   AuthenticationRequiredError,
   requireAdmin,
 } from "@/server/auth/guards";
+import { fetchClubPrograms } from "@/server/clubs/programs";
 
 import { createClubAction } from "../actions";
 import { ClubForm, type ClubFormValues } from "../club-form";
@@ -40,14 +41,14 @@ export default async function AdminClubNewPage() {
     );
   }
 
+  const programs = await fetchClubPrograms();
+
   const initial: ClubFormValues = {
     facilityCode: ctx.facilities[0],
-    name: "",
+    programId: programs[0]?.id ?? "",
     startAt: "",
     endAt: "",
     capacity: 10,
-    targetAgeMin: null,
-    targetAgeMax: null,
     photoUrl: "",
     description: "",
   };
@@ -69,9 +70,9 @@ export default async function AdminClubNewPage() {
         </p>
         <h1 className="text-2xl font-bold sm:text-3xl">クラブを新規登録</h1>
         <p className="text-xs leading-6 text-zinc-600">
-          担当する館を選んで、内容を入力してください。
+          担当する館とクラブ・事業を選び、日時と定員を入力してください。
           <br />
-          保存後、利用者画面に即時反映されます。
+          クラブ名・対象年齢・概要はマスター（クラブ・事業の編集）から自動で取得します。
         </p>
       </header>
 
@@ -79,6 +80,8 @@ export default async function AdminClubNewPage() {
         <ClubForm
           mode="create"
           availableFacilities={ctx.facilities}
+          availablePrograms={programs}
+          currentProgram={null}
           initial={initial}
           submitAction={createClubAction}
         />

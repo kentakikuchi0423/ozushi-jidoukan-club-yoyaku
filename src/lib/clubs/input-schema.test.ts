@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { clubInputSchema } from "./input-schema";
+import { clubInputSchema, programInputSchema } from "./input-schema";
+
+const validProgramId = "11111111-1111-4111-8111-111111111111";
 
 const valid = {
   facilityCode: "ozu",
-  name: "テスト用 こども英会話（初級）",
+  programId: validProgramId,
   startAt: "2026-05-22T10:00",
   endAt: "2026-05-22T12:00",
   capacity: 10,
-  targetAgeMin: 3,
-  targetAgeMax: 6,
   photoUrl: "https://example.com/photo.jpg",
   description: "動作確認用のテストクラブです。",
 };
@@ -27,8 +27,16 @@ describe("clubInputSchema", () => {
     expect(result.success).toBe(false);
   });
 
-  it("rejects a name that is empty after trim", () => {
-    const result = clubInputSchema.safeParse({ ...valid, name: "   " });
+  it("rejects a missing programId", () => {
+    const result = clubInputSchema.safeParse({ ...valid, programId: "" });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a programId that is not a valid UUID", () => {
+    const result = clubInputSchema.safeParse({
+      ...valid,
+      programId: "not-a-uuid",
+    });
     expect(result.success).toBe(false);
   });
 
@@ -49,11 +57,9 @@ describe("clubInputSchema", () => {
     expect(result.success).toBe(false);
   });
 
-  it("accepts nullable target_age pair and empty photo/description", () => {
+  it("accepts empty photo/description and stores them as null", () => {
     const result = clubInputSchema.safeParse({
       ...valid,
-      targetAgeMin: null,
-      targetAgeMax: null,
       photoUrl: "",
       description: "",
     });
@@ -62,15 +68,6 @@ describe("clubInputSchema", () => {
       expect(result.data.photoUrl).toBeNull();
       expect(result.data.description).toBeNull();
     }
-  });
-
-  it("rejects target_age_max smaller than target_age_min", () => {
-    const result = clubInputSchema.safeParse({
-      ...valid,
-      targetAgeMin: 6,
-      targetAgeMax: 3,
-    });
-    expect(result.success).toBe(false);
   });
 
   it("rejects non-http(s) photo URLs", () => {
@@ -91,5 +88,42 @@ describe("clubInputSchema", () => {
     expect(clubInputSchema.safeParse({ ...valid, capacity: 1.5 }).success).toBe(
       false,
     );
+  });
+});
+
+describe("programInputSchema", () => {
+  const validProgram = {
+    name: "にこにこクラブ",
+    targetAge: "０・１歳児の親子",
+    summary: "テスト用の概要文です。",
+  };
+
+  it("accepts a well-formed program", () => {
+    const result = programInputSchema.safeParse(validProgram);
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects an empty name", () => {
+    const result = programInputSchema.safeParse({
+      ...validProgram,
+      name: "   ",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects an empty target age", () => {
+    const result = programInputSchema.safeParse({
+      ...validProgram,
+      targetAge: "",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects summaries longer than 2000 characters", () => {
+    const result = programInputSchema.safeParse({
+      ...validProgram,
+      summary: "あ".repeat(2001),
+    });
+    expect(result.success).toBe(false);
   });
 });

@@ -8,6 +8,10 @@ import {
   requireAdmin,
 } from "@/server/auth/guards";
 import { fetchClubForAdmin } from "@/server/clubs/admin-detail";
+import {
+  fetchClubProgramById,
+  fetchClubPrograms,
+} from "@/server/clubs/programs";
 
 import { deleteClubAction, updateClubAction } from "../../actions";
 import { ClubForm, type ClubFormValues } from "../../club-form";
@@ -39,14 +43,17 @@ export default async function AdminClubEditPage({ params }: Props) {
   const club = await fetchClubForAdmin(id, ctx.facilities);
   if (!club) notFound();
 
+  const [programs, currentProgram] = await Promise.all([
+    fetchClubPrograms(),
+    fetchClubProgramById(club.programId),
+  ]);
+
   const initial: ClubFormValues = {
     facilityCode: club.facilityCode,
-    name: club.name,
+    programId: club.programId,
     startAt: utcIsoToDatetimeLocalJst(club.startAt),
     endAt: utcIsoToDatetimeLocalJst(club.endAt),
     capacity: club.capacity,
-    targetAgeMin: club.targetAgeMin,
-    targetAgeMax: club.targetAgeMax,
     photoUrl: club.photoUrl ?? "",
     description: club.description ?? "",
   };
@@ -86,6 +93,8 @@ export default async function AdminClubEditPage({ params }: Props) {
         <ClubForm
           mode="edit"
           availableFacilities={ctx.facilities}
+          availablePrograms={programs}
+          currentProgram={currentProgram}
           initial={initial}
           submitAction={submit}
           deleteAction={remove}

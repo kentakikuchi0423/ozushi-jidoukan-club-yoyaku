@@ -6,34 +6,34 @@ import { getSupabaseAdminClient } from "@/server/supabase/admin";
 export interface ClubForEdit {
   readonly id: string;
   readonly facilityCode: FacilityCode;
-  readonly name: string;
+  readonly programId: string;
+  readonly programName: string;
+  readonly programDeletedAt: string | null;
   readonly startAt: string;
   readonly endAt: string;
   readonly capacity: number;
-  readonly targetAgeMin: number | null;
-  readonly targetAgeMax: number | null;
   readonly photoUrl: string | null;
   readonly description: string | null;
 }
 
 interface AdminClubRow {
   id: string;
-  name: string;
   start_at: string;
   end_at: string;
   capacity: number;
-  target_age_min: number | null;
-  target_age_max: number | null;
   photo_url: string | null;
   description: string | null;
   deleted_at: string | null;
+  program_id: string;
   facility: { code: string };
+  program: { name: string; deleted_at: string | null };
 }
 
 /**
  * admin 管理画面での編集用にクラブ 1 件を取得する。
  *   * 存在しない / ソフト削除済み / 許可館外 のいずれも null を返す
  *   * admin クライアント（secret key）で取得するため RLS の影響を受けない
+ *   * クラブ名・対象年齢はマスター（club_programs）側から取るので `program_id` を返す
  */
 export async function fetchClubForAdmin(
   id: string,
@@ -44,16 +44,15 @@ export async function fetchClubForAdmin(
     .from("clubs")
     .select(
       `id,
-       name,
        start_at,
        end_at,
        capacity,
-       target_age_min,
-       target_age_max,
        photo_url,
        description,
        deleted_at,
-       facility:facilities!inner(code)`,
+       program_id,
+       facility:facilities!inner(code),
+       program:club_programs!inner(name, deleted_at)`,
     )
     .eq("id", id)
     .maybeSingle<AdminClubRow>();
@@ -68,12 +67,12 @@ export async function fetchClubForAdmin(
   return {
     id: data.id,
     facilityCode: data.facility.code,
-    name: data.name,
+    programId: data.program_id,
+    programName: data.program.name,
+    programDeletedAt: data.program.deleted_at,
     startAt: data.start_at,
     endAt: data.end_at,
     capacity: data.capacity,
-    targetAgeMin: data.target_age_min,
-    targetAgeMax: data.target_age_max,
     photoUrl: data.photo_url,
     description: data.description,
   };

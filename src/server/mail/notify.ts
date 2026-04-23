@@ -103,10 +103,12 @@ interface PromotedLookupRow {
   secure_token: string;
   email: string;
   club: {
-    name: string;
     start_at: string;
     end_at: string;
     facility: {
+      name: string;
+    };
+    program: {
       name: string;
     };
   };
@@ -129,10 +131,10 @@ export async function notifyReservationPromoted(
        secure_token,
        email,
        club:clubs!inner(
-         name,
          start_at,
          end_at,
-         facility:facilities!inner(name)
+         facility:facilities!inner(name),
+         program:club_programs!inner(name)
        ),
        parents:reservation_parents(name, position)`,
     )
@@ -159,7 +161,7 @@ export async function notifyReservationPromoted(
     secureToken: data.secure_token,
     parentName: primaryParentName,
     facilityName: data.club.facility.name,
-    clubName: data.club.name,
+    clubName: data.club.program.name,
     clubStartAt: data.club.start_at,
     clubEndAt: data.club.end_at,
   });

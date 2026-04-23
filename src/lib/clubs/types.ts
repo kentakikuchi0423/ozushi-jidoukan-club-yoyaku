@@ -1,16 +1,19 @@
 import type { FacilityCode } from "@/lib/facility";
 
 // 公開クラブ一覧の 1 行。`list_public_clubs` RPC の戻り値を camelCase で扱う。
+// name / targetAge / summary は `club_programs` マスター側から来る値。
+// description はその回のクラブ固有の補足（管理画面で編集可能）。
 export interface ClubListing {
   readonly id: string;
   readonly facilityCode: FacilityCode;
   readonly facilityName: string;
+  readonly programId: string;
   readonly name: string;
+  readonly targetAge: string;
+  readonly summary: string;
   readonly startAt: string; // ISO 8601
   readonly endAt: string; // ISO 8601
   readonly capacity: number;
-  readonly targetAgeMin: number | null;
-  readonly targetAgeMax: number | null;
   readonly photoUrl: string | null;
   readonly description: string | null;
   readonly confirmedCount: number;
@@ -43,4 +46,12 @@ export function hasValidPhotoUrl(photoUrl: string | null): photoUrl is string {
   } catch {
     return false;
   }
+}
+
+/** クラブ・事業マスター（検索結果・フォーム選択肢で使う）。 */
+export interface ClubProgram {
+  readonly id: string;
+  readonly name: string;
+  readonly targetAge: string;
+  readonly summary: string;
 }

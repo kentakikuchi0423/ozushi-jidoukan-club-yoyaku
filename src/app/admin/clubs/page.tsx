@@ -167,6 +167,12 @@ function AdminTopBar({
         className="mt-3 flex flex-wrap gap-x-4 gap-y-1 border-t border-zinc-100 pt-2 text-xs"
       >
         <Link
+          href="/admin/programs"
+          className="text-zinc-600 underline underline-offset-4 hover:text-zinc-900"
+        >
+          クラブ・事業の編集
+        </Link>
+        <Link
           href="/admin/password"
           className="text-zinc-600 underline underline-offset-4 hover:text-zinc-900"
         >

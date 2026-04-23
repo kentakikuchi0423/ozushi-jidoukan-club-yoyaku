@@ -58,8 +58,7 @@ export function ClubCard({ club, variant }: Props) {
           {club.name}
         </h2>
         <p className="text-xs text-zinc-600">
-          対象年齢:{" "}
-          {formatTargetAge(club.targetAgeMin, club.targetAgeMax) ?? "指定なし"}
+          対象年齢: {club.targetAge}
           <span className="mx-1.5 text-zinc-400">/</span>
           定員 {club.capacity}名 / 予約 {club.confirmedCount}名
           {club.waitlistedCount > 0 && (
@@ -111,15 +110,4 @@ export function ClubCard({ club, variant }: Props) {
       </div>
     </article>
   );
-}
-
-function formatTargetAge(
-  min: number | null,
-  max: number | null,
-): string | null {
-  if (min === null && max === null) return null;
-  if (min === null) return `〜${max}歳`;
-  if (max === null) return `${min}歳〜`;
-  if (min === max) return `${min}歳`;
-  return `${min}歳〜${max}歳`;
 }

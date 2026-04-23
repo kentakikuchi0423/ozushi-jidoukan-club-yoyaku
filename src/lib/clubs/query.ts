@@ -8,12 +8,13 @@ interface ListPublicClubsRow {
   id: string;
   facility_code: string;
   facility_name: string;
+  program_id: string;
   name: string;
+  target_age: string;
+  summary: string;
   start_at: string;
   end_at: string;
   capacity: number;
-  target_age_min: number | null;
-  target_age_max: number | null;
   photo_url: string | null;
   description: string | null;
   confirmed_count: number;
@@ -26,12 +27,13 @@ function toClubListing(row: ListPublicClubsRow): ClubListing | null {
     id: row.id,
     facilityCode: row.facility_code,
     facilityName: row.facility_name,
+    programId: row.program_id,
     name: row.name,
+    targetAge: row.target_age,
+    summary: row.summary,
     startAt: row.start_at,
     endAt: row.end_at,
     capacity: row.capacity,
-    targetAgeMin: row.target_age_min,
-    targetAgeMax: row.target_age_max,
     photoUrl: row.photo_url,
     description: row.description,
     confirmedCount: row.confirmed_count,

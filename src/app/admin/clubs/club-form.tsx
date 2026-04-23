@@ -1,18 +1,17 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 
+import type { ClubProgram } from "@/lib/clubs/types";
 import { FACILITY_NAMES, type FacilityCode } from "@/lib/facility";
 import type { ClubActionResult } from "./actions";
 
 export interface ClubFormValues {
   facilityCode: FacilityCode;
-  name: string;
+  programId: string;
   startAt: string; // datetime-local
   endAt: string;
   capacity: number;
-  targetAgeMin: number | null;
-  targetAgeMax: number | null;
   photoUrl: string;
   description: string;
 }
@@ -20,6 +19,13 @@ export interface ClubFormValues {
 interface Props {
   mode: "create" | "edit";
   availableFacilities: readonly FacilityCode[];
+  /** ドロップダウンで選択可能なマスター一覧（soft delete 済みは除外済み）。 */
+  availablePrograms: ReadonlyArray<ClubProgram>;
+  /**
+   * edit モードで「元々の program が soft delete 済み」のケース用。
+   * availablePrograms に含まれなくても編集時だけ表示に使う。
+   */
+  currentProgram?: ClubProgram | null;
   initial: ClubFormValues;
   submitAction: (input: ClubFormValues) => Promise<ClubActionResult>;
   deleteAction?: () => Promise<ClubActionResult>;
@@ -27,12 +33,10 @@ interface Props {
 
 const LABELS = {
   facilityCode: "館",
-  name: "クラブ名",
+  programId: "クラブ・事業",
   startAt: "開始日時",
   endAt: "終了日時",
   capacity: "定員",
-  targetAgeMin: "対象年齢（最小）",
-  targetAgeMax: "対象年齢（最大）",
   photoUrl: "写真 URL",
   description: "説明",
 } as const;
@@ -40,6 +44,8 @@ const LABELS = {
 export function ClubForm({
   mode,
   availableFacilities,
+  availablePrograms,
+  currentProgram,
   initial,
   submitAction,
   deleteAction,
@@ -62,6 +68,25 @@ export function ClubForm({
     if (formError) errorRef.current?.focus();
   }, [formError]);
 
+  // edit 中の program が soft delete 済みなら、ドロップダウンの末尾に 1 件だけ
+  // 「（削除済み）」マークで見えるようにする。新規作成時には出さない。
+  const programsForDropdown = useMemo<ClubProgram[]>(() => {
+    if (!currentProgram) return [...availablePrograms];
+    const alreadyInList = availablePrograms.some(
+      (p) => p.id === currentProgram.id,
+    );
+    if (alreadyInList) return [...availablePrograms];
+    return [...availablePrograms, currentProgram];
+  }, [availablePrograms, currentProgram]);
+
+  const selectedProgram = programsForDropdown.find(
+    (p) => p.id === values.programId,
+  );
+  const showOrphanWarning =
+    mode === "edit" && currentProgram !== null && currentProgram !== undefined
+      ? !availablePrograms.some((p) => p.id === currentProgram.id)
+      : false;
+
   function update<K extends keyof ClubFormValues>(
     key: K,
     value: ClubFormValues[K],
@@ -76,7 +101,6 @@ export function ClubForm({
     startTransition(async () => {
       const result = await submitAction(values);
       if (!result.ok) handleFailure(result);
-      // ok の場合は action 内で redirect される
     });
   }
 
@@ -141,17 +165,62 @@ export function ClubForm({
         </select>
       </FieldGroup>
 
-      <FieldGroup id="name" label={LABELS.name} error={fieldErrors.name}>
-        <input
-          id="name"
-          name="name"
-          type="text"
-          value={values.name}
-          maxLength={100}
-          onChange={(e) => update("name", e.target.value)}
-          {...fieldAriaProps("name", fieldErrors.name)}
-          className={inputClass(fieldErrors.name)}
-        />
+      <FieldGroup
+        id="programId"
+        label={LABELS.programId}
+        hint={
+          programsForDropdown.length === 0
+            ? "先に「クラブ・事業の編集」から事業を登録してください。"
+            : undefined
+        }
+        error={fieldErrors.programId}
+      >
+        <select
+          id="programId"
+          name="programId"
+          value={values.programId}
+          onChange={(e) => update("programId", e.target.value)}
+          disabled={programsForDropdown.length === 0}
+          {...fieldAriaProps("programId", fieldErrors.programId)}
+          className={selectClass(fieldErrors.programId)}
+        >
+          {programsForDropdown.length === 0 && <option value="">未登録</option>}
+          {values.programId === "" && programsForDropdown.length > 0 && (
+            <option value="">選択してください</option>
+          )}
+          {programsForDropdown.map((p) => {
+            const isDeleted =
+              currentProgram?.id === p.id &&
+              !availablePrograms.some((x) => x.id === p.id);
+            return (
+              <option key={p.id} value={p.id}>
+                {p.name}
+                {isDeleted ? "（削除済み）" : ""}
+              </option>
+            );
+          })}
+        </select>
+        {showOrphanWarning && (
+          <p className="mt-1 text-xs text-amber-700">
+            このクラブは削除済みのマスターを参照しています。
+            <br />
+            有効なクラブ・事業に変更してから保存してください。
+          </p>
+        )}
+        {selectedProgram && (
+          <div className="mt-2 space-y-1 rounded-md bg-zinc-50 p-3 text-xs text-zinc-700">
+            <p>
+              <span className="font-medium text-zinc-500">対象年齢: </span>
+              {selectedProgram.targetAge}
+            </p>
+            <p>
+              <span className="font-medium text-zinc-500">概要: </span>
+              <span className="whitespace-pre-wrap">
+                {selectedProgram.summary}
+              </span>
+            </p>
+          </div>
+        )}
       </FieldGroup>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -185,77 +254,25 @@ export function ClubForm({
         </FieldGroup>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <FieldGroup
+      <FieldGroup
+        id="capacity"
+        label={LABELS.capacity}
+        error={fieldErrors.capacity}
+      >
+        <input
           id="capacity"
-          label={LABELS.capacity}
-          error={fieldErrors.capacity}
-        >
-          <input
-            id="capacity"
-            name="capacity"
-            type="number"
-            min={1}
-            max={1000}
-            value={values.capacity}
-            onChange={(e) =>
-              update("capacity", Number.parseInt(e.target.value, 10))
-            }
-            {...fieldAriaProps("capacity", fieldErrors.capacity)}
-            className={inputClass(fieldErrors.capacity)}
-          />
-        </FieldGroup>
-        <FieldGroup
-          id="targetAgeMin"
-          label={LABELS.targetAgeMin}
-          hint="空欄で指定なし"
-          error={fieldErrors.targetAgeMin}
-        >
-          <input
-            id="targetAgeMin"
-            name="targetAgeMin"
-            type="number"
-            min={0}
-            max={120}
-            value={values.targetAgeMin ?? ""}
-            onChange={(e) =>
-              update(
-                "targetAgeMin",
-                e.target.value === ""
-                  ? null
-                  : Number.parseInt(e.target.value, 10),
-              )
-            }
-            {...fieldAriaProps("targetAgeMin", fieldErrors.targetAgeMin, true)}
-            className={inputClass(fieldErrors.targetAgeMin)}
-          />
-        </FieldGroup>
-        <FieldGroup
-          id="targetAgeMax"
-          label={LABELS.targetAgeMax}
-          hint="空欄で指定なし"
-          error={fieldErrors.targetAgeMax}
-        >
-          <input
-            id="targetAgeMax"
-            name="targetAgeMax"
-            type="number"
-            min={0}
-            max={120}
-            value={values.targetAgeMax ?? ""}
-            onChange={(e) =>
-              update(
-                "targetAgeMax",
-                e.target.value === ""
-                  ? null
-                  : Number.parseInt(e.target.value, 10),
-              )
-            }
-            {...fieldAriaProps("targetAgeMax", fieldErrors.targetAgeMax, true)}
-            className={inputClass(fieldErrors.targetAgeMax)}
-          />
-        </FieldGroup>
-      </div>
+          name="capacity"
+          type="number"
+          min={1}
+          max={1000}
+          value={values.capacity}
+          onChange={(e) =>
+            update("capacity", Number.parseInt(e.target.value, 10))
+          }
+          {...fieldAriaProps("capacity", fieldErrors.capacity)}
+          className={inputClass(fieldErrors.capacity)}
+        />
+      </FieldGroup>
 
       <FieldGroup
         id="photoUrl"
@@ -278,7 +295,9 @@ export function ClubForm({
       <FieldGroup
         id="description"
         label={LABELS.description}
-        hint={"2000 字以内。\n改行は本文でそのまま反映されます。"}
+        hint={
+          "その回固有の補足（空欄可、2000 字以内）。\n改行は本文でそのまま反映されます。"
+        }
         error={fieldErrors.description}
       >
         <textarea
@@ -312,9 +331,7 @@ export function ClubForm({
           className="w-full rounded-md bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60 sm:w-auto"
         >
           {pending
-            ? mode === "create"
-              ? "登録中…"
-              : "更新中…"
+            ? "保存中…"
             : mode === "create"
               ? "登録する"
               : "変更を保存する"}
@@ -327,16 +344,18 @@ export function ClubForm({
 function FieldGroup({
   id,
   label,
-  error,
   hint,
+  error,
   children,
 }: {
   id: string;
   label: string;
-  error?: string;
   hint?: string;
+  error?: string;
   children: React.ReactNode;
 }) {
+  const hintId = hint ? `${id}-hint` : undefined;
+  const errorId = error ? `${id}-error` : undefined;
   return (
     <div className="space-y-1">
       <label htmlFor={id} className="block text-sm font-medium text-zinc-700">
@@ -344,14 +363,11 @@ function FieldGroup({
       </label>
       {children}
       {error ? (
-        <p id={`${id}-error`} className="text-xs text-red-700">
+        <p id={errorId} className="text-xs text-red-700">
           {error}
         </p>
       ) : hint ? (
-        <p
-          id={`${id}-hint`}
-          className="text-xs whitespace-pre-line text-zinc-500"
-        >
+        <p id={hintId} className="text-xs whitespace-pre-line text-zinc-500">
           {hint}
         </p>
       ) : null}
@@ -359,19 +375,26 @@ function FieldGroup({
   );
 }
 
-function fieldAriaProps(id: string, error?: string, hasHint = false) {
-  return {
-    "aria-invalid": error ? (true as const) : undefined,
-    "aria-describedby": error
-      ? `${id}-error`
-      : hasHint
-        ? `${id}-hint`
-        : undefined,
-  };
+function fieldAriaProps(id: string, error?: string, optional?: boolean) {
+  const ariaProps: {
+    "aria-invalid"?: true;
+    "aria-describedby"?: string;
+    "aria-required"?: "true";
+  } = {};
+  if (error) {
+    ariaProps["aria-invalid"] = true;
+    ariaProps["aria-describedby"] = `${id}-error`;
+  } else {
+    ariaProps["aria-describedby"] = `${id}-hint`;
+  }
+  if (!optional) {
+    ariaProps["aria-required"] = "true";
+  }
+  return ariaProps;
 }
 
 function inputClass(error?: string): string {
-  return `w-full rounded-md border px-3 py-2 text-sm shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-500 ${
+  return `w-full rounded-md border px-3 py-2 text-sm shadow-sm focus:outline-none ${
     error
       ? "border-red-400 focus:border-red-500"
       : "border-zinc-300 focus:border-zinc-500"
@@ -379,5 +402,9 @@ function inputClass(error?: string): string {
 }
 
 function selectClass(error?: string): string {
-  return inputClass(error);
+  return `w-full rounded-md border bg-white px-3 py-2 text-sm shadow-sm focus:outline-none ${
+    error
+      ? "border-red-400 focus:border-red-500"
+      : "border-zinc-300 focus:border-zinc-500"
+  }`;
 }

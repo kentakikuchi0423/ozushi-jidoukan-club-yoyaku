@@ -64,10 +64,7 @@ export default async function ClubDetailPage({ params }: Props) {
             </span>
           </dd>
           <dt className="text-zinc-500">対象年齢</dt>
-          <dd>
-            {formatTargetAge(club.targetAgeMin, club.targetAgeMax) ??
-              "指定なし"}
-          </dd>
+          <dd>{club.targetAge}</dd>
           <dt className="text-zinc-500">定員 / 予約</dt>
           <dd>
             {club.capacity}名 / {club.confirmedCount}名
@@ -94,8 +91,14 @@ export default async function ClubDetailPage({ params }: Props) {
           </dd>
         </dl>
 
+        <div className="rounded-md bg-zinc-50 p-4 text-sm whitespace-pre-wrap text-zinc-700">
+          <p className="mb-1 text-xs font-medium text-zinc-500">概要</p>
+          {club.summary}
+        </div>
+
         {club.description && (
-          <div className="rounded-md bg-zinc-50 p-4 text-sm whitespace-pre-wrap text-zinc-700">
+          <div className="rounded-md border border-zinc-200 bg-white p-4 text-sm whitespace-pre-wrap text-zinc-700">
+            <p className="mb-1 text-xs font-medium text-zinc-500">説明</p>
             {club.description}
           </div>
         )}
@@ -146,15 +149,4 @@ function AvailabilityBadge({ value }: { value: ClubAvailability }) {
       {LABEL[value]}
     </span>
   );
-}
-
-function formatTargetAge(
-  min: number | null,
-  max: number | null,
-): string | null {
-  if (min === null && max === null) return null;
-  if (min === null) return `〜${max}歳`;
-  if (max === null) return `${min}歳〜`;
-  if (min === max) return `${min}歳`;
-  return `${min}歳〜${max}歳`;
 }
