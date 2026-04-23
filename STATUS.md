@@ -5,7 +5,57 @@
 
 ---
 
-## 最終更新: 2026-04-23（ログイン画面 back-link + エラーメッセージの日本語化）
+## 最終更新: 2026-04-23（公開/管理の一覧統合 + ログイン修復 + 招待フロー刷新 + 管理者削除）
+
+### このチャンクで解消したもの
+1. **公開 `/` と管理 `/admin/clubs` のクラブ一覧を統一**:
+   - 共通コンポーネント `src/components/clubs/club-card.tsx` + `filter-bar.tsx` + `filter-utils.ts`
+   - 公開ページにも館 + ステータスの絞り込みフィルタを追加（URL 検索パラメータ）
+   - 1 列コンパクトレイアウト（1 画面で見える件数を増加）
+2. **ログインが無反応だった問題を修正**:
+   - middleware で `/admin` を `/admin/clubs` に書き換え、Server Action 後のダブルリダイレクトを排除
+   - `loginAction` が `next=/admin` を `/admin/clubs` に正規化
+   - `handleSubmit` で例外を catch し、無言失敗の代わりに日本語メッセージを表示
+   - 旧 `src/app/admin/page.tsx`（redirect スタブ）を削除
+3. **「管理者の方はこちら」を公開ページ右上に移動**:
+   - クラブ数に関わらず常に視線の通る位置に表示される
+4. **クラブ登録フォーム説明の `\n` 文字表示を修正**:
+   - JSX 属性 `hint="...\n..."` を JSX 式 `hint={"...\n..."}` に切り替え、実際の改行になるよう修正
+5. **アカウント追加ページの読点改行を削除**
+6. **管理者招待フローを刷新**:
+   - 全館管理者が初期パスワードを指定してユーザー作成（`admin.createUser` + `email_confirm: false`）
+   - `admin.generateLink(type='signup')` で確認リンクを発行
+   - Resend で日本語招待メールを送信（新テンプレート `admin-invite.ts`）
+   - 相手は本文のリンクをクリックするとメール確認 + 自動ログインして `/admin/clubs` 着地
+   - 新規 Route Handler `src/app/auth/callback/route.ts`（code exchange）
+   - `admins` / `admin_facilities` INSERT 途中で失敗したら `deleteUser` で自動ロールバック
+7. **管理者削除機能**:
+   - `deleteAdminAction` + `DeleteAdminButton` を `/admin/accounts` に追加（全館管理者のみ、自己削除禁止）
+   - migration `20260423010000_admin_delete_fk_cleanup.sql`: `audit_logs.admin_id` / `clubs.created_by` の FK を `ON DELETE SET NULL` に変更（履歴保持）
+8. **パスワードポリシーを共通化**:
+   - `src/lib/auth/password.ts` に `isPasswordStrong` / `PASSWORD_HINT` / `PASSWORD_ERROR`
+   - パスワード変更・新規招待の双方で再利用
+9. **運用ドキュメント**:
+   - `docs/operations.md §3-5` に Supabase Auth の Redirect URL 登録手順を追記
+
+### テスト結果
+- `pnpm format` / `pnpm lint` / `pnpm typecheck`: all green
+- `pnpm test`: 13 files / 87 cases pass（vitest-pool の worker 起動 flake 1 件は既知、テスト自体は全 pass）
+- `pnpm build`: 13 routes + proxy + auth callback
+- `pnpm test:e2e`（default）: 13 passed / 2 skipped
+- `RUN_ADMIN_FLOW_E2E=1`: 1 passed（6.6s）
+- `RUN_RESERVATION_FLOW_E2E=1`: 1 passed（6.0s）
+- `pnpm db:push`: `20260423010000_admin_delete_fk_cleanup.sql` 適用済み
+
+### ユーザー側で必要な追加作業
+- **Supabase Studio → Authentication → URL Configuration → Redirect URLs** に `/auth/callback` を登録
+  - 本番: `https://<本番ドメイン>/auth/callback`
+  - ローカル（任意）: `http://localhost:3000/auth/callback`
+  - 未登録だと招待メール内の確認リンクで「redirect_to not allowed」エラーになる
+
+---
+
+## 1 つ前: 2026-04-23（ログイン画面 back-link + エラーメッセージの日本語化）
 
 ### このチャンクで解消したもの
 1. **`/admin/login` に「← クラブ一覧に戻る」リンクを追加**:
