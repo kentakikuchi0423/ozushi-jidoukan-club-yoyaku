@@ -112,22 +112,31 @@ create table public.admin_facilities (
   primary key (admin_id, facility_id)
 );
 
+-- クラブ・事業マスター（migration 20260424000000 で追加）。
+-- 名称・対象年齢・概要はここから JOIN で取り出す。削除はソフト削除。
+create table public.club_programs (
+  id uuid primary key default gen_random_uuid(),
+  name text not null unique check (length(name) between 1 and 100),
+  target_age text not null check (length(target_age) between 1 and 100),
+  summary text not null check (length(summary) between 1 and 2000),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  deleted_at timestamptz
+);
+
 create table public.clubs (
   id uuid primary key default gen_random_uuid(),
   facility_id smallint not null references public.facilities(id),
-  name text not null check (length(name) between 1 and 100),
+  program_id uuid not null references public.club_programs(id) on delete restrict,
   start_at timestamptz not null,
   end_at timestamptz not null check (end_at > start_at),
   capacity integer not null check (capacity > 0 and capacity <= 1000),
-  target_age_min integer check (target_age_min is null or between 0 and 120),
-  target_age_max integer check (target_age_max is null or between 0 and 120),
   photo_url text check (photo_url is null or photo_url ~ '^https?://'),
+  -- その回固有の補足（概要とは別）。
   description text check (description is null or length(description) <= 2000),
   created_at timestamptz not null default now(),
   created_by uuid references public.admins(id),
-  deleted_at timestamptz,
-  check (target_age_min is null or target_age_max is null
-         or target_age_max >= target_age_min)
+  deleted_at timestamptz
 );
 
 create type public.reservation_status as enum ('confirmed','waitlisted','canceled');

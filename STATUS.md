@@ -5,7 +5,52 @@
 
 ---
 
-## 最終更新: 2026-04-23（公開/管理の一覧統合 + ログイン修復 + 招待フロー刷新 + 管理者削除）
+## 最終更新: 2026-04-24（クラブ・事業マスター化 + 仮想スクロール 他）
+
+### このチャンクで解消したもの
+1. **クラブ・事業マスターの新設**:
+   - `club_programs` テーブル（`name` unique / `target_age` text / `summary` text / soft-delete 用 `deleted_at`）
+   - `clubs.name` / `target_age_min` / `target_age_max` を削除し、`program_id` で JOIN
+   - 公開 RPC（`list_public_clubs` / `get_public_club` / `get_my_reservation`）を DROP+CREATE で再構築
+   - 既存クラブから自動生成した program で移行、既存データは保持
+   - 初期マスター「にこにこクラブ（０・１歳児の親子）」を seed
+2. **管理画面 `/admin/programs`**:
+   - 一覧・新規登録・編集・ソフト削除（参照中でも削除 OK、表示は JOIN で残る）
+   - 上部サブナビに「クラブ・事業の編集」リンクを追加
+3. **クラブ作成フォームの変更**:
+   - 旧: 名前 / 対象年齢 min/max を直接入力
+   - 新: ドロップダウンから program を選ぶだけ（名前・対象年齢・概要は自動反映）
+   - `説明` は per-club の自由記入として継続
+   - 削除済み program を参照している編集画面は「削除済み」警告
+4. **クラブ一覧を仮想スクロール化**:
+   - `@tanstack/react-virtual` 追加、`VirtualClubList` で公開・管理の双方に適用
+   - 件数が少なければ通常レンダリング、多くなっても描画コスト線形化
+5. **予約フォームで お子さま優先 + 保護者任意**:
+   - セクション順を「お子さま → 保護者」に反転
+   - 保護者は空配列スタート、`＋ 保護者を追加` で任意追加、必須アスタリスクなし
+   - 空行は validate 前に drop、`parents.max(10).default([])` に zod 変更
+   - Migration `20260423020000_optional_parents.sql` で RPC 側も空配列を許可
+6. **公開ヘッダーの左揃え統一**:
+   - `/` と `/admin/login` のヘッダから `text-center` を外し、全画面の説明文を左揃えに
+
+### 追加ドキュメント整備
+- `docs/architecture.md`: clubs テーブル DDL を新スキーマに更新、club_programs を追記
+- `docs/operations.md`: テストクラブ投入 SQL を `club_programs` INSERT + `clubs` の program_id 参照に書き換え
+- `docs/security-review.md`: `clubInputSchema` の検証項目を `programId` UUID チェックに置換
+- `docs/open-questions.md`: Q6 対象年齢形式を「文字列」として Resolved 扱いに
+
+### テスト結果
+- `pnpm format` / `pnpm lint` / `pnpm typecheck`: all green
+- `pnpm test`: 12 files / 89 cases pass（vitest worker flake 2 件は既知）
+- `pnpm build`: 15 routes + proxy
+- `pnpm test:e2e`（default）: 13 passed / 2 skipped
+- `RUN_ADMIN_FLOW_E2E=1`: program 作成 → クラブ作成 → 編集 → 削除 → program soft delete の一連を 13.5s で green
+- `RUN_RESERVATION_FLOW_E2E=1`: 1 passed（6.0s、保護者 0 名でも予約完了）
+- `pnpm db:push`: `20260423020000_optional_parents.sql` / `20260424000000_club_programs.sql` / `20260424000001_get_my_reservation_program.sql` 適用済み
+
+---
+
+## 1 つ前: 2026-04-23（公開/管理の一覧統合 + ログイン修復 + 招待フロー刷新 + 管理者削除）
 
 ### このチャンクで解消したもの
 1. **公開 `/` と管理 `/admin/clubs` のクラブ一覧を統一**:

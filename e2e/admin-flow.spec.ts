@@ -67,18 +67,14 @@ test("super_admin can create, edit, and delete a club end-to-end", async ({
 
   // 2. クラブ一覧（ログイン後の初期画面）に到達
   await page.waitForURL("**/admin/clubs", { timeout: 15_000 });
-  await expect(
-    page.getByRole("heading", { name: "クラブ一覧" }),
-  ).toBeVisible();
+  await expect(page.getByRole("heading", { name: "クラブ一覧" })).toBeVisible();
 
   // 3. まずクラブ・事業マスターを作る
   await page
     .getByRole("link", { name: "クラブ・事業の編集" })
     .click({ force: true });
   await page.waitForURL("**/admin/programs");
-  await page
-    .getByRole("link", { name: "新規登録" })
-    .click({ force: true });
+  await page.getByRole("link", { name: "新規登録" }).click({ force: true });
   await page.waitForURL("**/admin/programs/new");
   await page.waitForSelector("html[data-program-form-ready='true']");
 
@@ -136,7 +132,9 @@ test("super_admin can create, edit, and delete a club end-to-end", async ({
 
   // 7. 一覧に戻り、capacity=8 の行になっていることを確認
   await page.waitForURL("**/admin/clubs");
-  const updatedRow = page.getByRole("article").filter({ hasText: programLabel });
+  const updatedRow = page
+    .getByRole("article")
+    .filter({ hasText: programLabel });
   await expect(updatedRow).toContainText("定員 8名");
 
   // 8. 削除フロー

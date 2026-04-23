@@ -141,32 +141,39 @@ Phase 4（管理画面）が無い期間は、クラブを Supabase Studio の S
 直接 INSERT して動作確認する。個人情報は入れず、名前は「テスト」で始めること。
 
 ```sql
+-- クラブ名・対象年齢・概要は club_programs マスターから参照する。
+-- 名前が無ければ先にマスターを作る（seed 済みの「にこにこクラブ」を使っても可）。
+insert into public.club_programs (name, target_age, summary)
+values (
+  'テスト用 こども英会話（初級）',
+  '３歳児〜未就学児',
+  E'動作確認用のテストクラブです。\n実際の開催予定ではありません。'
+)
+on conflict (name) do nothing;
+
 -- 翌月開催のテスト用クラブ（大洲児童館 / 定員 2 名）
 insert into public.clubs (
   facility_id,
-  name,
+  program_id,
   start_at,
   end_at,
   capacity,
-  target_age_min,
-  target_age_max,
   photo_url,
   description
 ) values (
   1,  -- 1=大洲児童館、2=喜多児童館、3=徳森児童センター
-  'テスト用 こども英会話（初級）',
+  (select id from public.club_programs where name = 'テスト用 こども英会話（初級）'),
   (now() + interval '30 days')::date + time '10:00' at time zone 'Asia/Tokyo',
   (now() + interval '30 days')::date + time '12:00' at time zone 'Asia/Tokyo',
   2,
-  3,
-  6,
   null,
-  E'動作確認用のテストクラブです。実際の開催予定ではありません。\n\nお気軽にご参加ください。'
+  E'当日の補足: 雨天時は大洲児童館 2F 会議室に変更します。'
 );
 
 -- 登録されたか確認（id を控える）
-select id, facility_id, name, start_at, capacity
-  from public.clubs
+select c.id, c.facility_id, cp.name, c.start_at, c.capacity
+  from public.clubs c
+  join public.club_programs cp on cp.id = c.program_id
   where name like 'テスト用%'
   order by created_at desc
   limit 5;
