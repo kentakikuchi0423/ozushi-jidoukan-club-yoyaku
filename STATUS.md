@@ -5,7 +5,27 @@
 
 ---
 
-## 最終更新: 2026-04-23（管理画面構造変更 + 複数保護者/子どもの正規化 + 用語日本語化）
+## 最終更新: 2026-04-23（ログイン画面 back-link + エラーメッセージの日本語化）
+
+### このチャンクで解消したもの
+1. **`/admin/login` に「← クラブ一覧に戻る」リンクを追加**:
+   - ログイン画面から公開のクラブ一覧 (`/`) に戻れるようになった
+2. **Supabase Auth の招待エラーを日本語にマッピング**:
+   - `translateInviteError()` で「already registered」「invalid email」「rate limit」などのパターンを日本語メッセージに置換
+   - 画面に英語が出てしまっていた招待フロー（既存メールで招待しようとした時等）が解消
+3. **zod の英語デフォルトメッセージを日本語化**:
+   - `clubInputSchema` (name / capacity / targetAge / photoUrl / description の全フィールド)
+   - `reservationInputSchema` (parents/children の name/kana, email, notes)
+   - `addAdminSchema` (email / displayName / facilityCodes)
+
+### テスト結果
+- `pnpm format` / `pnpm typecheck` / `pnpm lint`: all green
+- `pnpm test`: 13 files / 88 cases pass
+- `pnpm test:e2e`（default）: 13 passed / 2 skipped
+
+---
+
+## 1 つ前: 2026-04-23（管理画面構造変更 + 複数保護者/子どもの正規化 + 用語日本語化）
 
 ### このチャンクで解消したもの
 1. **管理ダッシュボードを廃止し、ログイン後は直接クラブ一覧へ**:
