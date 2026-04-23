@@ -30,6 +30,7 @@ export default async function HomePage() {
         </h1>
         <p className="text-sm leading-7 text-zinc-600">
           大洲児童館・喜多児童館・徳森児童センターのクラブをまとめて表示しています。
+          <br />
           気になるクラブを選ぶと、予約の手続きに進めます。
         </p>
       </header>
@@ -67,14 +68,16 @@ function EmptyState() {
       role="status"
       className="rounded-lg border border-dashed border-zinc-300 px-6 py-12 text-center text-sm text-zinc-600"
     >
-      現在予約できるクラブはありません。 しばらくしてから再度ご確認ください。
+      現在予約できるクラブはありません。
+      <br />
+      しばらくしてから再度ご確認ください。
     </div>
   );
 }
 
 const AVAILABILITY_LABEL: Record<ClubAvailability, string> = {
   available: "空きあり",
-  waitlist: "予約待ち",
+  waitlist: "キャンセル待ち",
   ended: "終了",
 };
 
@@ -123,7 +126,7 @@ function ClubCard({ club }: { club: ClubListing }) {
           {club.capacity}名 / {club.confirmedCount}名
           {club.waitlistedCount > 0 && (
             <span className="ml-1 text-xs text-amber-700">
-              （予約待ち {club.waitlistedCount}名）
+              （キャンセル待ち {club.waitlistedCount}名）
             </span>
           )}
         </dd>

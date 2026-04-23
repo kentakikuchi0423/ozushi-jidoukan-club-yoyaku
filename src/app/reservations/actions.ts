@@ -46,7 +46,7 @@ export async function cancelReservationAction(
     return {
       ok: false,
       kind: "deadline_passed",
-      message: "キャンセル期限を過ぎています。各館へ直接ご連絡ください。",
+      message: "キャンセル期限を過ぎています。\n各館へ直接ご連絡ください。",
     };
   }
 
@@ -105,14 +105,14 @@ export async function cancelReservationAction(
       return {
         ok: false,
         kind: "not_found",
-        message: "予約が見つかりません。URL をもう一度ご確認ください。",
+        message: "予約が見つかりません。\nURL をもう一度ご確認ください。",
       };
     }
     return {
       ok: false,
       kind: "unknown",
       message:
-        "予期しないエラーが発生しました。時間をおいて再度お試しください。",
+        "予期しないエラーが発生しました。\n時間をおいて再度お試しください。",
     };
   }
 }

@@ -87,6 +87,7 @@ function CancelSection({
         <p className="rounded-md bg-zinc-100 p-3 text-sm text-zinc-700">
           キャンセル期限（{deadlineLabel}
           ）を過ぎているため、このページからはキャンセルできません。
+          <br />
           体調不良などでご参加が難しくなった場合は、各館へ直接ご連絡ください。
         </p>
       </section>
@@ -128,6 +129,7 @@ function describeStatus(reservation: ReservationDetail): {
         copy: (
           <>
             <strong>ご予約は確定しています。</strong>
+            <br />
             当日お気をつけてお越しください。
           </>
         ),
@@ -137,13 +139,14 @@ function describeStatus(reservation: ReservationDetail): {
         tone: "info",
         copy: (
           <>
-            <strong>現在は予約待ちです。</strong>
+            <strong>現在はキャンセル待ちです。</strong>
             {waitlistPosition !== null && (
               <>
                 {" "}
                 現在の順位は <strong>{waitlistPosition} 番目</strong> です。
               </>
-            )}{" "}
+            )}
+            <br />
             キャンセルが発生した場合、順番に従って自動的に繰り上がり、確定した際にはメールでお知らせします。
           </>
         ),

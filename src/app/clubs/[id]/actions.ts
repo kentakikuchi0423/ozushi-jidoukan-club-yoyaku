@@ -63,7 +63,7 @@ export async function createReservationAction(
         ok: false,
         kind: "conflict",
         message:
-          "ただいま予約処理が混み合っています。少し時間をおいて、もう一度お試しください。",
+          "ただいま予約処理が混み合っています。\n少し時間をおいて、もう一度お試しください。",
       };
     }
     console.error("[reservations.create] action unknown error", {
@@ -74,7 +74,7 @@ export async function createReservationAction(
       ok: false,
       kind: "unknown",
       message:
-        "予期しないエラーが発生しました。ページを再読み込みしてもう一度お試しください。",
+        "予期しないエラーが発生しました。\nページを再読み込みしてもう一度お試しください。",
     };
   }
 

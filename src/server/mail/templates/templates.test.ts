@@ -36,7 +36,7 @@ describe("reservation email templates", () => {
   describe("renderWaitlistedEmail", () => {
     it("shows the waitlist position", () => {
       const out = renderWaitlistedEmail({ ...baseCtx, waitlistPosition: 3 });
-      expect(out.subject).toContain("予約待ち");
+      expect(out.subject).toContain("キャンセル待ち");
       expect(out.text).toContain("3 番目");
     });
   });

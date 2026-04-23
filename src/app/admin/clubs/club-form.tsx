@@ -84,7 +84,7 @@ export function ClubForm({
     if (!deleteAction) return;
     if (
       !window.confirm(
-        "このクラブを削除します。削除後は利用者画面から見えなくなります。よろしいですか？",
+        "このクラブを削除します。\n削除後は利用者画面から見えなくなります。\nよろしいですか？",
       )
     )
       return;
@@ -112,7 +112,7 @@ export function ClubForm({
           ref={errorRef}
           tabIndex={-1}
           role="alert"
-          className="rounded-md bg-red-50 p-3 text-sm text-red-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500"
+          className="rounded-md bg-red-50 p-3 text-sm whitespace-pre-line text-red-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500"
         >
           {formError}
         </p>
@@ -164,6 +164,7 @@ export function ClubForm({
             id="startAt"
             name="startAt"
             type="datetime-local"
+            step={1800}
             value={values.startAt}
             onChange={(e) => update("startAt", e.target.value)}
             {...fieldAriaProps("startAt", fieldErrors.startAt)}
@@ -175,6 +176,7 @@ export function ClubForm({
             id="endAt"
             name="endAt"
             type="datetime-local"
+            step={1800}
             value={values.endAt}
             onChange={(e) => update("endAt", e.target.value)}
             {...fieldAriaProps("endAt", fieldErrors.endAt)}
@@ -276,7 +278,7 @@ export function ClubForm({
       <FieldGroup
         id="description"
         label={LABELS.description}
-        hint="2000 字以内。改行は本文でそのまま反映されます。"
+        hint="2000 字以内。\n改行は本文でそのまま反映されます。"
         error={fieldErrors.description}
       >
         <textarea
@@ -346,7 +348,10 @@ function FieldGroup({
           {error}
         </p>
       ) : hint ? (
-        <p id={`${id}-hint`} className="text-xs text-zinc-500">
+        <p
+          id={`${id}-hint`}
+          className="text-xs whitespace-pre-line text-zinc-500"
+        >
           {hint}
         </p>
       ) : null}

@@ -62,13 +62,14 @@ export function CancelForm({
       <h2 className="text-sm font-semibold text-zinc-700">予約のキャンセル</h2>
       <p className="text-xs leading-5 text-zinc-600">
         キャンセルは <strong>{deadlineLabel}</strong> までお手続きいただけます。
+        <br />
         それ以降のキャンセルや無断欠席は他の利用者への影響が大きいため原則お控えください。
       </p>
 
       {error && (
         <p
           role="alert"
-          className="rounded-md bg-red-50 p-3 text-sm text-red-800"
+          className="rounded-md bg-red-50 p-3 text-sm whitespace-pre-line text-red-800"
         >
           {error}
         </p>
@@ -87,7 +88,9 @@ export function CancelForm({
       {stage === "confirming" && (
         <div className="space-y-3 rounded-md bg-red-50 p-3">
           <p className="text-sm text-red-900">
-            本当にこの予約をキャンセルしますか？この操作は取り消せません。
+            本当にこの予約をキャンセルしますか？
+            <br />
+            この操作は取り消せません。
           </p>
           <div className="flex flex-col gap-2 sm:flex-row">
             <button
@@ -112,7 +115,9 @@ export function CancelForm({
 
       {stage === "done" && (
         <p className="rounded-md bg-emerald-50 p-3 text-sm text-emerald-800">
-          キャンセルが完了しました。ページの表示を更新しています。
+          キャンセルが完了しました。
+          <br />
+          ページの表示を更新しています。
         </p>
       )}
     </section>

@@ -50,7 +50,7 @@ export function PasswordForm() {
       {formMessage && (
         <p
           role={formMessage.kind === "error" ? "alert" : "status"}
-          className={`rounded-md p-3 text-sm ${
+          className={`rounded-md p-3 text-sm whitespace-pre-line ${
             formMessage.kind === "error"
               ? "bg-red-50 text-red-800"
               : "bg-emerald-50 text-emerald-800"
@@ -73,7 +73,7 @@ export function PasswordForm() {
         value={newPassword}
         onChange={setNewPassword}
         autoComplete="new-password"
-        hint="10 文字以上。英字以外（数字・記号）を 1 文字以上含めてください。"
+        hint={"8 文字以上。\n英字と数字を 1 文字以上含めてください。"}
       />
       <Field
         id="confirm"
@@ -131,7 +131,7 @@ function Field({
         className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-500"
       />
       {hint && (
-        <p id={hintId} className="text-xs text-zinc-500">
+        <p id={hintId} className="text-xs whitespace-pre-line text-zinc-500">
           {hint}
         </p>
       )}

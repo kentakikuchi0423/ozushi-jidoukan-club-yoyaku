@@ -42,11 +42,9 @@ export default async function AdminDashboardPage() {
     <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10 sm:px-6">
       <header className="space-y-1">
         <p className="text-sm font-medium tracking-wide text-zinc-500">
-          管理画面
-        </p>
-        <h1 className="text-2xl font-bold sm:text-3xl">
           {profile?.displayName ?? "管理者"} さん、お疲れさまです
-        </h1>
+        </p>
+        <h1 className="text-2xl font-bold sm:text-3xl">管理ダッシュボード</h1>
         <p className="text-sm leading-6 text-zinc-600">
           管理可能な館: {facilitiesLabel}
           {isSuper && (
@@ -62,8 +60,11 @@ export default async function AdminDashboardPage() {
           role="status"
           className="mt-8 rounded-md bg-amber-50 p-4 text-sm text-amber-900"
         >
-          このアカウントには、まだ館の権限が割り当てられていません。 super_admin
-          の方に <code>admin_facilities</code> への割り当てを依頼してください。
+          このアカウントには、まだ館の権限が割り当てられていません。
+          <br />
+          super_admin の方に <code>admin_facilities</code>{" "}
+          への割り当てを依頼してください。
+          <br />
           手順は <code>docs/operations.md §3</code> に記載されています。
         </section>
       ) : (

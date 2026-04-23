@@ -100,7 +100,7 @@ export async function addAdminAction(
       kind: "invite_failed",
       message:
         inviteError?.message ??
-        "招待メールの送信に失敗しました。既に登録済みのアドレスかどうか確認してください。",
+        "招待メールの送信に失敗しました。\n既に登録済みのアドレスかどうか確認してください。",
     };
   }
   const newUserId = invite.user.id;
@@ -118,7 +118,7 @@ export async function addAdminAction(
       ok: false,
       kind: "unknown",
       message:
-        "内部エラー: 招待は送信されましたが、admin プロフィール作成に失敗しました。Supabase Studio から手動で確認してください。",
+        "内部エラー: 招待は送信されましたが、admin プロフィール作成に失敗しました。\nSupabase Studio から手動で確認してください。",
     };
   }
 
@@ -138,7 +138,7 @@ export async function addAdminAction(
       ok: false,
       kind: "unknown",
       message:
-        "内部エラー: 招待は送信されましたが、館権限の付与に失敗しました。Supabase Studio から手動で確認してください。",
+        "内部エラー: 招待は送信されましたが、館権限の付与に失敗しました。\nSupabase Studio から手動で確認してください。",
     };
   }
 

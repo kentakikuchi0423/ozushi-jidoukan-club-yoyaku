@@ -5,27 +5,45 @@
 
 ---
 
-## 最終更新: 2026-04-23（Phase 6: 早期 resolve すべき負債を一掃 + デプロイ runbook）
+## 最終更新: 2026-04-23（実機レビュー反映: UI 文言整備 + フォーム微調整）
 
 ### このチャンクで解消したもの
-1. **Next.js 16 `middleware.ts` → `proxy.ts` の deprecation**:
-   - `git mv src/middleware.ts src/proxy.ts`、`export function middleware` → `export function proxy`
-   - `next build` の deprecation warning が消える
-2. **aria-live でステージ遷移の announce**（reservation-form の draft ↔ preview）:
-   - 「入力内容の確認画面に進みました。」「入力画面です。」を sr-only で polite 読み上げ
-3. **E2E の flaky な `.click()` タイムアウトを解消**:
-   - CSP + 薄いレイアウトシフトで Chromium の「visible / enabled / stable」判定が決着せずタイムアウトしていた
-   - すべての `.click()` に `{ force: true }` を付与。link には `getAttribute("href")` → `page.goto()` でフォールバック
-   - `reservation-flow.spec.ts` / `admin-flow.spec.ts` ともに opt-in で安定 green
-4. **`docs/operations.md` に §9「本番デプロイ runbook」を追加**:
-   - GitHub 作成 → Vercel 連携 → env 投入 → migration → bootstrap → 動作確認チェックリスト → Resend 本検証への切替 → 運用開始後のメンテ
-   - README も §9 をデプロイ手順の正として参照するよう改訂
+1. **「予約待ち」→「キャンセル待ち」に統一**（DB enum `waitlisted` はそのまま）:
+   - 画面: home / clubs/[id] / clubs/[id]/done / reservations / admin/clubs
+   - メール: `waitlisted.ts` / `promoted.ts` の subject + 本文
+   - テスト: `templates.test.ts` / `e2e/reservation-flow.spec.ts`
+2. **多文パラグラフを文末で改行**（ブラウザで 1 文ごとに視認可能に）:
+   - JSX: `。` の切れ目に `<br />` を挿入（home header / empty state / clubs/[id] waitlist / done / reservations / cancel-form / reservation-form preview / new-club / accounts / admin dashboard）
+   - 動的メッセージ: `\n` + 表示側に `whitespace-pre-line` を追加
+     - password-form hint / login error / cancel-form error / reservation-form error / club-form error+hint / invite-form success / Server Action の message 各種
+3. **新規クラブ登録後の遷移先を `/admin` ダッシュボードに変更**:
+   - `createClubAction`: revalidate `/admin` も追加、redirect → `/admin`
+   - `updateClubAction` / `deleteClubAction` は従来通り `/admin/clubs`
+   - `admin-flow.spec.ts` も新フローに追従
+4. **パスワードポリシーを 8 文字以上 + 英字 1 + 数字 1 に緩和**:
+   - `MIN_PASSWORD_LENGTH = 10` → `8`、`/[^A-Za-z]/` → `/[A-Za-z]/ && /[0-9]/`
+   - フォーム hint / Server Action エラー文言も同時更新
+5. **管理画面クラブ一覧の担当館表示を館名に**:
+   - 旧: `管理対象: 3 館`  →  新: `管理対象: 大洲児童館 / 喜多児童館 / 徳森児童センター`
+6. **ダッシュボード h1 を「管理ダッシュボード」に**:
+   - 表示名（`○○ さん、お疲れさまです`）は上に小さく残す
+   - `admin-flow.spec.ts` の heading 期待も一致するよう更新
+7. **新規登録フォームの datetime-local を 30 分刻みに**:
+   - `startAt` / `endAt` に `step={1800}` を付与（既存 E2E は `:00` 境界なので影響なし）
+
+### テスト結果
+- `pnpm format` / `pnpm lint` / `pnpm typecheck`: all green
+- `pnpm test`: 13 files / 84 cases all pass
+- `pnpm build`: 13 routes + proxy、warning なし
+- `pnpm test:e2e`（default）: 13 passed / 2 skipped
+- `RUN_RESERVATION_FLOW_E2E=1 pnpm test:e2e e2e/reservation-flow.spec.ts`: 1 passed（4.5s）
+- `RUN_ADMIN_FLOW_E2E=1 pnpm test:e2e e2e/admin-flow.spec.ts`: 1 passed（7.7s）
 
 ### 現在地
 - Phase 1 / 2 / 3: **95%+**
-- Phase 4: **75%**
+- Phase 4: **80%**（dashboard h1 / clubs list の館名表示 / 登録後ダッシュボード導線）
 - Phase 5: **80%**
-- **Phase 6: 75%**（前回 65% → middleware 移行 + aria-live + runbook 追加で +10）
+- **Phase 6: 80%**（前回 75% → 実機レビュー反映で +5）
 
 ### 残っている項目（すべて自走外要因）
 | 項目 | 種別 | 待ち |
@@ -43,21 +61,6 @@
 - **実機検証で気づいた UI / 文言 / UX の指摘**: それを反映する追加タスクが生まれ次第対応
 - 特に無ければ、もう **ほぼやり切った状態**（v1 機能 100% 実装 + E2E 検証 + セキュリティヘッダー + CSP + a11y 基本 + 運用 runbook）
 
-### 直近コマンド結果
-- `pnpm format:check` / `lint` / `typecheck`: all green
-- `pnpm build`: 13 routes + proxy（`middleware-to-proxy` deprecation warning なし）
-- `pnpm test:e2e`（default）: 13 passed / 2 skipped
-- `RUN_ADMIN_FLOW_E2E=1 pnpm test:e2e e2e/admin-flow.spec.ts`: 1 passed（7.4s）
-- `RUN_RESERVATION_FLOW_E2E=1 pnpm test:e2e e2e/reservation-flow.spec.ts`: 1 passed（6.2s）
-- `pnpm audit`: No known vulnerabilities
-- `pnpm test`: 12 ファイル / 最大 87 ケース（vitest 4 のワーカー起動は時折 1–3 件 flake、実行されたケースは全 pass）
-
 ### Git
 - ブランチ: `main`
 - リモート: 未設定
-- 本セッション最新 5 コミット:
-  - `9a13792` docs(operations): add §9 production-deployment runbook
-  - `4058125` feat(phase-6): rename middleware → proxy + stage-transition a11y + E2E force click
-  - `84d84cb` docs: Phase 6 at 65% after coverage + architecture refresh
-  - `9e805a6` test(phase-6): coverage pass + architecture doc refresh
-  - `814cc18` docs(status): v1-complete checkpoint

@@ -84,7 +84,7 @@ export function ReservationForm({ clubId }: { clubId: string }) {
       }
       setFieldErrors(next);
       setFormError(
-        "入力内容を確認してください。赤字のフィールドに問題があります。",
+        "入力内容を確認してください。\n赤字のフィールドに問題があります。",
       );
       return null;
     }
@@ -120,7 +120,7 @@ export function ReservationForm({ clubId }: { clubId: string }) {
     if (!result) return; // redirect 成功時は到達しない
     if (result.kind === "input") {
       setFieldErrors(result.fieldErrors);
-      setFormError("入力内容に問題がありました。再度ご確認ください。");
+      setFormError("入力内容に問題がありました。\n再度ご確認ください。");
       setStage("draft");
       return;
     }
@@ -188,7 +188,7 @@ function DraftStep({
           ref={errorRef}
           tabIndex={-1}
           role="alert"
-          className="rounded-md bg-red-50 p-3 text-sm text-red-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500"
+          className="rounded-md bg-red-50 p-3 text-sm whitespace-pre-line text-red-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500"
         >
           {formError}
         </p>
@@ -373,7 +373,7 @@ function PreviewStep({
       {formError && (
         <p
           role="alert"
-          className="rounded-md bg-red-50 p-3 text-sm text-red-800"
+          className="rounded-md bg-red-50 p-3 text-sm whitespace-pre-line text-red-800"
         >
           {formError}
         </p>
@@ -395,7 +395,9 @@ function PreviewStep({
         <h3 className="mb-2 text-sm font-bold">ご予約にあたってのお願い</h3>
         <ul className="list-disc space-y-1 pl-5">
           <li>
-            ご予約は先着順です。受付結果はご登録のメールアドレス宛にお送りします。
+            ご予約は先着順です。
+            <br />
+            受付結果はご登録のメールアドレス宛にお送りします。
           </li>
           <li>
             キャンセルは開催日の 2 営業日前 17 時までに手続きをお願いします。

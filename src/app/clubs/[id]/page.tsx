@@ -73,7 +73,7 @@ export default async function ClubDetailPage({ params }: Props) {
             {club.capacity}名 / {club.confirmedCount}名
             {club.waitlistedCount > 0 && (
               <span className="ml-1 text-xs text-amber-700">
-                （予約待ち {club.waitlistedCount}名）
+                （キャンセル待ち {club.waitlistedCount}名）
               </span>
             )}
           </dd>
@@ -117,8 +117,9 @@ export default async function ClubDetailPage({ params }: Props) {
           <>
             {availability === "waitlist" && (
               <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-800">
-                定員に達しています。お申込みいただくと予約待ちとして受け付け、
-                キャンセルが発生した場合に自動で繰り上がります。
+                定員に達しています。
+                <br />
+                お申込みいただくとキャンセル待ちとして受け付け、キャンセルが発生した場合に自動で繰り上がります。
               </p>
             )}
             <ReservationForm clubId={club.id} />
@@ -132,7 +133,7 @@ export default async function ClubDetailPage({ params }: Props) {
 function AvailabilityBadge({ value }: { value: ClubAvailability }) {
   const LABEL: Record<ClubAvailability, string> = {
     available: "空きあり",
-    waitlist: "予約待ち",
+    waitlist: "キャンセル待ち",
     ended: "終了",
   };
   const CLASS: Record<ClubAvailability, string> = {

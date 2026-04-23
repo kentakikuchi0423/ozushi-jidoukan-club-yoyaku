@@ -99,7 +99,7 @@ export async function createClubAction(
       ok: false,
       kind: "unknown",
       message:
-        "クラブの登録に失敗しました。入力内容を確認してもう一度お試しください。",
+        "クラブの登録に失敗しました。\n入力内容を確認してもう一度お試しください。",
     };
   }
 
@@ -114,9 +114,10 @@ export async function createClubAction(
     },
   });
 
+  revalidatePath("/admin");
   revalidatePath("/admin/clubs");
   revalidatePath("/");
-  redirect("/admin/clubs");
+  redirect("/admin");
 }
 
 /** 既存クラブを更新する。 */
@@ -154,7 +155,7 @@ export async function updateClubAction(
     return {
       ok: false,
       kind: "not_found",
-      message: "クラブが見つかりません。一覧からもう一度お試しください。",
+      message: "クラブが見つかりません。\n一覧からもう一度お試しください。",
     };
   }
 

@@ -53,7 +53,7 @@ export function InviteAdminForm() {
         setFormMessage({
           kind: "success",
           message:
-            "招待メールを送信しました。相手がパスワードを設定すると、指定した館の管理者としてログインできるようになります。",
+            "招待メールを送信しました。\n相手がパスワードを設定すると、指定した館の管理者としてログインできるようになります。",
         });
         return;
       }
@@ -74,7 +74,7 @@ export function InviteAdminForm() {
       {formMessage && (
         <p
           role={formMessage.kind === "error" ? "alert" : "status"}
-          className={`rounded-md p-3 text-sm ${
+          className={`rounded-md p-3 text-sm whitespace-pre-line ${
             formMessage.kind === "error"
               ? "bg-red-50 text-red-800"
               : "bg-emerald-50 text-emerald-800"
@@ -162,8 +162,9 @@ export function InviteAdminForm() {
           <p className="text-xs text-red-700">{fieldErrors.facilityCodes}</p>
         )}
         <p className="text-xs text-zinc-500">
-          3 館すべてを付与すると super_admin
-          として扱われ、アカウント追加も可能になります。
+          3 館すべてを付与すると super_admin として扱われ、
+          <br />
+          アカウント追加も可能になります。
         </p>
       </fieldset>
 

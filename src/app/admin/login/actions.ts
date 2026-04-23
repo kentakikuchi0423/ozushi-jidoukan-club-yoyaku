@@ -27,7 +27,7 @@ export async function loginAction(input: {
     return {
       ok: false,
       message:
-        "メールアドレスまたはパスワードが正しくありません。もう一度ご確認ください。",
+        "メールアドレスまたはパスワードが正しくありません。\nもう一度ご確認ください。",
     };
   }
 

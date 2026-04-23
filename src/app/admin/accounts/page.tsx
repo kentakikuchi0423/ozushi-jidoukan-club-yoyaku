@@ -59,8 +59,9 @@ export default async function AdminAccountsPage() {
         </p>
         <h1 className="text-2xl font-bold sm:text-3xl">アカウント追加</h1>
         <p className="text-xs leading-6 text-zinc-600">
-          新しい管理者を招待します。送信されたメールのリンクから初回パスワードを設定すると、
-          指定した館の管理者としてログインできるようになります。
+          新しい管理者を招待します。
+          <br />
+          送信されたメールのリンクから初回パスワードを設定すると、指定した館の管理者としてログインできるようになります。
         </p>
       </header>
 

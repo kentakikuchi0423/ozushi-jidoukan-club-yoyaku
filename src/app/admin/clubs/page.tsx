@@ -8,6 +8,7 @@ import {
   type ClubAvailability,
   type ClubListing,
 } from "@/lib/clubs/types";
+import { FACILITY_NAMES } from "@/lib/facility";
 import { formatJstDate, formatJstTime } from "@/lib/format";
 import {
   AuthenticationRequiredError,
@@ -55,7 +56,9 @@ export default async function AdminClubsListPage() {
           <p className="text-xs leading-6 text-zinc-600">
             {ctx.facilities.length === 0
               ? "担当館がまだ割り当てられていません。"
-              : `管理対象: ${ctx.facilities.length} 館`}
+              : `管理対象: ${ctx.facilities
+                  .map((code) => FACILITY_NAMES[code])
+                  .join(" / ")}`}
           </p>
         </div>
         <Link
@@ -72,6 +75,7 @@ export default async function AdminClubsListPage() {
           className="rounded-lg border border-dashed border-zinc-300 px-6 py-12 text-center text-sm text-zinc-600"
         >
           担当館で公開中のクラブはまだありません。
+          <br />
           右上の「クラブを新規登録」から追加してください。
         </div>
       ) : (
@@ -89,7 +93,7 @@ export default async function AdminClubsListPage() {
 
 const AVAILABILITY_LABEL: Record<ClubAvailability, string> = {
   available: "空きあり",
-  waitlist: "予約待ち",
+  waitlist: "キャンセル待ち",
   ended: "終了",
 };
 
@@ -126,7 +130,8 @@ function AdminClubRow({ club }: { club: ClubListing }) {
         </h2>
         <p className="text-xs text-zinc-500">
           定員 {club.capacity}名 / 予約 {club.confirmedCount}名
-          {club.waitlistedCount > 0 && `（予約待ち ${club.waitlistedCount}名）`}
+          {club.waitlistedCount > 0 &&
+            `（キャンセル待ち ${club.waitlistedCount}名）`}
         </p>
       </div>
       <div className="flex shrink-0 gap-2">

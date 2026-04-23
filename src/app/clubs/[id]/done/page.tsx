@@ -39,18 +39,19 @@ export default async function ReservationDonePage({ searchParams }: Props) {
           <p className="text-sm font-medium text-emerald-700">
             {s === "confirmed"
               ? "お申込みが完了しました"
-              : "予約待ちで受け付けました"}
+              : "キャンセル待ちで受け付けました"}
           </p>
           <h1 className="text-2xl font-bold sm:text-3xl">
             {s === "confirmed"
               ? "ご予約ありがとうございました"
-              : "予約待ちリストに追加しました"}
+              : "キャンセル待ちリストに追加しました"}
           </h1>
         </header>
 
         {s === "waitlisted" && p && (
           <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-800">
-            現在の予約待ち順位は <strong>{p} 番目</strong> です。
+            現在のキャンセル待ち順位は <strong>{p} 番目</strong> です。
+            <br />
             キャンセルが発生した場合は、先頭の方から順にご連絡差し上げます。
           </p>
         )}
@@ -72,8 +73,10 @@ export default async function ReservationDonePage({ searchParams }: Props) {
           <p className="text-xs leading-5 text-zinc-600">
             この URL
             は、ご本人がご予約内容を確認・キャンセルするためのものです。
-            第三者に共有しないようご注意ください。メールでもお送りしますので、
-            大切に保管してください。
+            <br />
+            第三者に共有しないようご注意ください。
+            <br />
+            メールでもお送りしますので、大切に保管してください。
           </p>
         </section>
 

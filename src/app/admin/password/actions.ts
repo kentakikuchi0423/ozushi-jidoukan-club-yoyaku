@@ -11,18 +11,17 @@ export type PasswordChangeResult =
   | { ok: false; kind: "current_wrong"; message: string }
   | { ok: false; kind: "update_failed"; message: string };
 
-const MIN_PASSWORD_LENGTH = 10;
+const MIN_PASSWORD_LENGTH = 8;
 
 function isComplexEnough(pw: string): boolean {
   if (pw.length < MIN_PASSWORD_LENGTH) return false;
-  // 英字のみは弱いので数字 or 記号を最低 1 文字要求
-  return /[^A-Za-z]/.test(pw);
+  return /[A-Za-z]/.test(pw) && /[0-9]/.test(pw);
 }
 
 /**
  * 管理者パスワード変更。
  *   1. 現在のパスワードで再認証（`signInWithPassword`）して本人確認
- *   2. 新パスワードの複雑性を軽くチェック（10 文字以上 + 英字以外を含む）
+ *   2. 新パスワードの複雑性を軽くチェック（8 文字以上 + 英字と数字を含む）
  *   3. `supabase.auth.updateUser` で更新
  *   4. 監査ログに `admin.password_change` を記録
  */
@@ -42,7 +41,7 @@ export async function changePasswordAction(input: {
     return {
       ok: false,
       kind: "weak",
-      message: `新しいパスワードは ${MIN_PASSWORD_LENGTH} 文字以上で、英字以外（数字・記号）を 1 文字以上含めてください。`,
+      message: `新しいパスワードは ${MIN_PASSWORD_LENGTH} 文字以上で、英字と数字を 1 文字以上含めてください。`,
     };
   }
 
@@ -52,7 +51,7 @@ export async function changePasswordAction(input: {
     return {
       ok: false,
       kind: "unauthenticated",
-      message: "セッションが切れています。再度ログインしてください。",
+      message: "セッションが切れています。\n再度ログインしてください。",
     };
   }
 
@@ -77,7 +76,7 @@ export async function changePasswordAction(input: {
       ok: false,
       kind: "update_failed",
       message:
-        "パスワードの更新に失敗しました。しばらくしてからもう一度お試しください。",
+        "パスワードの更新に失敗しました。\nしばらくしてからもう一度お試しください。",
     };
   }
 

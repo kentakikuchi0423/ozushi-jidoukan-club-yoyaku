@@ -19,7 +19,7 @@ export interface ClubListing {
 
 // 一覧ページで表示する状態バッジ。
 //   - 'ended': start_at が過去（受付終了）
-//   - 'waitlist': confirmed が定員に到達済みで、以降は予約待ち
+//   - 'waitlist': confirmed が定員に到達済みで、以降はキャンセル待ち
 //   - 'available': 空きあり
 export type ClubAvailability = "available" | "waitlist" | "ended";
 

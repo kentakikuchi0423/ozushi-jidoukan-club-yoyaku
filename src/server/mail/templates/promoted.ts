@@ -11,11 +11,11 @@ export function renderPromotedEmail(
 ): RenderedEmail {
   const url = buildConfirmUrl(ctx.reservationNumber, ctx.secureToken);
   return {
-    subject: `【大洲市児童館クラブ予約】予約待ちから繰り上がりご予約が確定しました（${ctx.reservationNumber}）`,
+    subject: `【大洲市児童館クラブ予約】キャンセル待ちから繰り上がりご予約が確定しました（${ctx.reservationNumber}）`,
     text: `${ctx.parentName} 様
 
 お待たせいたしました。お申込みいただいていた以下のクラブについて、
-キャンセルが発生したため予約待ちから繰り上がり、ご予約が確定しました。
+キャンセルが発生したためキャンセル待ちから繰り上がり、ご予約が確定しました。
 
 ────────────────────
 クラブ名: ${ctx.clubName}

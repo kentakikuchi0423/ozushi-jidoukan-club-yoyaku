@@ -41,7 +41,7 @@ interface CreateReservationRow {
 }
 
 /**
- * 予約を確定または予約待ちで登録する。
+ * 予約を確定またはキャンセル待ちで登録する。
  *
  * 入力は zod で検証し、失敗時は ReservationInputError（type="*Input*"）。
  * RPC 内で行ロック + シーケンス更新 + INSERT を 1 トランザクションで実行する

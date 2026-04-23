@@ -103,7 +103,7 @@ test("user can create a reservation via the browser", async ({ page }) => {
 
   await expect(
     page.getByRole("heading", {
-      name: /ご予約ありがとうございました|予約待ちリストに追加しました/,
+      name: /ご予約ありがとうございました|キャンセル待ちリストに追加しました/,
     }),
   ).toBeVisible();
 
@@ -127,7 +127,7 @@ test("user can create a reservation via the browser", async ({ page }) => {
   ).toBeVisible();
   // 作成直後は confirmed か waitlisted のどちらか
   await expect(
-    page.getByText(/ご予約は確定しています|現在は予約待ちです/),
+    page.getByText(/ご予約は確定しています|現在はキャンセル待ちです/),
   ).toBeVisible();
 
   // CancelForm のハイドレーション完了を待つ

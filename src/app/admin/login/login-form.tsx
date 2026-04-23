@@ -39,7 +39,7 @@ export function LoginForm({ next }: Props) {
         <p
           role="alert"
           id="admin-login-error"
-          className="rounded-md bg-red-50 p-3 text-sm text-red-800"
+          className="rounded-md bg-red-50 p-3 text-sm whitespace-pre-line text-red-800"
         >
           {error}
         </p>

@@ -32,7 +32,9 @@ export default async function AdminClubNewPage() {
     return (
       <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-10 sm:px-6">
         <p className="rounded-md bg-amber-50 p-4 text-sm text-amber-900">
-          担当館がまだ割り当てられていません。super_admin の方にご連絡ください。
+          担当館がまだ割り当てられていません。
+          <br />
+          super_admin の方にご連絡ください。
         </p>
       </main>
     );
@@ -67,7 +69,9 @@ export default async function AdminClubNewPage() {
         </p>
         <h1 className="text-2xl font-bold sm:text-3xl">クラブを新規登録</h1>
         <p className="text-xs leading-6 text-zinc-600">
-          担当する館を選んで、内容を入力してください。保存後、利用者画面に即時反映されます。
+          担当する館を選んで、内容を入力してください。
+          <br />
+          保存後、利用者画面に即時反映されます。
         </p>
       </header>
 
