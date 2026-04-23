@@ -30,10 +30,10 @@ export default async function AdminPasswordPage() {
     <main className="mx-auto w-full max-w-xl flex-1 px-4 py-8 sm:px-6">
       <nav className="mb-4 text-sm">
         <Link
-          href="/admin"
+          href="/admin/clubs"
           className="text-zinc-600 underline underline-offset-4 hover:text-zinc-900"
         >
-          ← 管理ダッシュボードに戻る
+          ← クラブ一覧に戻る
         </Link>
       </nav>
 

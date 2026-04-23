@@ -4,14 +4,17 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isFacilityCode, type FacilityCode } from "@/lib/facility";
 import type { ReservationStatus } from "@/lib/reservations/status";
 
+export interface ReservationPerson {
+  readonly name: string;
+  readonly kana: string;
+}
+
 export interface ReservationDetail {
   readonly reservationNumber: string;
   readonly status: ReservationStatus;
   readonly waitlistPosition: number | null;
-  readonly parentName: string;
-  readonly parentKana: string;
-  readonly childName: string;
-  readonly childKana: string;
+  readonly parents: ReadonlyArray<ReservationPerson>;
+  readonly children: ReadonlyArray<ReservationPerson>;
   readonly phone: string;
   readonly email: string;
   readonly notes: string | null;
@@ -31,10 +34,8 @@ interface GetMyReservationRow {
   reservation_number: string;
   status: ReservationStatus;
   waitlist_position: number | null;
-  parent_name: string;
-  parent_kana: string;
-  child_name: string;
-  child_kana: string;
+  parents: unknown;
+  children: unknown;
   phone: string;
   email: string;
   notes: string | null;
@@ -46,6 +47,25 @@ interface GetMyReservationRow {
   facility_name: string;
   start_at: string;
   end_at: string;
+}
+
+function toPeople(raw: unknown): ReservationPerson[] {
+  if (!Array.isArray(raw)) return [];
+  const out: ReservationPerson[] = [];
+  for (const item of raw) {
+    if (
+      item &&
+      typeof item === "object" &&
+      typeof (item as { name?: unknown }).name === "string" &&
+      typeof (item as { kana?: unknown }).kana === "string"
+    ) {
+      out.push({
+        name: (item as { name: string }).name,
+        kana: (item as { kana: string }).kana,
+      });
+    }
+  }
+  return out;
 }
 
 /**
@@ -75,10 +95,8 @@ export async function fetchMyReservation(
     reservationNumber: row.reservation_number,
     status: row.status,
     waitlistPosition: row.waitlist_position,
-    parentName: row.parent_name,
-    parentKana: row.parent_kana,
-    childName: row.child_name,
-    childKana: row.child_kana,
+    parents: toPeople(row.parents),
+    children: toPeople(row.children),
     phone: row.phone,
     email: row.email,
     notes: row.notes,

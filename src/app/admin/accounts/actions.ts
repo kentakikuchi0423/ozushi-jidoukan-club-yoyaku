@@ -70,7 +70,7 @@ export async function addAdminAction(
       return {
         ok: false,
         kind: "forbidden",
-        message: "この操作は super_admin のみ実行できます。",
+        message: "この操作は全館管理者のみ実行できます。",
       };
     }
     throw error;

@@ -34,7 +34,7 @@ export default async function AdminClubNewPage() {
         <p className="rounded-md bg-amber-50 p-4 text-sm text-amber-900">
           担当館がまだ割り当てられていません。
           <br />
-          super_admin の方にご連絡ください。
+          全館管理者の方にご連絡ください。
         </p>
       </main>
     );

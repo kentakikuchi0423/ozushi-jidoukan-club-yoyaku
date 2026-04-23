@@ -11,6 +11,9 @@ import { sendEmail } from "./send";
 // 例外は投げず、失敗は send.ts 内で console に記録する（予約 UX を
 // メール送信失敗で崩さない方針）。呼び出し側は `void notify(...)` で
 // fire-and-forget できる。
+//
+// メールの冒頭の「○○ 様」は、保護者の 1 人目の氏名を使う。複数人いる場合も
+// 代表者として 1 人目に送るのが無難（DB 的にも position=0 = 最初に登録した人）。
 
 export interface CreatedContext {
   readonly reservationNumber: string;
@@ -47,7 +50,6 @@ export async function notifyReservationCreated(
     return;
   }
 
-  // waitlisted
   if (ctx.waitlistPosition === null) return; // 規約上ありえないが保険
   const msg = renderWaitlistedEmail({
     reservationNumber: ctx.reservationNumber,
@@ -99,7 +101,6 @@ export async function notifyReservationCanceled(
 interface PromotedLookupRow {
   reservation_number: string;
   secure_token: string;
-  parent_name: string;
   email: string;
   club: {
     name: string;
@@ -109,11 +110,13 @@ interface PromotedLookupRow {
       name: string;
     };
   };
+  parents: Array<{ name: string }> | null;
 }
 
 /**
  * 繰り上げ対象の予約番号を受け取り、admin クライアント経由で送信に必要な情報を
  * 取得してメールを送る。secure_token は他人に返せないため server-side のみで扱う。
+ * 保護者の 1 人目を「○○ 様」の宛先として使う。
  */
 export async function notifyReservationPromoted(
   promotedReservationNumber: string,
@@ -124,16 +127,20 @@ export async function notifyReservationPromoted(
     .select(
       `reservation_number,
        secure_token,
-       parent_name,
        email,
        club:clubs!inner(
          name,
          start_at,
          end_at,
          facility:facilities!inner(name)
-       )`,
+       ),
+       parents:reservation_parents(name, position)`,
     )
     .eq("reservation_number", promotedReservationNumber)
+    .order("position", {
+      referencedTable: "reservation_parents",
+      ascending: true,
+    })
     .maybeSingle<PromotedLookupRow>();
 
   if (error || !data) {
@@ -144,10 +151,13 @@ export async function notifyReservationPromoted(
     return;
   }
 
+  const primaryParentName =
+    data.parents && data.parents.length > 0 ? data.parents[0].name : "ご予約者";
+
   const msg = renderPromotedEmail({
     reservationNumber: data.reservation_number,
     secureToken: data.secure_token,
-    parentName: data.parent_name,
+    parentName: primaryParentName,
     facilityName: data.club.facility.name,
     clubName: data.club.name,
     clubStartAt: data.club.start_at,

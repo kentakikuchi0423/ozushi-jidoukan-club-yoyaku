@@ -32,7 +32,7 @@ export default async function AdminAccountsPage() {
         <main className="mx-auto w-full max-w-xl flex-1 px-4 py-10 sm:px-6">
           <p className="rounded-md bg-amber-50 p-4 text-sm text-amber-900">
             このページは 3
-            館すべての権限を持つ管理者（super_admin）のみ利用できます。
+            館すべての権限を持つ管理者（全館管理者）のみ利用できます。
           </p>
         </main>
       );
@@ -46,10 +46,10 @@ export default async function AdminAccountsPage() {
     <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8 sm:px-6">
       <nav className="mb-4 text-sm">
         <Link
-          href="/admin"
+          href="/admin/clubs"
           className="text-zinc-600 underline underline-offset-4 hover:text-zinc-900"
         >
-          ← 管理ダッシュボードに戻る
+          ← クラブ一覧に戻る
         </Link>
       </nav>
 
@@ -97,7 +97,7 @@ export default async function AdminAccountsPage() {
                     </div>
                     {isSuper && (
                       <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-800">
-                        super_admin
+                        全館管理者
                       </span>
                     )}
                   </div>

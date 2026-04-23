@@ -38,7 +38,7 @@ export default async function HomePage() {
       {clubs.length === 0 ? (
         <EmptyState />
       ) : (
-        <ul className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <ul className="mx-auto flex max-w-2xl flex-col gap-4">
           {clubs.map((club) => (
             <li key={club.id}>
               <ClubCard club={club} />
@@ -93,7 +93,7 @@ function ClubCard({ club }: { club: ClubListing }) {
   const isReservable = !isEnded;
 
   return (
-    <article className="flex h-full flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-4 shadow-sm">
+    <article className="flex h-full flex-col gap-4 rounded-lg border border-zinc-200 bg-white p-5 shadow-sm sm:p-6">
       <div className="flex flex-wrap items-center gap-2 text-xs">
         <span className="rounded-full bg-zinc-100 px-2 py-0.5 font-medium text-zinc-700">
           {club.facilityName}
@@ -105,18 +105,19 @@ function ClubCard({ club }: { club: ClubListing }) {
         </span>
       </div>
 
-      <div className="space-y-1">
-        <p className="text-sm font-medium text-zinc-700">
-          <time dateTime={club.startAt}>{formatJstDate(club.startAt)}</time>
-          <span className="mx-2 text-zinc-400">·</span>
-          <span>
-            {formatJstTime(club.startAt)}〜{formatJstTime(club.endAt)}
-          </span>
-        </p>
-        <h2 className="text-lg leading-tight font-bold">{club.name}</h2>
-      </div>
+      <h2 className="text-xl leading-tight font-bold text-zinc-900">
+        {club.name}
+      </h2>
 
-      <dl className="grid grid-cols-2 gap-y-1 text-sm text-zinc-700">
+      <p className="text-sm text-zinc-700">
+        <time dateTime={club.startAt}>{formatJstDate(club.startAt)}</time>
+        <span className="mx-2 text-zinc-400">·</span>
+        <span>
+          {formatJstTime(club.startAt)}〜{formatJstTime(club.endAt)}
+        </span>
+      </p>
+
+      <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm text-zinc-700">
         <dt className="text-zinc-500">対象年齢</dt>
         <dd>
           {formatTargetAge(club.targetAgeMin, club.targetAgeMax) ?? "指定なし"}
@@ -132,7 +133,7 @@ function ClubCard({ club }: { club: ClubListing }) {
         </dd>
       </dl>
 
-      <div className="mt-auto flex items-center justify-between pt-2 text-sm">
+      <div className="mt-auto flex flex-wrap items-center justify-between gap-3 border-t border-zinc-100 pt-3 text-sm">
         {hasValidPhotoUrl(club.photoUrl) ? (
           <a
             href={club.photoUrl}
@@ -149,14 +150,14 @@ function ClubCard({ club }: { club: ClubListing }) {
         {isReservable ? (
           <Link
             href={`/clubs/${club.id}`}
-            className="rounded-md bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-800"
+            className="inline-flex items-center justify-center rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
           >
             予約する
           </Link>
         ) : (
           <span
             aria-disabled="true"
-            className="rounded-md bg-zinc-200 px-3 py-1.5 text-sm font-medium text-zinc-500"
+            className="inline-flex items-center justify-center rounded-md bg-zinc-200 px-4 py-2 text-sm font-medium text-zinc-500"
           >
             受付終了
           </span>

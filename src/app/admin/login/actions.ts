@@ -32,6 +32,8 @@ export async function loginAction(input: {
   }
 
   const target =
-    input.next && /^\/admin(\/.*)?$/.test(input.next) ? input.next : "/admin";
+    input.next && /^\/admin(\/.*)?$/.test(input.next)
+      ? input.next
+      : "/admin/clubs";
   redirect(target);
 }

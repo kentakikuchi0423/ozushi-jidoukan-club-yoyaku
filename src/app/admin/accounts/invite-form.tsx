@@ -162,7 +162,7 @@ export function InviteAdminForm() {
           <p className="text-xs text-red-700">{fieldErrors.facilityCodes}</p>
         )}
         <p className="text-xs text-zinc-500">
-          3 館すべてを付与すると super_admin として扱われ、
+          3 館すべてを付与すると全館管理者として扱われ、
           <br />
           アカウント追加も可能になります。
         </p>

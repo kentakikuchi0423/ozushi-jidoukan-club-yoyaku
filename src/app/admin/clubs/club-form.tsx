@@ -164,7 +164,7 @@ export function ClubForm({
             id="startAt"
             name="startAt"
             type="datetime-local"
-            step={1800}
+            step={600}
             value={values.startAt}
             onChange={(e) => update("startAt", e.target.value)}
             {...fieldAriaProps("startAt", fieldErrors.startAt)}
@@ -176,7 +176,7 @@ export function ClubForm({
             id="endAt"
             name="endAt"
             type="datetime-local"
-            step={1800}
+            step={600}
             value={values.endAt}
             onChange={(e) => update("endAt", e.target.value)}
             {...fieldAriaProps("endAt", fieldErrors.endAt)}

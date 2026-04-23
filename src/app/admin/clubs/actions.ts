@@ -114,10 +114,9 @@ export async function createClubAction(
     },
   });
 
-  revalidatePath("/admin");
   revalidatePath("/admin/clubs");
   revalidatePath("/");
-  redirect("/admin");
+  redirect("/admin/clubs");
 }
 
 /** 既存クラブを更新する。 */

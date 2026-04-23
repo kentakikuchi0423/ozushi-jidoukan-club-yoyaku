@@ -3,17 +3,19 @@ import { z } from "zod";
 // 利用者予約フォームのサーバー側 zod スキーマ。
 //
 // CLAUDE.md / docs/requirements.md の固定要件に合わせる:
-//   * 保護者／子どもの名前ふりがなは「ひらがなのみ」をサーバー側で検証する
-//   * 電話番号は国内形式（数字 + ハイフン + 記号）
-//   * メールは RFC 5322 の簡易検証
+//   * 1 件の予約に保護者・子どもを複数人登録できる（いずれも 1 〜 10 人）
+//   * 各人の氏名ふりがなは「ひらがなのみ」をサーバー側で検証する
+//   * 電話番号は国内形式（数字 + ハイフン + 記号）、メールは RFC 5322 の簡易検証
 //   * 備考は 500 文字以内
 //
-// DB 側（reservations の CHECK 制約）でも同等の検査を行う二重防御。Node 側で
-// 先に弾けば UX が早く戻せる。両者の regex を厳密に合わせるため、zod の
-// preprocess で入力を正規化する:
+// DB 側（reservations / reservation_parents / reservation_children の CHECK 制約）
+// でも同等の検査を行う二重防御。Node 側で先に弾けば UX が早く戻せる。
+// 両者の regex を厳密に合わせるため、zod の preprocess で入力を正規化する:
 //   - 全フィールド: `.trim()`
 //   - phone / email: さらに `.normalize("NFKC")` で半角化
 //     （IME 経由で全角の数字・スペースが混入しても DB の CHECK に合わせる）
+
+const MAX_PEOPLE = 10;
 
 const hiragana = /^[぀-ゟー　\s]+$/;
 // U+3040..U+309F: ひらがなブロック。U+30FC は長音記号（「ー」）。
@@ -24,40 +26,60 @@ const phoneRegex = /^[0-9+\-() ]{7,20}$/;
 // DB 側の `reservations.phone` CHECK 制約と完全一致。
 // NFKC で半角化した後の値を評価する前提。
 
-function asNormalizedString(key: string, value: unknown): unknown {
-  if (typeof value !== "string") return value;
-  const trimmed = value.trim();
-  // phone / email だけは NFKC で全角 → 半角に寄せる
-  if (key === "phone" || key === "email") {
-    return trimmed.normalize("NFKC");
+const personSchema = z
+  .object({
+    name: z.string().min(1).max(100),
+    kana: z
+      .string()
+      .min(1)
+      .max(100)
+      .regex(hiragana, { message: "ひらがなで入力してください" }),
+  })
+  .strict();
+
+function trimPerson(value: unknown): unknown {
+  if (!value || typeof value !== "object") return value;
+  const out: Record<string, unknown> = {};
+  for (const [key, v] of Object.entries(value as Record<string, unknown>)) {
+    out[key] = typeof v === "string" ? v.trim() : v;
   }
-  return trimmed;
+  return out;
 }
 
-function preprocessInput(raw: unknown): unknown {
+function trimPeopleArray(value: unknown): unknown {
+  if (!Array.isArray(value)) return value;
+  return value.map(trimPerson);
+}
+
+function normalizeTopLevel(raw: unknown): unknown {
   if (!raw || typeof raw !== "object") return raw;
-  const out: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
-    out[key] = asNormalizedString(key, value);
+  const src = raw as Record<string, unknown>;
+  const out: Record<string, unknown> = { ...src };
+  if ("parents" in src) out.parents = trimPeopleArray(src.parents);
+  if ("children" in src) out.children = trimPeopleArray(src.children);
+  if (typeof src.phone === "string") {
+    out.phone = src.phone.trim().normalize("NFKC");
+  }
+  if (typeof src.email === "string") {
+    out.email = src.email.trim().normalize("NFKC");
+  }
+  if (typeof src.notes === "string") {
+    out.notes = src.notes.trim();
   }
   return out;
 }
 
 export const reservationInputSchema = z.preprocess(
-  preprocessInput,
+  normalizeTopLevel,
   z.object({
-    parentName: z.string().min(1).max(100),
-    parentKana: z
-      .string()
-      .min(1)
-      .max(100)
-      .regex(hiragana, { message: "ひらがなで入力してください" }),
-    childName: z.string().min(1).max(100),
-    childKana: z
-      .string()
-      .min(1)
-      .max(100)
-      .regex(hiragana, { message: "ひらがなで入力してください" }),
+    parents: z
+      .array(personSchema)
+      .min(1, { message: "保護者を 1 名以上入力してください" })
+      .max(MAX_PEOPLE, { message: `保護者は ${MAX_PEOPLE} 名までです` }),
+    children: z
+      .array(personSchema)
+      .min(1, { message: "お子さまを 1 名以上入力してください" })
+      .max(MAX_PEOPLE, { message: `お子さまは ${MAX_PEOPLE} 名までです` }),
     phone: z
       .string()
       .regex(phoneRegex, { message: "電話番号の形式が正しくありません" }),
@@ -71,3 +93,4 @@ export const reservationInputSchema = z.preprocess(
 );
 
 export type ReservationInput = z.infer<typeof reservationInputSchema>;
+export type ReservationPersonInput = z.infer<typeof personSchema>;

@@ -69,10 +69,8 @@ export async function createReservation(
   const { data, error } = await supabase.rpc("create_reservation", {
     p_club_id: clubId,
     p_secure_token: secureToken,
-    p_parent_name: input.parentName,
-    p_parent_kana: input.parentKana,
-    p_child_name: input.childName,
-    p_child_kana: input.childKana,
+    p_parents: input.parents,
+    p_children: input.children,
     p_phone: input.phone,
     p_email: input.email,
     p_notes: input.notes ?? null,

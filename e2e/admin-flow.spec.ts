@@ -67,11 +67,9 @@ test("super_admin can create, edit, and delete a club end-to-end", async ({
     .getByRole("button", { name: "ログインする" })
     .click({ force: true });
 
-  // 2. ダッシュボード到達
-  await page.waitForURL("**/admin", { timeout: 15_000 });
-  await expect(
-    page.getByRole("heading", { name: "管理ダッシュボード" }),
-  ).toBeVisible();
+  // 2. クラブ一覧（ログイン後の初期画面）に到達
+  await page.waitForURL("**/admin/clubs", { timeout: 15_000 });
+  await expect(page.getByRole("heading", { name: "クラブ一覧" })).toBeVisible();
 
   // 3. クラブを新規登録
   await page
@@ -95,12 +93,7 @@ test("super_admin can create, edit, and delete a club end-to-end", async ({
 
   await page.getByRole("button", { name: "登録する" }).click({ force: true });
 
-  // 4. 新規登録後はダッシュボードに戻る → クラブ一覧に遷移して確認
-  await page.waitForURL("**/admin");
-  await page
-    .getByRole("link", { name: "クラブ一覧" })
-    .first()
-    .click({ force: true });
+  // 4. 新規登録後はクラブ一覧に戻り、新クラブが表示される
   await page.waitForURL("**/admin/clubs");
   await expect(page.getByText(uniqueLabel)).toBeVisible({ timeout: 15_000 });
 
@@ -138,8 +131,8 @@ test("super_admin can create, edit, and delete a club end-to-end", async ({
   await page.waitForURL("**/admin/clubs");
   await expect(page.getByText(uniqueLabel)).toHaveCount(0);
 
-  // 9. ログアウト（ダッシュボードへ戻って実施）
-  await page.goto("/admin");
+  // 9. ログアウト（クラブ一覧の上部バーから）
+  await page.goto("/admin/clubs");
   await page.getByRole("button", { name: "ログアウト" }).click({ force: true });
   await page.waitForURL("**/admin/login");
   await expect(

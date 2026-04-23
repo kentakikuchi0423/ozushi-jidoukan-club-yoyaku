@@ -63,10 +63,10 @@ test("user can create a reservation via the browser", async ({ page }) => {
 
   // fill → 値がちゃんと React state に入ったかを toHaveValue で担保する
   const cases: Array<[string, string]> = [
-    ["#parentName", "テスト 太郎"],
-    ["#parentKana", "てすと たろう"],
-    ["#childName", "テスト 花子"],
-    ["#childKana", "てすと はなこ"],
+    ["#parents-0-name", "テスト 太郎"],
+    ["#parents-0-kana", "てすと たろう"],
+    ["#children-0-name", "テスト 花子"],
+    ["#children-0-kana", "てすと はなこ"],
     ["#phone", "090-1234-5678"],
     // Resend 未検証ドメイン運用では、アカウント所有メール宛しか届かない
     ["#email", "kenta.kikuchi.0423@gmail.com"],

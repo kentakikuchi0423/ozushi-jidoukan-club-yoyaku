@@ -2,25 +2,67 @@ import { describe, expect, it } from "vitest";
 import { reservationInputSchema } from "./input-schema";
 
 const validInput = {
-  parentName: "田中 太郎",
-  parentKana: "たなか たろう",
-  childName: "田中 花子",
-  childKana: "たなか はなこ",
+  parents: [{ name: "田中 太郎", kana: "たなか たろう" }],
+  children: [{ name: "田中 花子", kana: "たなか はなこ" }],
   phone: "090-1234-5678",
   email: "tanaka@example.com",
   notes: "アレルギーはありません。",
 };
 
 describe("reservationInputSchema", () => {
-  it("accepts a well-formed reservation", () => {
+  it("accepts a well-formed single-person reservation", () => {
     const result = reservationInputSchema.safeParse(validInput);
     expect(result.success).toBe(true);
+  });
+
+  it("accepts multiple parents and children", () => {
+    const result = reservationInputSchema.safeParse({
+      ...validInput,
+      parents: [
+        { name: "田中 太郎", kana: "たなか たろう" },
+        { name: "田中 花子", kana: "たなか はなこ" },
+      ],
+      children: [
+        { name: "田中 一郎", kana: "たなか いちろう" },
+        { name: "田中 二郎", kana: "たなか じろう" },
+      ],
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.parents).toHaveLength(2);
+      expect(result.data.children).toHaveLength(2);
+    }
+  });
+
+  it("rejects an empty parents array", () => {
+    const result = reservationInputSchema.safeParse({
+      ...validInput,
+      parents: [],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects an empty children array", () => {
+    const result = reservationInputSchema.safeParse({
+      ...validInput,
+      children: [],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("caps parents and children at 10 each", () => {
+    const person = { name: "田中 太郎", kana: "たなか たろう" };
+    const tooMany = {
+      ...validInput,
+      parents: Array.from({ length: 11 }, () => person),
+    };
+    expect(reservationInputSchema.safeParse(tooMany).success).toBe(false);
   });
 
   it("accepts long-dash and full-width space in kana", () => {
     const result = reservationInputSchema.safeParse({
       ...validInput,
-      parentKana: "さとう　みすずー",
+      parents: [{ name: "佐藤 みすず", kana: "さとう　みすずー" }],
     });
     expect(result.success).toBe(true);
   });
@@ -28,19 +70,19 @@ describe("reservationInputSchema", () => {
   it("rejects kana fields that contain katakana or kanji", () => {
     const katakana = reservationInputSchema.safeParse({
       ...validInput,
-      parentKana: "タナカ",
+      parents: [{ name: "田中", kana: "タナカ" }],
     });
     expect(katakana.success).toBe(false);
 
     const kanji = reservationInputSchema.safeParse({
       ...validInput,
-      childKana: "田中",
+      children: [{ name: "田中", kana: "田中" }],
     });
     expect(kanji.success).toBe(false);
 
     const latin = reservationInputSchema.safeParse({
       ...validInput,
-      parentKana: "tanaka",
+      parents: [{ name: "Tanaka", kana: "tanaka" }],
     });
     expect(latin.success).toBe(false);
   });
@@ -48,7 +90,7 @@ describe("reservationInputSchema", () => {
   it("rejects empty required strings after trim", () => {
     const blankName = reservationInputSchema.safeParse({
       ...validInput,
-      parentName: "   ",
+      parents: [{ name: "   ", kana: "たなか" }],
     });
     expect(blankName.success).toBe(false);
   });
@@ -65,13 +107,13 @@ describe("reservationInputSchema", () => {
     const cases = [
       "０９０-１２３４-５６７８",
       "090　1234　5678",
+      "(090)1234-5678",
       "（090）1234-5678",
     ];
     for (const phone of cases) {
       const result = reservationInputSchema.safeParse({ ...validInput, phone });
       expect(result.success, `failed for ${phone}`).toBe(true);
       if (result.success) {
-        // NFKC 後は DB の CHECK 制約と同じ `^[0-9+\-() ]{7,20}$` にマッチする
         expect(result.data.phone).toMatch(/^[0-9+\-() ]{7,20}$/);
       }
     }

@@ -196,17 +196,13 @@ function ClubSection({ reservation }: { reservation: ReservationDetail }) {
 
 function ApplicantSection({ reservation }: { reservation: ReservationDetail }) {
   return (
-    <section className="mt-6 space-y-2 rounded-lg border border-zinc-200 bg-white p-4 sm:p-6">
+    <section className="mt-6 space-y-3 rounded-lg border border-zinc-200 bg-white p-4 sm:p-6">
       <h2 className="text-sm font-semibold text-zinc-700">お申込み内容</h2>
+
+      <PeopleList label="保護者" people={reservation.parents} />
+      <PeopleList label="お子さま" people={reservation.children} />
+
       <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm text-zinc-700">
-        <dt className="text-zinc-500">保護者</dt>
-        <dd>
-          {reservation.parentName}（{reservation.parentKana}）
-        </dd>
-        <dt className="text-zinc-500">お子さま</dt>
-        <dd>
-          {reservation.childName}（{reservation.childKana}）
-        </dd>
         <dt className="text-zinc-500">電話</dt>
         <dd>{reservation.phone}</dd>
         <dt className="text-zinc-500">メール</dt>
@@ -219,5 +215,26 @@ function ApplicantSection({ reservation }: { reservation: ReservationDetail }) {
         )}
       </dl>
     </section>
+  );
+}
+
+function PeopleList({
+  label,
+  people,
+}: {
+  label: string;
+  people: ReservationDetail["parents"] | ReservationDetail["children"];
+}) {
+  return (
+    <div className="space-y-1 text-sm text-zinc-700">
+      <p className="text-xs font-medium text-zinc-500">{label}</p>
+      <ul className="space-y-0.5">
+        {people.map((p, i) => (
+          <li key={i}>
+            {p.name}（{p.kana}）
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

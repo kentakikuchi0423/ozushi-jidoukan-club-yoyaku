@@ -5,7 +5,49 @@
 
 ---
 
-## 最終更新: 2026-04-23（実機レビュー反映: UI 文言整備 + フォーム微調整）
+## 最終更新: 2026-04-23（管理画面構造変更 + 複数保護者/子どもの正規化 + 用語日本語化）
+
+### このチャンクで解消したもの
+1. **管理ダッシュボードを廃止し、ログイン後は直接クラブ一覧へ**:
+   - `/admin` は `/admin/clubs` に redirect（互換用）
+   - `/admin/clubs` 上部に挨拶 + 館情報 + 全館管理者バッジ + ログアウト + サブナビ（パスワード変更 / アカウント追加）を集約
+   - `loginAction` / `createClubAction` / 各 back-link を `/admin/clubs` に統一
+2. **クラブ一覧に館 + ステータスの絞り込みフィルタ**:
+   - URL 検索パラメータ（`?facility=ozu&status=available`）駆動
+   - 未検証の facility / status 値は無視（安全側）
+   - 担当館が 1 館のみなら館フィルタは非表示
+   - 新規クライアントコンポーネント: `src/app/admin/clubs/filter-bar.tsx`
+3. **クラブ一覧を 1 列レイアウトに、公開側カードも幅広に**:
+   - 公開 `/`: `grid md:grid-cols-2` → `flex flex-col max-w-2xl`（1 列、視認性向上）
+   - 管理 `/admin/clubs`: 行を縦積み、shadow-sm + padding で視認性向上
+4. **datetime-local を 10 分刻みに**: `step={1800}` → `step={600}`（新規/編集フォーム）
+5. **「super_admin」を UI 文言では「全館管理者」に置換**:
+   - バッジ / エラーメッセージ / 説明文を置換（DB の識別子・コメントは維持）
+6. **予約に保護者・子どもを複数登録できるよう DB + UI を正規化**:
+   - migration `20260423000000_multi_parent_child.sql`:
+     - `reservation_parents` / `reservation_children` テーブル（FK + UNIQUE(reservation_id, position) + CHECK 制約、RLS 有効・ポリシー無し）
+     - 既存データを position=0 でバックフィル
+     - `reservations` から parent_*/child_* の 4 カラムを削除
+     - `create_reservation` を `(uuid, text, jsonb, jsonb, text, text, text)` に作り替え、配列を plpgsql で検証
+     - `get_my_reservation` は `parents` / `children` を `jsonb_agg ... order by position` で返す
+   - 入力 zod: `parents`/`children` 配列（各 1〜10 名、ひらがな検証維持）
+   - サーバーラッパ: `createReservation` / `fetchMyReservation` / `notifyReservationPromoted`（admin client の select を parents 関係テーブルに変更）
+   - UI: `reservation-form.tsx` に + / - ボタン付きの PeopleSection を実装
+   - 確認ページ: 保護者・子どもをそれぞれリスト表示
+   - 通知メール: 代表者として保護者 1 人目の名前を使用
+
+### テスト結果
+- `pnpm format` / `pnpm lint` / `pnpm typecheck`: all green
+- `pnpm test`: 12 files / 85 cases pass（vitest-pool の worker 起動 flake 1 件は既知、テスト自体は全 pass）
+- `pnpm build`: 13 routes + proxy、warning なし
+- `pnpm test:e2e`（default）: 13 passed / 2 skipped
+- `RUN_RESERVATION_FLOW_E2E=1 pnpm test:e2e e2e/reservation-flow.spec.ts`: 1 passed（6.2s、実 DB で新スキーマを検証）
+- `RUN_ADMIN_FLOW_E2E=1 pnpm test:e2e e2e/admin-flow.spec.ts`: 1 passed（7.0s、新導線に追従）
+- `pnpm db:push`: `20260423000000_multi_parent_child.sql` 適用済み
+
+---
+
+## 1 つ前: 2026-04-23（実機レビュー反映: UI 文言整備 + フォーム微調整）
 
 ### このチャンクで解消したもの
 1. **「予約待ち」→「キャンセル待ち」に統一**（DB enum `waitlisted` はそのまま）:

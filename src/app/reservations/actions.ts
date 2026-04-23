@@ -60,7 +60,7 @@ export async function cancelReservationAction(
       try {
         await notifyReservationCanceled({
           reservationNumber: beforeCancel.reservationNumber,
-          parentName: beforeCancel.parentName,
+          parentName: beforeCancel.parents[0]?.name ?? "ご予約者",
           email: beforeCancel.email,
           facilityName: beforeCancel.club.facilityName,
           clubName: beforeCancel.club.name,
