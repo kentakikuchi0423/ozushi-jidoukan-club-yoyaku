@@ -1,6 +1,7 @@
 "use server";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { isPasswordStrong, PASSWORD_ERROR } from "@/lib/auth/password";
 import { logAdminAction } from "@/server/audit/log";
 
 export type PasswordChangeResult =
@@ -11,17 +12,10 @@ export type PasswordChangeResult =
   | { ok: false; kind: "current_wrong"; message: string }
   | { ok: false; kind: "update_failed"; message: string };
 
-const MIN_PASSWORD_LENGTH = 8;
-
-function isComplexEnough(pw: string): boolean {
-  if (pw.length < MIN_PASSWORD_LENGTH) return false;
-  return /[A-Za-z]/.test(pw) && /[0-9]/.test(pw);
-}
-
 /**
  * 管理者パスワード変更。
  *   1. 現在のパスワードで再認証（`signInWithPassword`）して本人確認
- *   2. 新パスワードの複雑性を軽くチェック（8 文字以上 + 英字と数字を含む）
+ *   2. 新パスワードの複雑性を軽くチェック（`isPasswordStrong` 共通ポリシー）
  *   3. `supabase.auth.updateUser` で更新
  *   4. 監査ログに `admin.password_change` を記録
  */
@@ -37,11 +31,11 @@ export async function changePasswordAction(input: {
       message: "新しいパスワードと確認用パスワードが一致しません。",
     };
   }
-  if (!isComplexEnough(input.newPassword)) {
+  if (!isPasswordStrong(input.newPassword)) {
     return {
       ok: false,
       kind: "weak",
-      message: `新しいパスワードは ${MIN_PASSWORD_LENGTH} 文字以上で、英字と数字を 1 文字以上含めてください。`,
+      message: `新しい${PASSWORD_ERROR}`,
     };
   }
 

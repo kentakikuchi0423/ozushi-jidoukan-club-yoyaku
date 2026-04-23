@@ -4,22 +4,24 @@ import { expect, test } from "@playwright/test";
 // ことを確認する smoke。実際の DB データには書き込まない。default set で常時回す。
 
 test.describe("unauthenticated access to /admin is redirected to login", () => {
-  const guardedPaths = [
-    "/admin",
-    "/admin/clubs",
-    "/admin/clubs/new",
-    "/admin/password",
-    "/admin/accounts",
+  // `/admin` は middleware で `/admin/clubs` にリライトされるので、
+  // 未ログイン時の最終 next は `/admin/clubs` になる（ログイン後の初期画面）。
+  const guardedPaths: ReadonlyArray<{ visit: string; expectedNext: string }> = [
+    { visit: "/admin", expectedNext: "/admin/clubs" },
+    { visit: "/admin/clubs", expectedNext: "/admin/clubs" },
+    { visit: "/admin/clubs/new", expectedNext: "/admin/clubs/new" },
+    { visit: "/admin/password", expectedNext: "/admin/password" },
+    { visit: "/admin/accounts", expectedNext: "/admin/accounts" },
   ];
 
-  for (const path of guardedPaths) {
-    test(`${path} → /admin/login?next=${path}`, async ({ page }) => {
-      await page.goto(path);
+  for (const { visit, expectedNext } of guardedPaths) {
+    test(`${visit} → /admin/login?next=${expectedNext}`, async ({ page }) => {
+      await page.goto(visit);
       // リダイレクト後 URL を自前で解釈（searchParams.get は URL-decode してくれる）
       await page.waitForURL(/\/admin\/login\?/);
       const url = new URL(page.url());
       expect(url.pathname).toBe("/admin/login");
-      expect(url.searchParams.get("next")).toBe(path);
+      expect(url.searchParams.get("next")).toBe(expectedNext);
       await expect(
         page.getByRole("heading", { name: "管理者ログイン" }),
       ).toBeVisible();

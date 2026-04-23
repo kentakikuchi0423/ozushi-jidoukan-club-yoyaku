@@ -25,11 +25,24 @@ export function LoginForm({ next }: Props) {
     e.preventDefault();
     setError(null);
     startTransition(async () => {
-      const result = await loginAction({ email, password, next });
-      if (result && !result.ok) {
-        setError(result.message);
+      try {
+        const result = await loginAction({ email, password, next });
+        if (result && !result.ok) {
+          setError(result.message);
+        }
+        // success: loginAction が redirect() するので通常ここには戻らない
+      } catch (err) {
+        // NEXT_REDIRECT は Next.js 側で再スローされ、navigation が起きた直後に
+        // このハンドラが終わる想定。ただし hydration エラーや環境変数未設定など
+        // 予期しない例外は transition に飲まれ画面が無反応になるため、ここで
+        // 日本語のメッセージを表示して無言失敗を防ぐ。
+        const message = err instanceof Error ? err.message : String(err);
+        if (message.includes("NEXT_REDIRECT")) return;
+        console.error("[admin.login] unexpected error", err);
+        setError(
+          "ログイン処理で問題が発生しました。\nしばらくしてからもう一度お試しください。",
+        );
       }
-      // success: loginAction が redirect() するので通常ここには戻らない
     });
   }
 

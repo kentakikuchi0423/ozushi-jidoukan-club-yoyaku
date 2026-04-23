@@ -10,11 +10,23 @@ export const metadata: Metadata = {
 };
 
 interface Props {
-  searchParams: Promise<{ next?: string }>;
+  searchParams: Promise<{ next?: string; error?: string }>;
+}
+
+function callbackErrorMessage(code: string | undefined): string | null {
+  if (!code || !code.startsWith("callback_")) return null;
+  if (code === "callback_missing_code") {
+    return "メールの確認リンクが不完全です。\nもう一度招待メールの確認リンクをクリックしてください。";
+  }
+  if (code.startsWith("callback_otp_expired")) {
+    return "確認リンクの有効期限が切れました。\n管理者に再発行を依頼してください。";
+  }
+  return "メール確認に失敗しました。\n恐れ入りますが管理者にお問い合わせください。";
 }
 
 export default async function AdminLoginPage({ searchParams }: Props) {
-  const { next } = await searchParams;
+  const { next, error } = await searchParams;
+  const callbackError = callbackErrorMessage(error);
 
   return (
     <main className="mx-auto w-full max-w-md flex-1 px-4 py-12 sm:px-6">
@@ -37,6 +49,15 @@ export default async function AdminLoginPage({ searchParams }: Props) {
             登録済みのメールアドレスとパスワードでログインしてください。
           </p>
         </header>
+
+        {callbackError && (
+          <p
+            role="alert"
+            className="rounded-md bg-red-50 p-3 text-sm whitespace-pre-line text-red-800"
+          >
+            {callbackError}
+          </p>
+        )}
 
         <LoginForm next={next} />
       </div>

@@ -6,6 +6,9 @@ import { useCallback, useTransition } from "react";
 import { FACILITY_NAMES, type FacilityCode } from "@/lib/facility";
 import type { ClubAvailability } from "@/lib/clubs/types";
 
+// 公開ページ `/` と管理画面 `/admin/clubs` で共有するフィルタバー。
+// URL の検索パラメータ `?facility=...&status=...` を駆動する。
+
 const STATUS_LABEL: Record<ClubAvailability, string> = {
   available: "空きあり",
   waitlist: "キャンセル待ち",
@@ -13,16 +16,19 @@ const STATUS_LABEL: Record<ClubAvailability, string> = {
 };
 
 interface Props {
-  /** admin の担当館。ここから選択できる選択肢を組み立てる。 */
+  /** 表示・指定可能な館コード。公開画面なら全 3 館、管理画面なら担当館のみ。 */
   readonly facilities: readonly FacilityCode[];
   readonly initialFacility: FacilityCode | "";
   readonly initialStatus: ClubAvailability | "";
+  /** URL 置換時のベースパス（`/` または `/admin/clubs`）。 */
+  readonly basePath: string;
 }
 
-export function FilterBar({
+export function ClubFilterBar({
   facilities,
   initialFacility,
   initialStatus,
+  basePath,
 }: Props) {
   const router = useRouter();
   const params = useSearchParams();
@@ -35,19 +41,17 @@ export function FilterBar({
       else next.delete(key);
       const qs = next.toString();
       startTransition(() => {
-        router.replace(qs ? `/admin/clubs?${qs}` : "/admin/clubs", {
-          scroll: false,
-        });
+        router.replace(qs ? `${basePath}?${qs}` : basePath, { scroll: false });
       });
     },
-    [params, router],
+    [params, router, basePath],
   );
 
   const clearAll = useCallback(() => {
     startTransition(() => {
-      router.replace("/admin/clubs", { scroll: false });
+      router.replace(basePath, { scroll: false });
     });
-  }, [router]);
+  }, [router, basePath]);
 
   const hasFilter = Boolean(initialFacility || initialStatus);
 

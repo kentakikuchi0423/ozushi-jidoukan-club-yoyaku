@@ -11,6 +11,7 @@ import {
 } from "@/server/auth/guards";
 import { computeIsSuperAdmin } from "@/server/auth/permissions";
 
+import { DeleteAdminButton } from "./delete-admin-button";
 import { InviteAdminForm } from "./invite-form";
 
 export const dynamic = "force-dynamic";
@@ -21,8 +22,9 @@ export const metadata: Metadata = {
 };
 
 export default async function AdminAccountsPage() {
+  let ctx;
   try {
-    await requireSuperAdmin();
+    ctx = await requireSuperAdmin();
   } catch (error) {
     if (error instanceof AuthenticationRequiredError) {
       redirect("/admin/login");
@@ -41,6 +43,7 @@ export default async function AdminAccountsPage() {
   }
 
   const admins = await fetchAdminsList();
+  const currentAdminId = ctx.adminId;
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8 sm:px-6">
@@ -61,7 +64,7 @@ export default async function AdminAccountsPage() {
         <p className="text-xs leading-6 text-zinc-600">
           新しい管理者を招待します。
           <br />
-          送信されたメールのリンクから初回パスワードを設定すると、指定した館の管理者としてログインできるようになります。
+          ここで設定した初期パスワードを相手に伝え、招待メール内のリンクをクリックしてもらうと、メール確認が完了して指定した館の管理者としてログインできるようになります。
         </p>
       </header>
 
@@ -84,22 +87,37 @@ export default async function AdminAccountsPage() {
           <ul className="divide-y divide-zinc-200 rounded-lg border border-zinc-200 bg-white">
             {admins.map((a) => {
               const isSuper = computeIsSuperAdmin(a.facilities);
+              const isSelf = a.id === currentAdminId;
+              const label = a.displayName ?? a.email ?? "(表示名未設定)";
               return (
                 <li key={a.id} className="px-4 py-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold text-zinc-900">
                         {a.displayName ?? "(表示名未設定)"}
+                        {isSelf && (
+                          <span className="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800">
+                            あなた
+                          </span>
+                        )}
                       </p>
                       <p className="truncate text-xs text-zinc-500">
                         {a.email ?? "(email 取得失敗)"}
                       </p>
                     </div>
-                    {isSuper && (
-                      <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-800">
-                        全館管理者
-                      </span>
-                    )}
+                    <div className="flex items-start gap-2">
+                      {isSuper && (
+                        <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-800">
+                          全館管理者
+                        </span>
+                      )}
+                      {!isSelf && (
+                        <DeleteAdminButton
+                          targetAdminId={a.id}
+                          targetLabel={label}
+                        />
+                      )}
+                    </div>
                   </div>
                   <div className="mt-1 flex flex-wrap gap-1">
                     {FACILITY_CODES.map((code) => {

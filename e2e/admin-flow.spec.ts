@@ -112,6 +112,7 @@ test("super_admin can create, edit, and delete a club end-to-end", async ({
     .click({ force: true });
 
   // 6. 一覧に戻り、capacity=8 の行になっていることを確認
+  //    共通カードのメタ行: "定員 8名 / 予約 0名"
   await page.waitForURL("**/admin/clubs");
   const updatedRow = page.getByRole("article").filter({ hasText: uniqueLabel });
   await expect(updatedRow).toContainText("定員 8名");

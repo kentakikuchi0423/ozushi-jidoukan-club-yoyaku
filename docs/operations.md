@@ -61,7 +61,15 @@ values
 ```
 
 3 館すべてを持つ admin が super_admin として扱われる（ADR-0007 / 0014）。
-以降、アカウント追加は管理画面（Phase 4 実装予定）から super_admin が行う。
+以降、アカウント追加は管理画面（`/admin/accounts`）から全館管理者が行う。
+
+### 3-5. Supabase Auth の Redirect URL に `/auth/callback` を登録
+
+新規アカウント招待時、`generateLink(type='signup')` が発行する確認リンクが
+`https://<site>/auth/callback?code=...&next=/admin/clubs` に帰ってくるため、
+このパスを **Supabase Studio → Authentication → URL Configuration → Redirect URLs** に
+追加しておく（ローカル開発なら `http://localhost:3000/auth/callback` も追加）。
+登録していないとリンククリック時に「redirect_to not allowed」エラーになる。
 
 ### 3-4. 権限の剥奪
 

@@ -23,7 +23,7 @@ test("home page renders the club listing shell", async ({ page }) => {
 
 test("home page links to the admin login placeholder", async ({ page }) => {
   await page.goto("/");
-  const link = page.getByRole("link", { name: "ログイン画面" });
+  const link = page.getByRole("link", { name: "管理者の方はこちら" });
   await expect(link).toHaveAttribute("href", "/admin/login");
 });
 

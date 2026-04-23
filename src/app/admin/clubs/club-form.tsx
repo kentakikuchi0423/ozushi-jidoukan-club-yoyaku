@@ -278,7 +278,7 @@ export function ClubForm({
       <FieldGroup
         id="description"
         label={LABELS.description}
-        hint="2000 字以内。\n改行は本文でそのまま反映されます。"
+        hint={"2000 字以内。\n改行は本文でそのまま反映されます。"}
         error={fieldErrors.description}
       >
         <textarea

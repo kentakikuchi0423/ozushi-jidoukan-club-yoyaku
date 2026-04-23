@@ -7,6 +7,7 @@ import {
   FACILITY_NAMES,
   type FacilityCode,
 } from "@/lib/facility";
+import { PASSWORD_HINT } from "@/lib/auth/password";
 import { addAdminAction } from "./actions";
 
 const EMPTY_FIELD_ERRORS: Record<string, string> = {};
@@ -14,6 +15,8 @@ const EMPTY_FIELD_ERRORS: Record<string, string> = {};
 export function InviteAdminForm() {
   const [email, setEmail] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [facilityCodes, setFacilityCodes] = useState<FacilityCode[]>([]);
   const [fieldErrors, setFieldErrors] = useState(EMPTY_FIELD_ERRORS);
   const [formMessage, setFormMessage] = useState<
@@ -44,16 +47,20 @@ export function InviteAdminForm() {
       const result = await addAdminAction({
         email,
         displayName,
+        password,
+        confirmPassword,
         facilityCodes,
       });
       if (result.ok) {
         setEmail("");
         setDisplayName("");
+        setPassword("");
+        setConfirmPassword("");
         setFacilityCodes([]);
         setFormMessage({
           kind: "success",
           message:
-            "招待メールを送信しました。\n相手がパスワードを設定すると、指定した館の管理者としてログインできるようになります。",
+            "招待メールを送信しました。\n相手がメール内のリンクを開くと、設定したパスワードでログインできるようになります。",
         });
         return;
       }
@@ -138,6 +145,73 @@ export function InviteAdminForm() {
         )}
       </div>
 
+      <div className="space-y-1">
+        <label
+          htmlFor="invite-password"
+          className="block text-sm font-medium text-zinc-700"
+        >
+          初期パスワード
+        </label>
+        <input
+          id="invite-password"
+          type="password"
+          required
+          aria-required="true"
+          autoComplete="new-password"
+          aria-invalid={fieldErrors.password ? true : undefined}
+          aria-describedby={
+            fieldErrors.password
+              ? "invite-password-error"
+              : "invite-password-hint"
+          }
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          className={inputClass(fieldErrors.password)}
+        />
+        {fieldErrors.password ? (
+          <p id="invite-password-error" className="text-xs text-red-700">
+            {fieldErrors.password}
+          </p>
+        ) : (
+          <p id="invite-password-hint" className="text-xs text-zinc-500">
+            {PASSWORD_HINT}
+          </p>
+        )}
+      </div>
+
+      <div className="space-y-1">
+        <label
+          htmlFor="invite-password-confirm"
+          className="block text-sm font-medium text-zinc-700"
+        >
+          初期パスワード（確認用）
+        </label>
+        <input
+          id="invite-password-confirm"
+          type="password"
+          required
+          aria-required="true"
+          autoComplete="new-password"
+          aria-invalid={fieldErrors.confirmPassword ? true : undefined}
+          aria-describedby={
+            fieldErrors.confirmPassword
+              ? "invite-password-confirm-error"
+              : undefined
+          }
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          className={inputClass(fieldErrors.confirmPassword)}
+        />
+        {fieldErrors.confirmPassword && (
+          <p
+            id="invite-password-confirm-error"
+            className="text-xs text-red-700"
+          >
+            {fieldErrors.confirmPassword}
+          </p>
+        )}
+      </div>
+
       <fieldset className="space-y-1">
         <legend className="block text-sm font-medium text-zinc-700">
           館の権限（複数選択可、1 つ以上）
@@ -162,9 +236,8 @@ export function InviteAdminForm() {
           <p className="text-xs text-red-700">{fieldErrors.facilityCodes}</p>
         )}
         <p className="text-xs text-zinc-500">
-          3 館すべてを付与すると全館管理者として扱われ、
-          <br />
-          アカウント追加も可能になります。
+          3
+          館すべてを付与すると全館管理者として扱われ、アカウント追加も可能になります。
         </p>
       </fieldset>
 

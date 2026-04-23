@@ -88,6 +88,14 @@ export async function proxy(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
+  // `/admin` は互換用の入口。実体はクラブ一覧 `/admin/clubs` に統合した。
+  // 未ログインならこの後のガードで `/admin/login?next=/admin/clubs` に飛ぶ。
+  if (pathname === "/admin") {
+    const to = request.nextUrl.clone();
+    to.pathname = "/admin/clubs";
+    return NextResponse.redirect(to);
+  }
+
   if (pathname.startsWith("/admin")) {
     const isLoginRoute = ADMIN_LOGIN_PATHS.some(
       (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
