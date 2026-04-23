@@ -140,10 +140,6 @@ create table public.reservations (
   secure_token text not null unique check (length(secure_token) >= 32),
   status public.reservation_status not null,
   waitlist_position integer,
-  parent_name text not null,
-  parent_kana text not null,
-  child_name text not null,
-  child_kana text not null,
   phone text not null check (phone ~ '^[0-9+\-() ]{7,20}$'),
   email citext not null check (email ~ '^[^@\s]+@[^@\s]+\.[^@\s]+$'),
   notes text check (notes is null or length(notes) <= 500),
@@ -153,6 +149,27 @@ create table public.reservations (
          or (status <> 'waitlisted' and waitlist_position is null)),
   check ((status = 'canceled' and canceled_at is not null)
          or (status <> 'canceled' and canceled_at is null))
+);
+
+-- 1 予約に保護者・子どもを複数人紐付けるための関係テーブル
+-- （migration 20260423000000 で追加）。position で並び順を保証する。
+create table public.reservation_parents (
+  id uuid primary key default gen_random_uuid(),
+  reservation_id uuid not null references public.reservations(id) on delete cascade,
+  position smallint not null check (position >= 0 and position < 20),
+  name text not null check (length(name) between 1 and 100),
+  kana text not null check (length(kana) between 1 and 100),
+  created_at timestamptz not null default now(),
+  unique (reservation_id, position)
+);
+create table public.reservation_children (
+  id uuid primary key default gen_random_uuid(),
+  reservation_id uuid not null references public.reservations(id) on delete cascade,
+  position smallint not null check (position >= 0 and position < 20),
+  name text not null check (length(name) between 1 and 100),
+  kana text not null check (length(kana) between 1 and 100),
+  created_at timestamptz not null default now(),
+  unique (reservation_id, position)
 );
 
 -- 重要: (club_id, waitlist_position) は waitlisted 限定で unique
@@ -187,6 +204,7 @@ create table public.audit_logs (
   - `clubs_select_public`: anon / authenticated に `deleted_at is null and start_at >= now() - interval '1 year'` の SELECT
   - `clubs_admin_facility`: authenticated で `admin_facilities` に該当館を持つ admin に CRUD 許可
 - **reservations**: policy 未定義 → anon / authenticated からは一切見えない。`get_my_reservation` / `create_reservation` / `cancel_reservation` の SECURITY DEFINER 関数だけがアクセス
+- **reservation_parents** / **reservation_children**: reservations と同様に policy 未定義。RPC 経由でのみ書き込み・読み取り可能
 - **admins**: 認証済みユーザは自分の行だけ SELECT
 - **admin_facilities**: 認証済みユーザは自分の行だけ SELECT
 - **reservation_number_sequences**: policy 無し → secret key のみ
@@ -198,7 +216,7 @@ RLS に頼り切らず、Server Action / Route Handler 側でも `requireFacilit
 
 | 関数 | 呼び元 | 役割 |
 | --- | --- | --- |
-| `create_reservation(club_id, secure_token, form 8 項目)` | `supabase.rpc` from server client | `clubs FOR UPDATE` + 容量判定 + 連番採番 + 予約 INSERT |
+| `create_reservation(club_id, secure_token, parents jsonb, children jsonb, phone, email, notes)` | `supabase.rpc` from server client | `clubs FOR UPDATE` + 容量判定 + 連番採番 + 予約 INSERT + 保護者/子どもの関係テーブル INSERT |
 | `cancel_reservation(reservation_number, secure_token)` | 同上 | トークン検証 + キャンセル + 繰り上げ |
 | `get_my_reservation(reservation_number, secure_token)` | 同上 | 予約確認画面の読み取り |
 | `list_public_clubs()` | 同上 | 利用者向けクラブ一覧（件数集計つき） |
@@ -217,12 +235,13 @@ Client: /clubs/[id] のフォーム submit
   └→ Server Action: createReservationAction(clubId, input)
        ├─ zod validate (reservationInputSchema)
        ├─ generate secure_token (Web Crypto, 32 bytes base64url)
-       ├─ RPC: create_reservation(club_id, secure_token, 8 form fields)
+       ├─ RPC: create_reservation(club_id, secure_token, parents[], children[], phone, email, notes)
        │   ├─ SELECT ... FOR UPDATE on clubs
        │   ├─ count confirmed → status = 'confirmed' or 'waitlisted'
        │   ├─ UPDATE reservation_number_sequences SET next_value = next_value + 1
        │   │     RETURNING next_value - 1
-       │   └─ INSERT reservations
+       │   ├─ INSERT reservations
+       │   └─ INSERT reservation_parents / reservation_children（position 順）
        ├─ notifyReservationCreated (confirmed / waitlisted のテンプレ分岐、fire-and-forget)
        └─ redirect → /clubs/[id]/done?r=...&t=...&s=...&p=...
 ```
