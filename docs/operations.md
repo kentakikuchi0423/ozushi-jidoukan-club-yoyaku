@@ -211,3 +211,75 @@ Supabase Studio → Project Settings → Database → **Reset database password*
 2. `.env.local` の `SUPABASE_SECRET_KEY` を更新
 3. Vercel にデプロイ済みなら Vercel 側の env も更新して再デプロイ
 4. 流出時は `audit_logs` を確認し、不正操作の有無を調査
+
+## 9. 本番デプロイ runbook（初回）
+
+最短でクリーンに本番に出すための手順。所要 30〜60 分。
+
+### 9-1. 前提チェック
+- Supabase プロジェクトが「Tokyo リージョン」「Pro もしくは Free」で作成済み
+- ローカル `.env.local` が揃っていて、`pnpm build && pnpm test:e2e` が通る
+- Resend アカウント + 送信元ドメインの検証が済んでいる（未検証なら `onboarding@resend.dev` で限定送信のみ可。§6 参照）
+
+### 9-2. GitHub リポジトリ作成（初回のみ）
+```bash
+# ローカル main ブランチから
+gh auth login            # 未ログインなら
+gh repo create <owner>/ozushi-jidoukan-club-yoyaku --private --source=. --remote=origin
+git push -u origin main
+```
+
+公開前に `git log -p` で secrets / 個人情報 / `.env*` が混ざっていないことを必ず確認する。
+
+### 9-3. Vercel 連携
+1. <https://vercel.com/new> で GitHub 連携 → 該当リポジトリを選択
+2. Framework Preset: Next.js（自動判定）。ルートや build command はそのまま
+3. **Environment Variables** に以下を投入（全ての環境: Production + Preview）:
+   ```
+   NEXT_PUBLIC_SUPABASE_URL             = https://<ref>.supabase.co
+   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = sb_publishable_...
+   SUPABASE_SECRET_KEY                  = sb_secret_...            (Encrypted)
+   NEXT_PUBLIC_SITE_URL                 = https://<your-domain>
+   RESEND_API_KEY                       = re_...                   (Encrypted)
+   RESEND_FROM_ADDRESS                  = "<display> <from@domain>"
+   CRON_SECRET                          = `openssl rand -base64 48` (Encrypted)
+   ```
+   - `SUPABASE_DB_URL` / `ADMIN_BOOTSTRAP_*` は本番では使わない（ローカルと migration のみ）
+4. Deploy を実行 → ビルド成功を確認
+5. Vercel の **Settings → Cron Jobs** を開き、`/api/cron/retention-cleanup` が登録されていることを確認（`vercel.json` 由来で自動登録される）
+
+### 9-4. 本番 DB に migration を流す
+**ローカル** から:
+```
+# .env.local の SUPABASE_DB_URL が本番を指していることを確認してから
+pnpm db:push
+```
+適用済みの migration はスキップされる。新しい migration を足したら毎回流す。
+
+### 9-5. 初期 super_admin の作成
+§3 の手順で Supabase Studio から実施。本番の `auth.users` + `admins` + `admin_facilities` にレコードを入れる。
+
+### 9-6. 動作確認チェックリスト（本番）
+| 確認 | 想定結果 |
+| --- | --- |
+| `https://<domain>/` を開く | クラブ一覧（最初は空）、セキュリティヘッダーあり、CSP nonce 発行 |
+| `/admin/login` → super_admin でログイン | ダッシュボードに到達、3 館バッジ |
+| `/admin/clubs/new` でテストクラブ登録 | `/` の一覧に即時反映 |
+| トップから「予約する」→ 自分のメールで予約 | 完了画面 + 確認メール受信（Resend の送信先制限に注意） |
+| `/reservations?r=...&t=...` で予約を表示 | 予約内容とキャンセル期限が表示 |
+| キャンセル | キャンセルメール受信、UI もキャンセル済み表示 |
+| `/admin/clubs` でテストクラブを削除 | `/` から消える、`audit_logs` に `club.delete` |
+| 別ブラウザ（シークレット）で `/admin` | `/admin/login?next=/admin` に redirect |
+| `curl https://<domain>/api/cron/retention-cleanup` | 401（Bearer なし）、`Authorization: Bearer <CRON_SECRET>` 付きで 200 |
+
+### 9-7. 本番で Resend ドメインを本検証に切替
+1. Resend → Domains → 自社ドメインを追加 → DNS（SPF / DKIM / DMARC）を登録 → Verified
+2. Vercel env の `RESEND_FROM_ADDRESS` を自社ドメイン From に差し替え（例: `"大洲市児童館予約 <no-reply@<domain>>"`）
+3. 再デプロイ後、送信先が Resend アカウントメール以外でも届くことを確認
+
+### 9-8. 運用開始後のメンテ
+- Supabase の **Database → Backups**（Pro 以上で PITR、Free は日次 7 日）を確認
+- GitHub で Dependabot を有効化（Settings → Security → Dependabot alerts / security updates）
+- Vercel で Cron Jobs の実行履歴を週次で確認し、`audit_logs` に cleanup エントリが残っていること
+- 月次で `pnpm audit` を実行し脆弱性を検知
+- 初回の super_admin 以外の管理者は `/admin/accounts` から招待する

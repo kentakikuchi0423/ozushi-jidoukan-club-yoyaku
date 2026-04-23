@@ -136,16 +136,9 @@ RUN_ADMIN_FLOW_E2E=1 PORT=3100 pnpm test:e2e e2e/admin-flow.spec.ts
 
 ## Git リモート / デプロイ
 
-remote 未設定。GitHub 公開リポジトリを作成した後、以下で設定する。
-
-```bash
-git remote add origin git@github.com:<owner>/ozushi-jidoukan-club-yoyaku.git
-git push -u origin main
-```
+remote 未設定。初回デプロイ手順は [docs/operations.md §9](./docs/operations.md) に「本番デプロイ runbook」として一気通しで記載している（GitHub 作成 → Vercel 連携 → env 投入 → migration → 初期 super_admin → 動作確認チェックリスト → Resend ドメイン切替）。
 
 公開前に **secrets が含まれていないこと**、**個人情報を含む fixture が無いこと** を `git log -p` でレビューする。
-
-Vercel デプロイ時の環境変数・Cron 設定は [docs/operations.md](./docs/operations.md) §4 / §6 を参照。
 
 ## ライセンス
 

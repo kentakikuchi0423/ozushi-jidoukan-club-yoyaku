@@ -93,9 +93,7 @@ test("super_admin can create, edit, and delete a club end-to-end", async ({
     .locator("#description")
     .fill("E2E テストで投入しました。末尾に削除されます。");
 
-  await page
-    .getByRole("button", { name: "登録する" })
-    .click({ force: true });
+  await page.getByRole("button", { name: "登録する" }).click({ force: true });
 
   // 4. 一覧に追加された新クラブを確認
   await page.waitForURL("**/admin/clubs");
@@ -137,9 +135,7 @@ test("super_admin can create, edit, and delete a club end-to-end", async ({
 
   // 9. ログアウト（ダッシュボードへ戻って実施）
   await page.goto("/admin");
-  await page
-    .getByRole("button", { name: "ログアウト" })
-    .click({ force: true });
+  await page.getByRole("button", { name: "ログアウト" }).click({ force: true });
   await page.waitForURL("**/admin/login");
   await expect(
     page.getByRole("heading", { name: "管理者ログイン" }),
