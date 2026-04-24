@@ -77,7 +77,7 @@ export default async function AdminClubsListPage({ searchParams }: Props) {
       {ctx.facilities.length === 0 ? (
         <section
           role="status"
-          className="mt-6 rounded-md bg-amber-50 p-4 text-sm text-amber-900"
+          className="mt-6 rounded-2xl bg-[var(--color-warning-soft)] p-4 text-sm text-[var(--color-warning)]"
         >
           このアカウントには、まだ館の権限が割り当てられていません。
           <br />
@@ -89,10 +89,10 @@ export default async function AdminClubsListPage({ searchParams }: Props) {
       ) : (
         <>
           <header className="mt-6 mb-4 flex flex-wrap items-center justify-between gap-3">
-            <h1 className="text-2xl font-bold sm:text-3xl">クラブ一覧</h1>
+            <h1 className="text-2xl font-semibold sm:text-3xl">クラブ一覧</h1>
             <Link
               href="/admin/clubs/new"
-              className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
+              className="rounded-xl bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--color-primary-hover)] focus-visible:ring-2 focus-visible:ring-[var(--color-focus)] focus-visible:ring-offset-2 focus-visible:outline-none"
             >
               クラブを新規登録
             </Link>
@@ -111,7 +111,7 @@ export default async function AdminClubsListPage({ searchParams }: Props) {
           {!hasAnyClubs ? (
             <div
               role="status"
-              className="rounded-lg border border-dashed border-zinc-300 px-6 py-12 text-center text-sm text-zinc-600"
+              className="rounded-2xl border border-dashed border-[var(--color-border)] px-6 py-12 text-center text-sm text-[var(--color-muted)]"
             >
               担当館で公開中のクラブはまだありません。
               <br />
@@ -120,7 +120,7 @@ export default async function AdminClubsListPage({ searchParams }: Props) {
           ) : filtered.length === 0 ? (
             <div
               role="status"
-              className="rounded-lg border border-dashed border-zinc-300 px-6 py-12 text-center text-sm text-zinc-600"
+              className="rounded-2xl border border-dashed border-[var(--color-border)] px-6 py-12 text-center text-sm text-[var(--color-muted)]"
             >
               {hasFilter
                 ? "絞り込み条件に一致するクラブはありません。"
@@ -144,17 +144,19 @@ function AdminTopBar({
   facilitiesLabel: string;
   isSuper: boolean;
 }) {
+  const navLinkClass =
+    "text-[var(--color-muted)] underline underline-offset-4 hover:text-[var(--color-foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--color-focus)] rounded";
   return (
-    <section className="rounded-lg border border-zinc-200 bg-white p-4 sm:px-5">
+    <section className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-soft)] sm:px-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 space-y-1">
-          <p className="text-sm font-medium text-zinc-800">
+          <p className="text-sm font-medium text-[var(--color-foreground)]">
             {displayName} さん、お疲れさまです
           </p>
-          <p className="text-xs leading-6 text-zinc-600">
+          <p className="text-xs leading-6 text-[var(--color-muted)]">
             管理可能な館: {facilitiesLabel}
             {isSuper && (
-              <span className="ml-2 inline-flex items-center rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-800">
+              <span className="ml-2 inline-flex items-center rounded-full bg-[var(--color-info-soft)] px-2 py-0.5 text-xs font-medium text-[var(--color-info)]">
                 全館管理者
               </span>
             )}
@@ -163,7 +165,7 @@ function AdminTopBar({
         <form action={logoutAction}>
           <button
             type="submit"
-            className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+            className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-xs font-medium text-[var(--color-foreground)] hover:bg-[var(--color-surface-hover)]"
           >
             ログアウト
           </button>
@@ -172,30 +174,18 @@ function AdminTopBar({
 
       <nav
         aria-label="管理メニュー"
-        className="mt-3 flex flex-wrap gap-x-4 gap-y-1 border-t border-zinc-100 pt-2 text-xs"
+        className="mt-3 flex flex-wrap gap-x-4 gap-y-1 border-t border-[var(--color-border)] pt-2 text-xs"
       >
-        <Link
-          href="/admin/programs"
-          className="text-zinc-600 underline underline-offset-4 hover:text-zinc-900"
-        >
+        <Link href="/admin/programs" className={navLinkClass}>
           クラブ・事業の管理
         </Link>
-        <Link
-          href="/admin/password"
-          className="text-zinc-600 underline underline-offset-4 hover:text-zinc-900"
-        >
+        <Link href="/admin/password" className={navLinkClass}>
           パスワード変更
         </Link>
-        <Link
-          href="/admin/facilities"
-          className="text-zinc-600 underline underline-offset-4 hover:text-zinc-900"
-        >
+        <Link href="/admin/facilities" className={navLinkClass}>
           館の管理
         </Link>
-        <Link
-          href="/admin/accounts"
-          className="text-zinc-600 underline underline-offset-4 hover:text-zinc-900"
-        >
+        <Link href="/admin/accounts" className={navLinkClass}>
           アカウント追加・削除
         </Link>
       </nav>

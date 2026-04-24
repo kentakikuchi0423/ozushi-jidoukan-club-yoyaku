@@ -65,13 +65,13 @@ export function ClubFilterBar({
   return (
     <section
       aria-label="クラブの絞り込み"
-      className="mb-4 flex flex-wrap items-end gap-3 rounded-md border border-zinc-200 bg-zinc-50 p-3"
+      className="mb-4 flex flex-wrap items-end gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-3"
     >
       {facilities.length > 1 && (
         <div className="flex flex-col gap-1">
           <label
             htmlFor="filter-facility"
-            className="text-xs font-medium text-zinc-600"
+            className="text-xs font-medium text-[var(--color-muted)]"
           >
             館
           </label>
@@ -80,7 +80,7 @@ export function ClubFilterBar({
             value={initialFacility}
             onChange={(e) => update("facility", e.target.value)}
             disabled={pending}
-            className="rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-500 disabled:opacity-60"
+            className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1.5 text-sm focus-visible:ring-2 focus-visible:ring-[var(--color-focus)] focus-visible:ring-offset-1 focus-visible:outline-none disabled:opacity-60"
           >
             <option value="">すべて</option>
             {facilities.map((f) => (
@@ -95,7 +95,7 @@ export function ClubFilterBar({
       <div className="flex flex-col gap-1">
         <label
           htmlFor="filter-status"
-          className="text-xs font-medium text-zinc-600"
+          className="text-xs font-medium text-[var(--color-muted)]"
         >
           ステータス
         </label>
@@ -104,7 +104,7 @@ export function ClubFilterBar({
           value={initialStatus}
           onChange={(e) => update("status", e.target.value)}
           disabled={pending}
-          className="rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-500 disabled:opacity-60"
+          className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1.5 text-sm focus-visible:ring-2 focus-visible:ring-[var(--color-focus)] focus-visible:ring-offset-1 focus-visible:outline-none disabled:opacity-60"
         >
           <option value="">すべて</option>
           {(Object.keys(STATUS_LABEL) as ClubAvailability[]).map((s) => (
@@ -120,7 +120,7 @@ export function ClubFilterBar({
           type="button"
           onClick={clearAll}
           disabled={pending}
-          className="ml-auto self-end rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-100 disabled:opacity-60"
+          className="ml-auto self-end rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-xs font-medium text-[var(--color-foreground)] hover:bg-[var(--color-surface-hover)] disabled:opacity-60"
         >
           絞り込みをクリア
         </button>

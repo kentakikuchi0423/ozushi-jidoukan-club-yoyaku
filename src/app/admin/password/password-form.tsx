@@ -2,6 +2,14 @@
 
 import { useEffect, useState, useTransition } from "react";
 
+import {
+  Button,
+  Field as UIField,
+  FormMessage,
+  Input,
+  fieldAriaProps,
+} from "@/components/ui";
+
 import { changePasswordAction } from "./actions";
 
 export function PasswordForm() {
@@ -48,26 +56,19 @@ export function PasswordForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4" noValidate>
       {formMessage && (
-        <p
-          role={formMessage.kind === "error" ? "alert" : "status"}
-          className={`rounded-md p-3 text-sm whitespace-pre-line ${
-            formMessage.kind === "error"
-              ? "bg-red-50 text-red-800"
-              : "bg-emerald-50 text-emerald-800"
-          }`}
-        >
+        <FormMessage tone={formMessage.kind === "error" ? "danger" : "success"}>
           {formMessage.message}
-        </p>
+        </FormMessage>
       )}
 
-      <Field
+      <PasswordField
         id="current"
         label="現在のパスワード"
         value={currentPassword}
         onChange={setCurrentPassword}
         autoComplete="current-password"
       />
-      <Field
+      <PasswordField
         id="new"
         label="新しいパスワード"
         value={newPassword}
@@ -75,7 +76,7 @@ export function PasswordForm() {
         autoComplete="new-password"
         hint={"8 文字以上。\n英字と数字を 1 文字以上含めてください。"}
       />
-      <Field
+      <PasswordField
         id="confirm"
         label="新しいパスワード（確認用）"
         value={confirmPassword}
@@ -83,18 +84,14 @@ export function PasswordForm() {
         autoComplete="new-password"
       />
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="w-full rounded-md bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60 sm:w-auto"
-      >
+      <Button type="submit" disabled={pending} fullWidth>
         {pending ? "更新中…" : "パスワードを更新する"}
-      </button>
+      </Button>
     </form>
   );
 }
 
-function Field({
+function PasswordField({
   id,
   label,
   value,
@@ -110,31 +107,17 @@ function Field({
   hint?: string;
 }) {
   const inputId = `password-${id}`;
-  const hintId = `${inputId}-hint`;
   return (
-    <div className="space-y-1">
-      <label
-        htmlFor={inputId}
-        className="block text-sm font-medium text-zinc-700"
-      >
-        {label}
-      </label>
-      <input
+    <UIField id={inputId} label={label} hint={hint} required>
+      <Input
         id={inputId}
         type="password"
         required
-        aria-required="true"
         autoComplete={autoComplete}
-        aria-describedby={hint ? hintId : undefined}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-500"
+        {...fieldAriaProps({ id: inputId, hint, required: true })}
       />
-      {hint && (
-        <p id={hintId} className="text-xs whitespace-pre-line text-zinc-500">
-          {hint}
-        </p>
-      )}
-    </div>
+    </UIField>
   );
 }

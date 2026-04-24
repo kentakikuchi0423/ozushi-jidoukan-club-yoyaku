@@ -31,23 +31,23 @@ export default async function AdminPasswordPage() {
       <nav className="mb-4 text-sm">
         <Link
           href="/admin/clubs"
-          className="text-zinc-600 underline underline-offset-4 hover:text-zinc-900"
+          className="text-[var(--color-muted)] underline underline-offset-4 hover:text-[var(--color-foreground)]"
         >
           ← クラブ一覧に戻る
         </Link>
       </nav>
 
       <header className="mb-6 space-y-1">
-        <p className="text-sm font-medium tracking-wide text-zinc-500">
+        <p className="text-sm font-medium tracking-wide text-[var(--color-muted)]">
           管理画面
         </p>
-        <h1 className="text-2xl font-bold sm:text-3xl">パスワード変更</h1>
-        <p className="text-xs leading-6 text-zinc-600">
+        <h1 className="text-2xl font-semibold sm:text-3xl">パスワード変更</h1>
+        <p className="text-xs leading-6 text-[var(--color-muted)]">
           現在のパスワードで本人確認を行ったうえで、新しいパスワードに更新します。
         </p>
       </header>
 
-      <section className="rounded-lg border border-zinc-200 bg-white p-4 sm:p-6">
+      <section className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-soft)] sm:p-6">
         <PasswordForm />
       </section>
     </main>

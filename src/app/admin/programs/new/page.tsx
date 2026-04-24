@@ -52,7 +52,7 @@ export default async function AdminProgramsNewPage() {
         </p>
       </header>
 
-      <section className="rounded-lg border border-zinc-200 bg-white p-4 sm:p-6">
+      <section className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-soft)] sm:p-6">
         <ProgramForm
           mode="create"
           initial={initial}

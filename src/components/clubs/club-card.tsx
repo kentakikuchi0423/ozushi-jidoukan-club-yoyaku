@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { PublishClubButton } from "@/app/admin/clubs/publish-club-button";
+import { Badge } from "@/components/ui";
 import {
   deriveClubAvailability,
   hasValidPhotoUrl,
@@ -20,10 +21,13 @@ const AVAILABILITY_LABEL: Record<ClubAvailability, string> = {
   ended: "終了",
 };
 
-const AVAILABILITY_CLASS: Record<ClubAvailability, string> = {
-  available: "bg-emerald-100 text-emerald-800",
-  waitlist: "bg-amber-100 text-amber-800",
-  ended: "bg-zinc-200 text-zinc-700",
+const AVAILABILITY_TONE: Record<
+  ClubAvailability,
+  "success" | "warning" | "muted"
+> = {
+  available: "success",
+  waitlist: "warning",
+  ended: "muted",
 };
 
 type ClubVariant = "public" | "admin";
@@ -38,56 +42,52 @@ export function ClubCard({ club, variant }: Props) {
   const isEnded = availability === "ended";
 
   return (
-    <article className="flex flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-3 shadow-sm sm:p-4">
-      <div className="min-w-0 space-y-1">
+    <article className="flex flex-col gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-soft)] sm:p-5">
+      <div className="min-w-0 space-y-1.5">
         <div className="flex flex-wrap items-center gap-2 text-xs">
-          <span className="rounded-full bg-zinc-100 px-2 py-0.5 font-medium text-zinc-700">
-            {club.facilityName}
-          </span>
-          <span
-            className={`rounded-full px-2 py-0.5 font-medium ${AVAILABILITY_CLASS[availability]}`}
-          >
+          <Badge tone="neutral">{club.facilityName}</Badge>
+          <Badge tone={AVAILABILITY_TONE[availability]}>
             {AVAILABILITY_LABEL[availability]}
-          </span>
+          </Badge>
           {variant === "admin" && club.publishedAt === null && (
-            <span className="rounded-full bg-amber-100 px-2 py-0.5 font-medium text-amber-800">
-              未公開
-            </span>
+            <Badge tone="warning">未公開</Badge>
           )}
-          <span className="text-zinc-600">
+          <span className="text-[var(--color-muted)]">
             <time dateTime={club.startAt}>{formatJstDate(club.startAt)}</time>
-            <span className="mx-1 text-zinc-400">·</span>
+            <span className="mx-1 text-[var(--color-border)]">·</span>
             {formatJstTime(club.startAt)}〜{formatJstTime(club.endAt)}
           </span>
         </div>
-        <h2 className="truncate text-base leading-tight font-bold text-zinc-900 sm:text-lg">
+        <h2 className="truncate text-base leading-snug font-semibold text-[var(--color-foreground)] sm:text-lg">
           {club.name}
         </h2>
-        <p className="text-xs text-zinc-600">
+        <p className="text-xs text-[var(--color-muted)]">
           対象年齢: {club.targetAge}
-          <span className="mx-1.5 text-zinc-400">/</span>
+          <span className="mx-1.5 text-[var(--color-border)]">/</span>
           定員 {club.capacity}名 / 予約 {club.confirmedCount}名
           {club.waitlistedCount > 0 && (
-            <span className="ml-1 text-amber-700">
+            <span className="ml-1 text-[var(--color-warning)]">
               （キャンセル待ち {club.waitlistedCount}名）
             </span>
           )}
         </p>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-zinc-100 pt-3 text-sm">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--color-border)] pt-3 text-sm">
         <div className="shrink-0">
           {hasValidPhotoUrl(club.photoUrl) ? (
             <a
               href={club.photoUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs text-zinc-600 underline underline-offset-4 hover:text-zinc-900"
+              className="text-xs text-[var(--color-muted)] underline underline-offset-4 hover:text-[var(--color-foreground)]"
             >
               写真を見る
             </a>
           ) : (
-            <span className="text-xs text-zinc-400">写真：準備中</span>
+            <span className="text-xs text-[var(--color-muted)]">
+              写真：準備中
+            </span>
           )}
         </div>
 
@@ -96,14 +96,14 @@ export function ClubCard({ club, variant }: Props) {
             isEnded ? (
               <span
                 aria-disabled="true"
-                className="inline-flex shrink-0 items-center justify-center rounded-md bg-zinc-200 px-3 py-1.5 text-sm font-medium text-zinc-500"
+                className="inline-flex shrink-0 items-center justify-center rounded-xl bg-[var(--color-surface-muted)] px-3 py-1.5 text-sm font-medium text-[var(--color-muted)]"
               >
                 受付終了
               </span>
             ) : (
               <Link
                 href={`/clubs/${club.id}`}
-                className="inline-flex shrink-0 items-center justify-center rounded-md bg-zinc-900 px-4 py-1.5 text-sm font-medium text-white hover:bg-zinc-800"
+                className="inline-flex shrink-0 items-center justify-center rounded-xl bg-[var(--color-primary)] px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-[var(--color-primary-hover)] focus-visible:ring-2 focus-visible:ring-[var(--color-focus)] focus-visible:ring-offset-2 focus-visible:outline-none"
               >
                 予約する
               </Link>
@@ -112,7 +112,7 @@ export function ClubCard({ club, variant }: Props) {
             <>
               <Link
                 href={`/admin/clubs/${club.id}/edit`}
-                className="inline-flex shrink-0 items-center justify-center rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+                className="inline-flex shrink-0 items-center justify-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-xs font-medium text-[var(--color-foreground)] hover:bg-[var(--color-surface-hover)]"
               >
                 編集
               </Link>
@@ -128,7 +128,7 @@ export function ClubCard({ club, variant }: Props) {
               />
               <Link
                 href={`/admin/clubs/${club.id}/reservations`}
-                className="inline-flex shrink-0 items-center justify-center rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+                className="inline-flex shrink-0 items-center justify-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-xs font-medium text-[var(--color-foreground)] hover:bg-[var(--color-surface-hover)]"
               >
                 予約者を見る
               </Link>

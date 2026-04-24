@@ -41,17 +41,17 @@ export default async function ReservationLookupPage({ searchParams }: Props) {
       <nav className="mb-4 text-sm">
         <Link
           href="/"
-          className="text-zinc-600 underline underline-offset-4 hover:text-zinc-900"
+          className="text-[var(--color-muted)] underline underline-offset-4 hover:text-[var(--color-foreground)]"
         >
           ← クラブ一覧に戻る
         </Link>
       </nav>
 
       <header className="space-y-2">
-        <p className="text-sm font-medium tracking-wide text-zinc-500">
+        <p className="text-sm font-medium tracking-wide text-[var(--color-muted)]">
           予約番号 {reservation.reservationNumber}
         </p>
-        <h1 className="text-2xl leading-tight font-bold sm:text-3xl">
+        <h1 className="text-2xl leading-tight font-semibold sm:text-3xl">
           予約内容の確認
         </h1>
       </header>
@@ -80,11 +80,11 @@ function CancelSection({
 
   if (blocked === "event-started") {
     return (
-      <section className="mt-8 space-y-3 rounded-lg border border-zinc-200 bg-white p-4 sm:p-6">
-        <h2 className="text-sm font-semibold text-zinc-700">
+      <section className="mt-8 space-y-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-soft)] sm:p-6">
+        <h2 className="text-sm font-semibold text-[var(--color-foreground)]">
           予約のキャンセル
         </h2>
-        <p className="rounded-md bg-zinc-100 p-3 text-sm text-zinc-700">
+        <p className="rounded-md bg-zinc-100 p-3 text-sm text-[var(--color-foreground)]/90">
           開催日時を過ぎているため、キャンセルできません。
           <br />
           お困りの場合は各館へ直接ご連絡ください。
@@ -95,11 +95,11 @@ function CancelSection({
 
   if (blocked === "past-deadline") {
     return (
-      <section className="mt-8 space-y-3 rounded-lg border border-zinc-200 bg-white p-4 sm:p-6">
-        <h2 className="text-sm font-semibold text-zinc-700">
+      <section className="mt-8 space-y-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-soft)] sm:p-6">
+        <h2 className="text-sm font-semibold text-[var(--color-foreground)]">
           予約のキャンセル
         </h2>
-        <p className="rounded-md bg-zinc-100 p-3 text-sm text-zinc-700">
+        <p className="rounded-md bg-zinc-100 p-3 text-sm text-[var(--color-foreground)]/90">
           キャンセル期限（{deadlineLabel}
           ）を過ぎているため、このページからはキャンセルできません。
           <br />
@@ -121,12 +121,13 @@ function CancelSection({
 function StatusSection({ reservation }: { reservation: ReservationDetail }) {
   const { copy, tone } = describeStatus(reservation);
   const toneClass: Record<typeof tone, string> = {
-    positive: "bg-emerald-50 text-emerald-800",
-    info: "bg-amber-50 text-amber-800",
-    neutral: "bg-zinc-100 text-zinc-700",
+    positive: "bg-[var(--color-success-soft)] text-[var(--color-success)]",
+    info: "bg-[var(--color-warning-soft)] text-[var(--color-warning)]",
+    neutral:
+      "bg-[var(--color-surface-muted)] text-[var(--color-foreground)]/80",
   };
   return (
-    <section className={`mt-6 rounded-md p-4 text-sm ${toneClass[tone]}`}>
+    <section className={`mt-6 rounded-2xl p-4 text-sm ${toneClass[tone]}`}>
       {copy}
     </section>
   );
@@ -190,16 +191,18 @@ function describeStatus(reservation: ReservationDetail): {
 function ClubSection({ reservation }: { reservation: ReservationDetail }) {
   const { club } = reservation;
   return (
-    <section className="mt-6 space-y-2 rounded-lg border border-zinc-200 bg-white p-4 sm:p-6">
-      <h2 className="text-sm font-semibold text-zinc-700">クラブ</h2>
+    <section className="mt-6 space-y-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-soft)] sm:p-6">
+      <h2 className="text-sm font-semibold text-[var(--color-foreground)]">
+        クラブ
+      </h2>
       <p className="text-base font-medium">{club.name}</p>
-      <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm text-zinc-700">
-        <dt className="text-zinc-500">館</dt>
+      <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm text-[var(--color-foreground)]/90">
+        <dt className="text-[var(--color-muted)]">館</dt>
         <dd>{club.facilityName}</dd>
-        <dt className="text-zinc-500">日時</dt>
+        <dt className="text-[var(--color-muted)]">日時</dt>
         <dd>
           <time dateTime={club.startAt}>{formatJstDate(club.startAt)}</time>
-          <span className="mx-2 text-zinc-400">·</span>
+          <span className="mx-2 text-[var(--color-border)]">·</span>
           <span>
             {formatJstTime(club.startAt)}〜{formatJstTime(club.endAt)}
           </span>
@@ -211,22 +214,24 @@ function ClubSection({ reservation }: { reservation: ReservationDetail }) {
 
 function ApplicantSection({ reservation }: { reservation: ReservationDetail }) {
   return (
-    <section className="mt-6 space-y-3 rounded-lg border border-zinc-200 bg-white p-4 sm:p-6">
-      <h2 className="text-sm font-semibold text-zinc-700">お申込み内容</h2>
+    <section className="mt-6 space-y-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-soft)] sm:p-6">
+      <h2 className="text-sm font-semibold text-[var(--color-foreground)]">
+        お申込み内容
+      </h2>
 
       <PeopleList label="お子さま" people={reservation.children} />
       {reservation.parents.length > 0 && (
         <PeopleList label="保護者" people={reservation.parents} />
       )}
 
-      <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm text-zinc-700">
-        <dt className="text-zinc-500">電話</dt>
+      <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm text-[var(--color-foreground)]/90">
+        <dt className="text-[var(--color-muted)]">電話</dt>
         <dd>{reservation.phone}</dd>
-        <dt className="text-zinc-500">メール</dt>
+        <dt className="text-[var(--color-muted)]">メール</dt>
         <dd className="break-all">{reservation.email}</dd>
         {reservation.notes && (
           <>
-            <dt className="text-zinc-500">備考</dt>
+            <dt className="text-[var(--color-muted)]">備考</dt>
             <dd className="whitespace-pre-wrap">{reservation.notes}</dd>
           </>
         )}
@@ -243,8 +248,8 @@ function PeopleList({
   people: ReservationDetail["parents"] | ReservationDetail["children"];
 }) {
   return (
-    <div className="space-y-1 text-sm text-zinc-700">
-      <p className="text-xs font-medium text-zinc-500">{label}</p>
+    <div className="space-y-1 text-sm text-[var(--color-foreground)]/90">
+      <p className="text-xs font-medium text-[var(--color-muted)]">{label}</p>
       <ul className="space-y-0.5">
         {people.map((p, i) => (
           <li key={i}>

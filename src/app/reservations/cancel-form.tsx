@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 
+import { FormMessage } from "@/components/ui";
+
 import { cancelReservationAction } from "./actions";
 
 type Stage = "idle" | "confirming" | "done";
@@ -58,36 +60,31 @@ export function CancelForm({
   }
 
   return (
-    <section className="mt-8 space-y-3 rounded-lg border border-zinc-200 bg-white p-4 sm:p-6">
-      <h2 className="text-sm font-semibold text-zinc-700">予約のキャンセル</h2>
-      <p className="text-xs leading-5 text-zinc-600">
+    <section className="mt-8 space-y-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-soft)] sm:p-6">
+      <h2 className="text-sm font-semibold text-[var(--color-foreground)]">
+        予約のキャンセル
+      </h2>
+      <p className="text-xs leading-5 text-[var(--color-muted)]">
         キャンセルは <strong>{deadlineLabel}</strong> までお手続きいただけます。
         <br />
         それ以降のキャンセルや無断欠席は他の利用者への影響が大きいため原則お控えください。
       </p>
 
-      {error && (
-        <p
-          role="alert"
-          className="rounded-md bg-red-50 p-3 text-sm whitespace-pre-line text-red-800"
-        >
-          {error}
-        </p>
-      )}
+      {error && <FormMessage tone="danger">{error}</FormMessage>}
 
       {stage === "idle" && (
         <button
           type="button"
           onClick={handleCancelClick}
-          className="w-full rounded-md border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 sm:w-auto"
+          className="w-full rounded-xl border border-[var(--color-danger-border)] bg-[var(--color-surface)] px-4 py-2 text-sm font-medium text-[var(--color-danger)] transition-colors hover:bg-[var(--color-danger-soft)] sm:w-auto"
         >
           この予約をキャンセルする
         </button>
       )}
 
       {stage === "confirming" && (
-        <div className="space-y-3 rounded-md bg-red-50 p-3">
-          <p className="text-sm text-red-900">
+        <div className="space-y-3 rounded-xl bg-[var(--color-danger-soft)] p-3">
+          <p className="text-sm text-[var(--color-danger)]">
             本当にこの予約をキャンセルしますか？
             <br />
             この操作は取り消せません。
@@ -97,7 +94,7 @@ export function CancelForm({
               type="button"
               onClick={handleBack}
               disabled={pending}
-              className="w-full rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-60 sm:w-auto"
+              className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-sm font-medium text-[var(--color-foreground)] hover:bg-[var(--color-surface-hover)] disabled:opacity-60 sm:w-auto"
             >
               やめる
             </button>
@@ -105,7 +102,7 @@ export function CancelForm({
               type="button"
               onClick={handleConfirm}
               disabled={pending}
-              className="w-full rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-60 sm:w-auto"
+              className="w-full rounded-xl bg-[var(--color-danger)] px-4 py-2 text-sm font-medium text-white transition-colors hover:brightness-95 focus-visible:ring-2 focus-visible:ring-[var(--color-danger)] focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-60 sm:w-auto"
             >
               {pending ? "キャンセル処理中…" : "キャンセルを確定する"}
             </button>
@@ -114,11 +111,9 @@ export function CancelForm({
       )}
 
       {stage === "done" && (
-        <p className="rounded-md bg-emerald-50 p-3 text-sm text-emerald-800">
-          キャンセルが完了しました。
-          <br />
-          ページの表示を更新しています。
-        </p>
+        <FormMessage tone="success">
+          キャンセルが完了しました。{"\n"}ページの表示を更新しています。
+        </FormMessage>
       )}
     </section>
   );

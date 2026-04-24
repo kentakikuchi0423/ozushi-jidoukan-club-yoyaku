@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { CardDashed } from "@/components/ui";
 import { fetchListableClubs } from "@/lib/clubs/query";
 import { ClubFilterBar } from "@/components/clubs/filter-bar";
 import {
@@ -35,33 +36,37 @@ export default async function HomePage({ searchParams }: Props) {
 
   const filtered = applyClubFilters(allClubs, facilityFilter, statusFilter);
   const hasFilter = Boolean(facilityFilter || statusFilter);
+  const facilityNamesLine =
+    activeFacilities.length > 0
+      ? activeFacilities.map((f) => f.name).join("・")
+      : "市内の児童館・児童センター";
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10 sm:px-6">
       <div className="mb-4 flex justify-end text-xs">
         <Link
           href="/admin/login"
-          className="text-zinc-500 underline underline-offset-4 hover:text-zinc-700"
+          className="text-[var(--color-muted)] underline underline-offset-4 hover:text-[var(--color-foreground)]"
         >
           管理者の方はこちら
         </Link>
       </div>
 
       <header className="mb-8 space-y-2">
-        <p className="text-sm font-medium tracking-wide text-zinc-500">
+        <p className="text-sm font-medium tracking-wide text-[var(--color-muted)]">
           大洲市児童館クラブ予約
         </p>
-        <h1 className="text-2xl font-bold sm:text-3xl">
+        <h1 className="text-2xl font-semibold sm:text-3xl">
           クラブを探して予約する
         </h1>
-        <p className="text-sm leading-7 text-zinc-600">
-          大洲児童館・喜多児童館・徳森児童センターのクラブをまとめて表示しています。
+        <p className="text-sm leading-7 text-[var(--color-foreground)]/80">
+          {facilityNamesLine}のクラブをまとめて表示しています。
           <br />
-          気になるクラブの「予約する」から予約の手続きに進めます。
+          気になるクラブの「予約する」から、お申し込みの手続きに進めます。
           <br />
-          クラブ開催後は準備が整い次第、活動を記録した写真も閲覧できます。
+          クラブ開催後は、準備が整い次第、活動を記録した写真も閲覧いただけます。
           <br />
-          なお、一定期間終了後に掲載を削除いたしますので、ご了承ください。
+          なお、一定期間が過ぎたクラブは掲載を終了いたしますので、あらかじめご了承ください。
         </p>
       </header>
 
@@ -78,14 +83,11 @@ export default async function HomePage({ searchParams }: Props) {
       {allClubs.length === 0 ? (
         <EmptyState />
       ) : filtered.length === 0 ? (
-        <div
-          role="status"
-          className="rounded-lg border border-dashed border-zinc-300 px-6 py-12 text-center text-sm text-zinc-600"
-        >
+        <CardDashed role="status">
           {hasFilter
             ? "絞り込み条件に一致するクラブはありません。"
-            : "現在予約できるクラブはありません。"}
-        </div>
+            : "現在お申し込みいただけるクラブはありません。"}
+        </CardDashed>
       ) : (
         <PaginatedClubList clubs={filtered} variant="public" />
       )}
@@ -95,13 +97,10 @@ export default async function HomePage({ searchParams }: Props) {
 
 function EmptyState() {
   return (
-    <div
-      role="status"
-      className="rounded-lg border border-dashed border-zinc-300 px-6 py-12 text-center text-sm text-zinc-600"
-    >
-      現在予約できるクラブはありません。
+    <CardDashed role="status">
+      現在お申し込みいただけるクラブはありません。
       <br />
-      しばらくしてから再度ご確認ください。
-    </div>
+      しばらく経ってから、もう一度ご確認ください。
+    </CardDashed>
   );
 }

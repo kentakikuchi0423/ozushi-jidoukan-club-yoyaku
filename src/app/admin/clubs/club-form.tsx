@@ -203,7 +203,7 @@ export function ClubForm({
           ref={errorRef}
           tabIndex={-1}
           role="alert"
-          className="rounded-md bg-red-50 p-3 text-sm whitespace-pre-line text-red-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500"
+          className="rounded-xl bg-[var(--color-danger-soft)] p-3 text-sm whitespace-pre-line text-[var(--color-danger)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-danger)]"
         >
           {formError}
         </p>
@@ -268,20 +268,24 @@ export function ClubForm({
           })}
         </select>
         {showOrphanWarning && (
-          <p className="mt-1 text-xs text-amber-700">
+          <p className="mt-1 text-xs text-[var(--color-warning)]">
             このクラブは削除済みのマスターを参照しています。
             <br />
             有効なクラブ・事業に変更してから保存してください。
           </p>
         )}
         {selectedProgram && (
-          <div className="mt-2 space-y-1 rounded-md bg-zinc-50 p-3 text-xs text-zinc-700">
+          <div className="mt-2 space-y-1 rounded-xl bg-[var(--color-surface-muted)] p-3 text-xs text-[var(--color-foreground)]/80">
             <p>
-              <span className="font-medium text-zinc-500">対象年齢: </span>
+              <span className="font-medium text-[var(--color-muted)]">
+                対象年齢:{" "}
+              </span>
               {selectedProgram.targetAge}
             </p>
             <p>
-              <span className="font-medium text-zinc-500">概要: </span>
+              <span className="font-medium text-[var(--color-muted)]">
+                概要:{" "}
+              </span>
               <span className="whitespace-pre-wrap">
                 {selectedProgram.summary}
               </span>
@@ -411,7 +415,7 @@ export function ClubForm({
             type="button"
             onClick={handleDelete}
             disabled={pending || deleting}
-            className="w-full rounded-md border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-60 sm:w-auto"
+            className="w-full rounded-xl border border-[var(--color-danger-border)] bg-[var(--color-surface)] px-4 py-2 text-sm font-medium text-[var(--color-danger)] transition-colors hover:bg-[var(--color-danger-soft)] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
           >
             {deleting ? "削除中…" : "このクラブを削除する"}
           </button>
@@ -421,7 +425,7 @@ export function ClubForm({
         <button
           type="submit"
           disabled={pending || deleting}
-          className="w-full rounded-md bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60 sm:w-auto"
+          className="w-full rounded-xl bg-[var(--color-primary)] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[var(--color-primary-hover)] focus-visible:ring-2 focus-visible:ring-[var(--color-focus)] focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
         >
           {pending
             ? "保存中…"
@@ -451,16 +455,22 @@ function FieldGroup({
   const errorId = error ? `${id}-error` : undefined;
   return (
     <div className="space-y-1">
-      <label htmlFor={id} className="block text-sm font-medium text-zinc-700">
+      <label
+        htmlFor={id}
+        className="block text-sm font-medium text-[var(--color-foreground)]"
+      >
         {label}
       </label>
       {children}
       {error ? (
-        <p id={errorId} className="text-xs text-red-700">
+        <p id={errorId} className="text-xs text-[var(--color-danger)]">
           {error}
         </p>
       ) : hint ? (
-        <p id={hintId} className="text-xs whitespace-pre-line text-zinc-500">
+        <p
+          id={hintId}
+          className="text-xs whitespace-pre-line text-[var(--color-muted)]"
+        >
           {hint}
         </p>
       ) : null}
@@ -487,17 +497,17 @@ function fieldAriaProps(id: string, error?: string, optional?: boolean) {
 }
 
 function inputClass(error?: string): string {
-  return `w-full rounded-md border px-3 py-2 text-sm shadow-sm focus:outline-none ${
+  return `w-full rounded-xl border px-3 py-2 text-sm shadow-sm bg-[var(--color-surface)] text-[var(--color-foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 ${
     error
-      ? "border-red-400 focus:border-red-500"
-      : "border-zinc-300 focus:border-zinc-500"
+      ? "border-[var(--color-danger-border)] focus-visible:ring-[var(--color-danger)]"
+      : "border-[var(--color-border)] focus-visible:ring-[var(--color-focus)]"
   }`;
 }
 
 function selectClass(error?: string): string {
-  return `w-full rounded-md border bg-white px-3 py-2 text-sm shadow-sm focus:outline-none ${
+  return `w-full rounded-xl border bg-[var(--color-surface)] px-3 py-2 text-sm shadow-sm text-[var(--color-foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 ${
     error
-      ? "border-red-400 focus:border-red-500"
-      : "border-zinc-300 focus:border-zinc-500"
+      ? "border-[var(--color-danger-border)] focus-visible:ring-[var(--color-danger)]"
+      : "border-[var(--color-border)] focus-visible:ring-[var(--color-focus)]"
   }`;
 }

@@ -233,7 +233,7 @@ function DraftStep({
           ref={errorRef}
           tabIndex={-1}
           role="alert"
-          className="rounded-md bg-red-50 p-3 text-sm whitespace-pre-line text-red-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500"
+          className="rounded-xl bg-[var(--color-danger-soft)] p-3 text-sm whitespace-pre-line text-[var(--color-danger)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-danger)]"
         >
           {formError}
         </p>
@@ -261,7 +261,7 @@ function DraftStep({
         required={false}
       />
 
-      <div className="space-y-4 border-t border-zinc-200 pt-6">
+      <div className="space-y-4 border-t border-[var(--color-border)] pt-6">
         <Field
           id="phone"
           label="電話番号"
@@ -288,7 +288,7 @@ function DraftStep({
         <div className="space-y-1">
           <label
             htmlFor="notes"
-            className="block text-sm font-medium text-zinc-700"
+            className="block text-sm font-medium text-[var(--color-foreground)]"
           >
             備考（任意）
           </label>
@@ -301,14 +301,14 @@ function DraftStep({
             maxLength={500}
             aria-invalid={fieldErrors.notes ? true : undefined}
             aria-describedby={fieldErrors.notes ? "notes-error" : "notes-hint"}
-            className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-500"
+            className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm shadow-sm focus-visible:ring-2 focus-visible:ring-[var(--color-focus)] focus-visible:ring-offset-1 focus-visible:outline-none"
           />
           {fieldErrors.notes && (
-            <p id="notes-error" className="text-xs text-red-700">
+            <p id="notes-error" className="text-xs text-[var(--color-danger)]">
               {fieldErrors.notes}
             </p>
           )}
-          <p id="notes-hint" className="text-xs text-zinc-500">
+          <p id="notes-hint" className="text-xs text-[var(--color-muted)]">
             500 字以内
           </p>
         </div>
@@ -316,7 +316,7 @@ function DraftStep({
 
       <button
         type="submit"
-        className="w-full rounded-md bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-zinc-800 sm:w-auto"
+        className="w-full rounded-xl bg-[var(--color-primary)] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[var(--color-primary-hover)] focus-visible:ring-2 focus-visible:ring-[var(--color-focus)] focus-visible:ring-offset-2 focus-visible:outline-none sm:w-auto"
       >
         内容を確認する
       </button>
@@ -359,13 +359,13 @@ function PeopleSection({
   const isEmpty = values.length === 0;
 
   return (
-    <fieldset className="space-y-4 rounded-md border border-zinc-200 p-4">
-      <legend className="px-1 text-sm font-semibold text-zinc-700">
+    <fieldset className="space-y-4 rounded-2xl border border-[var(--color-border)] p-4">
+      <legend className="px-1 text-sm font-semibold text-[var(--color-foreground)]">
         {legend}
       </legend>
 
       {arrayError && (
-        <p role="alert" className="text-xs text-red-700">
+        <p role="alert" className="text-xs text-[var(--color-danger)]">
           {arrayError}
         </p>
       )}
@@ -376,17 +376,17 @@ function PeopleSection({
         return (
           <div
             key={index}
-            className="space-y-3 rounded-md bg-zinc-50 p-3 sm:p-4"
+            className="space-y-3 rounded-xl bg-[var(--color-surface-muted)] p-3 sm:p-4"
           >
             <div className="flex items-center justify-between">
-              <p className="text-xs font-medium text-zinc-600">
+              <p className="text-xs font-medium text-[var(--color-muted)]">
                 {legend} {index + 1} 人目
               </p>
               {canRemove && (
                 <button
                   type="button"
                   onClick={() => onRemove(kind, index)}
-                  className="text-xs text-red-700 underline underline-offset-4 hover:text-red-900"
+                  className="text-xs text-[var(--color-danger)] underline underline-offset-4 hover:brightness-90"
                   aria-label={`${legend} ${index + 1} 人目を削除`}
                 >
                   削除
@@ -419,7 +419,7 @@ function PeopleSection({
         <button
           type="button"
           onClick={() => onAdd(kind)}
-          className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+          className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-xs font-medium text-[var(--color-foreground)] hover:bg-[var(--color-surface-hover)]"
         >
           {isEmpty ? `＋ ${legend}を追加` : `＋ ${legend}をもう 1 人追加`}
         </button>
@@ -454,10 +454,13 @@ function Field({
   const describedBy = error ? `${id}-error` : hint ? `${id}-hint` : undefined;
   return (
     <div className="space-y-1">
-      <label htmlFor={id} className="block text-sm font-medium text-zinc-700">
+      <label
+        htmlFor={id}
+        className="block text-sm font-medium text-[var(--color-foreground)]"
+      >
         {label}
         {required && (
-          <span className="ml-1 text-red-600" aria-hidden="true">
+          <span className="ml-1 text-[var(--color-accent)]" aria-hidden="true">
             *
           </span>
         )}
@@ -472,18 +475,18 @@ function Field({
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy}
         aria-required={required ? true : undefined}
-        className={`w-full rounded-md border bg-white px-3 py-2 text-sm shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-500 ${
+        className={`w-full rounded-xl border bg-[var(--color-surface)] px-3 py-2 text-sm shadow-sm focus-visible:ring-2 focus-visible:ring-[var(--color-focus)] focus-visible:ring-offset-1 focus-visible:outline-none ${
           error
-            ? "border-red-400 focus:border-red-500"
-            : "border-zinc-300 focus:border-zinc-500"
+            ? "border-[var(--color-danger-border)] focus-visible:ring-[var(--color-danger)]"
+            : "border-[var(--color-border)] focus-visible:ring-[var(--color-focus)]"
         }`}
       />
       {error ? (
-        <p id={`${id}-error`} className="text-xs text-red-700">
+        <p id={`${id}-error`} className="text-xs text-[var(--color-danger)]">
           {error}
         </p>
       ) : hint ? (
-        <p id={`${id}-hint`} className="text-xs text-zinc-500">
+        <p id={`${id}-hint`} className="text-xs text-[var(--color-muted)]">
           {hint}
         </p>
       ) : null}
@@ -511,19 +514,19 @@ function PreviewStep({
       {formError && (
         <p
           role="alert"
-          className="rounded-md bg-red-50 p-3 text-sm whitespace-pre-line text-red-800"
+          className="rounded-xl bg-[var(--color-danger-soft)] p-3 text-sm whitespace-pre-line text-[var(--color-danger)]"
         >
           {formError}
         </p>
       )}
 
-      <section className="rounded-md bg-zinc-50 p-4 text-sm">
+      <section className="rounded-xl bg-[var(--color-surface-muted)] p-4 text-sm">
         <PeoplePreview legend="お子さま" values={values.children} />
         {values.parents.some(
           (p) => p.name.trim().length > 0 || p.kana.trim().length > 0,
         ) && (
           <>
-            <hr className="my-3 border-zinc-200" />
+            <hr className="my-3 border-[var(--color-border)]" />
             <PeoplePreview
               legend="保護者"
               values={values.parents.filter(
@@ -532,22 +535,22 @@ function PreviewStep({
             />
           </>
         )}
-        <hr className="my-3 border-zinc-200" />
+        <hr className="my-3 border-[var(--color-border)]" />
         <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2">
-          <dt className="text-zinc-500">電話番号</dt>
+          <dt className="text-[var(--color-muted)]">電話番号</dt>
           <dd>{values.phone}</dd>
-          <dt className="text-zinc-500">メールアドレス</dt>
+          <dt className="text-[var(--color-muted)]">メールアドレス</dt>
           <dd className="break-all">{values.email}</dd>
           {values.notes && (
             <>
-              <dt className="text-zinc-500">備考</dt>
+              <dt className="text-[var(--color-muted)]">備考</dt>
               <dd className="whitespace-pre-wrap">{values.notes}</dd>
             </>
           )}
         </dl>
       </section>
 
-      <section className="rounded-md border border-zinc-200 bg-white p-4 text-sm leading-7 text-zinc-700">
+      <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 text-sm leading-7 text-[var(--color-foreground)]/90">
         <h3 className="mb-2 text-sm font-bold">ご予約にあたってのお願い</h3>
         <ul className="list-disc space-y-1 pl-5">
           <li>
@@ -572,7 +575,7 @@ function PreviewStep({
           type="button"
           onClick={onBack}
           disabled={pending}
-          className="w-full rounded-md border border-zinc-300 bg-white px-4 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-60 sm:w-auto"
+          className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2.5 text-sm font-medium text-[var(--color-foreground)] hover:bg-[var(--color-surface-hover)] disabled:opacity-60 sm:w-auto"
         >
           入力に戻る
         </button>
@@ -580,7 +583,7 @@ function PreviewStep({
           type="button"
           onClick={onConfirm}
           disabled={pending}
-          className="w-full rounded-md bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60 sm:w-auto"
+          className="w-full rounded-xl bg-[var(--color-primary)] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[var(--color-primary-hover)] focus-visible:ring-2 focus-visible:ring-[var(--color-focus)] focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-60 sm:w-auto"
         >
           {pending ? "送信中…" : "予約を確定する"}
         </button>
@@ -598,7 +601,9 @@ function PeoplePreview({
 }) {
   return (
     <div>
-      <p className="mb-1 text-xs font-semibold text-zinc-500">{legend}</p>
+      <p className="mb-1 text-xs font-semibold text-[var(--color-muted)]">
+        {legend}
+      </p>
       <ul className="space-y-1">
         {values.map((p, i) => (
           <li key={i}>

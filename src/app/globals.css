@@ -1,19 +1,74 @@
 @import "tailwindcss";
 
+/*
+ * 大洲市児童館クラブ予約のテーマ変数。
+ * 児童館の柔らかさを意識した和みパステルを基調とし、生成り（off-white）の
+ * 背景に、若草色と桜色をアクセントに置く。Zinc は text / border の補助に残す。
+ * 見た目の最終決定権はここに集約し、各コンポーネントは CSS 変数を読むだけ。
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* surface / text */
+  --color-background: #fbfaf7; /* 生成り */
+  --color-surface: #ffffff;
+  --color-surface-hover: #f5f1e9;
+  --color-surface-muted: #f1ede4;
+  --color-foreground: #3b3a36; /* 墨寄りのダーク */
+  --color-muted: #7a7770;
+  --color-border: #e6e1d7;
+
+  /* アクセント: 若草（primary） */
+  --color-primary: #6b8e7f;
+  --color-primary-hover: #5d7d70;
+  --color-primary-soft: #e8efe9;
+
+  /* アクセント: 桜（accent、アスタリスクや必須印に使う落ち着いた紅） */
+  --color-accent: #c98a7d;
+  --color-accent-soft: #f6e8e4;
+
+  /* 情報系 */
+  --color-info: #526a82;
+  --color-info-soft: #e9edf1;
+
+  /* 注意喚起 */
+  --color-warning: #8f6b2a;
+  --color-warning-soft: #f5ecd7;
+
+  /* 肯定系（空きあり等） */
+  --color-success: #4c6b3c;
+  --color-success-soft: #ebf0e0;
+
+  /* 危険系（エラー、削除） */
+  --color-danger: #a84b48;
+  --color-danger-soft: #f6e3e1;
+  --color-danger-border: #e7bfbc;
+
+  /* focus リングの基本色（primary と揃える） */
+  --color-focus: var(--color-primary);
+
+  /* 影 */
+  --shadow-soft:
+    0 1px 2px rgb(59 58 54 / 0.04), 0 8px 24px rgb(59 58 54 / 0.04);
+
+  /* 角丸（tailwind の rounded-* と併用、必要になったら CSS 変数側で統一） */
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+  --radius-2xl: 1.5rem;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-background: var(--color-background);
+  --color-foreground: var(--color-foreground);
   --font-sans: var(--font-noto-sans-jp);
 }
 
+html {
+  color-scheme: light;
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--color-background);
+  color: var(--color-foreground);
   font-family:
     var(--font-sans),
     system-ui,
@@ -23,4 +78,27 @@ body {
     "Hiragino Sans",
     Meiryo,
     sans-serif;
+  line-height: 1.7; /* 詰め込み感を避ける */
+  letter-spacing: 0.01em;
+}
+
+/* 見出しは weight 600 どまりで、強すぎない印象に。Noto Sans JP 前提。 */
+h1,
+h2,
+h3,
+h4 {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* リンクのデフォルト装飾。テーマ色に寄せる。 */
+a {
+  color: inherit;
+  text-underline-offset: 4px;
+}
+
+/* 選択色も揃える */
+::selection {
+  background: var(--color-primary-soft);
+  color: var(--color-foreground);
 }

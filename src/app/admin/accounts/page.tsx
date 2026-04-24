@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 
+import { Badge, Card, CardBody, FormMessage } from "@/components/ui";
 import { fetchAdminsList } from "@/server/auth/admin-list";
 import {
   AuthenticationRequiredError,
@@ -31,9 +32,9 @@ export default async function AdminAccountsPage() {
     if (error instanceof SuperAdminRequiredError) {
       return (
         <main className="mx-auto w-full max-w-xl flex-1 px-4 py-10 sm:px-6">
-          <p className="rounded-md bg-amber-50 p-4 text-sm text-amber-900">
+          <FormMessage tone="warning">
             このページは全館管理者のみ利用できます。
-          </p>
+          </FormMessage>
         </main>
       );
     }
@@ -52,41 +53,45 @@ export default async function AdminAccountsPage() {
       <nav className="mb-4 text-sm">
         <Link
           href="/admin/clubs"
-          className="text-zinc-600 underline underline-offset-4 hover:text-zinc-900"
+          className="text-[var(--color-muted)] underline underline-offset-4 hover:text-[var(--color-foreground)]"
         >
           ← クラブ一覧に戻る
         </Link>
       </nav>
 
       <header className="mb-6 space-y-1">
-        <p className="text-sm font-medium tracking-wide text-zinc-500">
+        <p className="text-sm font-medium tracking-wide text-[var(--color-muted)]">
           管理画面
         </p>
-        <h1 className="text-2xl font-bold sm:text-3xl">アカウント追加・削除</h1>
-        <p className="text-xs leading-6 text-zinc-600">
+        <h1 className="text-2xl font-semibold sm:text-3xl">
+          アカウント追加・削除
+        </h1>
+        <p className="text-xs leading-6 text-[var(--color-muted)]">
           新しい管理者を招待します。
           <br />
           ここで設定した初期パスワードを相手に伝え、招待メール内のリンクをクリックしてもらうと、メール確認が完了して指定した館の管理者としてログインできるようになります。
         </p>
       </header>
 
-      <section className="rounded-lg border border-zinc-200 bg-white p-4 sm:p-6">
-        <h2 className="mb-4 text-sm font-semibold text-zinc-700">
-          新しい管理者を招待
-        </h2>
-        <InviteAdminForm facilities={allFacilities} />
-      </section>
+      <Card>
+        <CardBody>
+          <h2 className="mb-4 text-sm font-semibold text-[var(--color-foreground)]">
+            新しい管理者を招待
+          </h2>
+          <InviteAdminForm facilities={allFacilities} />
+        </CardBody>
+      </Card>
 
       <section className="mt-8">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700">
+        <h2 className="mb-3 text-sm font-semibold text-[var(--color-foreground)]">
           現在の管理者 ({admins.length})
         </h2>
         {admins.length === 0 ? (
-          <p className="rounded-md border border-dashed border-zinc-300 p-4 text-sm text-zinc-600">
+          <p className="rounded-2xl border border-dashed border-[var(--color-border)] p-4 text-sm text-[var(--color-muted)]">
             登録されている管理者はいません。
           </p>
         ) : (
-          <ul className="divide-y divide-zinc-200 rounded-lg border border-zinc-200 bg-white">
+          <ul className="divide-y divide-[var(--color-border)] rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]">
             {admins.map((a) => {
               const activeOwnedCount = a.facilities.filter((code) =>
                 allFacilities.some((f) => f.code === code),
@@ -99,24 +104,20 @@ export default async function AdminAccountsPage() {
                 <li key={a.id} className="px-4 py-3">
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-zinc-900">
+                      <p className="truncate text-sm font-semibold text-[var(--color-foreground)]">
                         {a.displayName ?? "(表示名未設定)"}
                         {isSelf && (
-                          <span className="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800">
-                            あなた
+                          <span className="ml-2">
+                            <Badge tone="success">あなた</Badge>
                           </span>
                         )}
                       </p>
-                      <p className="truncate text-xs text-zinc-500">
+                      <p className="truncate text-xs text-[var(--color-muted)]">
                         {a.email ?? "(email 取得失敗)"}
                       </p>
                     </div>
                     <div className="flex items-start gap-2">
-                      {isSuper && (
-                        <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-800">
-                          全館管理者
-                        </span>
-                      )}
+                      {isSuper && <Badge tone="info">全館管理者</Badge>}
                       {!isSelf && (
                         <DeleteAdminButton
                           targetAdminId={a.id}
@@ -128,17 +129,14 @@ export default async function AdminAccountsPage() {
                   <div className="mt-1 flex flex-wrap gap-1">
                     {allFacilities.map((f) => {
                       const has = a.facilities.includes(f.code);
-                      return (
-                        <span
-                          key={f.code}
-                          className={`rounded-full px-2 py-0.5 text-xs ${
-                            has
-                              ? "bg-zinc-200 text-zinc-800"
-                              : "bg-zinc-50 text-zinc-400 line-through"
-                          }`}
-                        >
+                      return has ? (
+                        <Badge key={f.code} tone="neutral">
                           {f.name}
-                        </span>
+                        </Badge>
+                      ) : (
+                        <Badge key={f.code} tone="muted">
+                          <span className="line-through">{f.name}</span>
+                        </Badge>
                       );
                     })}
                   </div>

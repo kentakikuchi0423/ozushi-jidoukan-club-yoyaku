@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
+import { FormMessage } from "@/components/ui";
 import { formatJstDate, formatJstTime } from "@/lib/format";
 
 import { publishClubAction } from "./actions";
@@ -74,7 +75,7 @@ export function PublishClubButton({
     return (
       <span
         aria-disabled="true"
-        className="inline-flex shrink-0 items-center justify-center rounded-md border border-zinc-200 bg-zinc-100 px-3 py-1.5 text-xs font-medium text-zinc-500"
+        className="inline-flex shrink-0 items-center justify-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-1.5 text-xs font-medium text-[var(--color-muted)]"
       >
         公開済み
       </span>
@@ -87,17 +88,14 @@ export function PublishClubButton({
         type="button"
         onClick={handleClick}
         disabled={pending}
-        className="inline-flex shrink-0 items-center justify-center rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-60"
+        className="inline-flex shrink-0 items-center justify-center rounded-xl bg-[var(--color-primary)] px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-[var(--color-primary-hover)] focus-visible:ring-2 focus-visible:ring-[var(--color-focus)] focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
       >
         {pending ? "公開中…" : "公開する"}
       </button>
       {error && (
-        <p
-          role="alert"
-          className="max-w-xs rounded-md bg-red-50 p-2 text-xs whitespace-pre-line text-red-800"
-        >
+        <FormMessage tone="danger" className="max-w-xs">
           {error}
-        </p>
+        </FormMessage>
       )}
     </div>
   );

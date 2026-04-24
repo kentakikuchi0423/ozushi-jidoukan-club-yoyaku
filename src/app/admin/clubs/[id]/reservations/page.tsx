@@ -33,9 +33,9 @@ const STATUS_LABEL: Record<AdminReservationListItem["status"], string> = {
 };
 
 const STATUS_CLASS: Record<AdminReservationListItem["status"], string> = {
-  confirmed: "bg-emerald-100 text-emerald-800",
-  waitlisted: "bg-amber-100 text-amber-800",
-  canceled: "bg-zinc-200 text-zinc-700",
+  confirmed: "bg-[var(--color-success-soft)] text-[var(--color-success)]",
+  waitlisted: "bg-[var(--color-warning-soft)] text-[var(--color-warning)]",
+  canceled: "bg-[var(--color-surface-muted)] text-[var(--color-muted)]",
 };
 
 export default async function AdminClubReservationsPage({ params }: Props) {
@@ -76,32 +76,32 @@ export default async function AdminClubReservationsPage({ params }: Props) {
       <nav className="mb-4 text-sm">
         <Link
           href="/admin/clubs"
-          className="text-zinc-600 underline underline-offset-4 hover:text-zinc-900"
+          className="text-[var(--color-muted)] underline underline-offset-4 hover:text-[var(--color-foreground)]"
         >
           ← クラブ一覧に戻る
         </Link>
       </nav>
 
       <header className="mb-6 space-y-1">
-        <p className="text-sm font-medium tracking-wide text-zinc-500">
+        <p className="text-sm font-medium tracking-wide text-[var(--color-muted)]">
           管理画面
         </p>
-        <h1 className="text-2xl font-bold sm:text-3xl">予約者一覧</h1>
-        <p className="text-xs leading-6 text-zinc-600">
+        <h1 className="text-2xl font-semibold sm:text-3xl">予約者一覧</h1>
+        <p className="text-xs leading-6 text-[var(--color-muted)]">
           クラブ「{program?.name ?? "（削除済み）"}」（
           {facility?.name ?? club.facilityCode}）の予約者一覧です。
           <br />
           申込日時の早い順に表示しています。
         </p>
-        <p className="text-xs text-zinc-600">
+        <p className="text-xs text-[var(--color-muted)]">
           開催日時:{" "}
           <time dateTime={club.startAt}>{formatJstDate(club.startAt)}</time>
-          <span className="mx-1.5 text-zinc-400">·</span>
+          <span className="mx-1.5 text-[var(--color-border)]">·</span>
           {formatJstTime(club.startAt)}〜{formatJstTime(club.endAt)}
-          <span className="mx-1.5 text-zinc-400">/</span>
+          <span className="mx-1.5 text-[var(--color-border)]">/</span>
           定員 {club.capacity} 名
         </p>
-        <p className="text-xs text-zinc-600">
+        <p className="text-xs text-[var(--color-muted)]">
           予約完了 {confirmedCount} 名 / キャンセル待ち {waitlistedCount} 名 /
           キャンセル済み {canceledCount} 名
         </p>
@@ -110,7 +110,7 @@ export default async function AdminClubReservationsPage({ params }: Props) {
       {reservations.length === 0 ? (
         <div
           role="status"
-          className="rounded-lg border border-dashed border-zinc-300 px-6 py-12 text-center text-sm text-zinc-600"
+          className="rounded-2xl border border-dashed border-[var(--color-border)] px-6 py-12 text-center text-sm text-[var(--color-muted)]"
         >
           このクラブへの予約はまだありません。
         </div>
@@ -135,10 +135,10 @@ function ReservationCard({
   const isCanceled = r.status === "canceled";
   return (
     <article
-      className={`flex flex-col gap-2 rounded-lg border p-4 shadow-sm sm:p-5 ${
+      className={`flex flex-col gap-2 rounded-2xl border p-4 shadow-sm sm:p-5 ${
         isCanceled
-          ? "border-zinc-200 bg-zinc-50 text-zinc-500 opacity-70"
-          : "border-zinc-200 bg-white text-zinc-800"
+          ? "border-[var(--color-border)] bg-[var(--color-surface-muted)] text-[var(--color-muted)] opacity-70"
+          : "border-[var(--color-border)] bg-white text-[var(--color-foreground)]"
       }`}
     >
       <div className="flex flex-wrap items-center gap-2 text-xs">
@@ -150,18 +150,20 @@ function ReservationCard({
             <> ({r.waitlistPosition} 番目)</>
           )}
         </span>
-        <span className="font-mono text-zinc-700">{r.reservationNumber}</span>
+        <span className="font-mono text-[var(--color-foreground)]">
+          {r.reservationNumber}
+        </span>
       </div>
 
       <p className="text-xs">
-        <span className="text-zinc-500">申込日時: </span>
+        <span className="text-[var(--color-muted)]">申込日時: </span>
         <time dateTime={r.createdAt}>
           {formatJstDate(r.createdAt)} {formatJstTime(r.createdAt)}
         </time>
         {r.canceledAt && (
           <>
-            <span className="mx-1.5 text-zinc-400">/</span>
-            <span className="text-zinc-500">キャンセル日時: </span>
+            <span className="mx-1.5 text-[var(--color-border)]">/</span>
+            <span className="text-[var(--color-muted)]">キャンセル日時: </span>
             <time dateTime={r.canceledAt}>
               {formatJstDate(r.canceledAt)} {formatJstTime(r.canceledAt)}
             </time>
@@ -175,13 +177,13 @@ function ReservationCard({
       )}
 
       <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-xs">
-        <dt className="text-zinc-500">電話</dt>
+        <dt className="text-[var(--color-muted)]">電話</dt>
         <dd>{r.phone}</dd>
-        <dt className="text-zinc-500">メール</dt>
+        <dt className="text-[var(--color-muted)]">メール</dt>
         <dd className="break-all">{r.email}</dd>
         {r.notes && (
           <>
-            <dt className="text-zinc-500">備考</dt>
+            <dt className="text-[var(--color-muted)]">備考</dt>
             <dd className="whitespace-pre-wrap">{r.notes}</dd>
           </>
         )}
@@ -199,10 +201,10 @@ function PeopleBlock({
 }) {
   return (
     <div className="text-xs">
-      <span className="text-zinc-500">{label}: </span>
+      <span className="text-[var(--color-muted)]">{label}: </span>
       {people.map((p, i) => (
         <span key={i}>
-          {i > 0 && <span className="mx-1 text-zinc-400">/</span>}
+          {i > 0 && <span className="mx-1 text-[var(--color-border)]">/</span>}
           {p.name}（{p.kana}）
         </span>
       ))}

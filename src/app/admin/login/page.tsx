@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 
+import { FormMessage } from "@/components/ui";
+
 import { LoginForm } from "./login-form";
 
 export const dynamic = "force-dynamic";
@@ -33,30 +35,25 @@ export default async function AdminLoginPage({ searchParams }: Props) {
       <nav className="mb-4 text-sm">
         <Link
           href="/"
-          className="text-zinc-600 underline underline-offset-4 hover:text-zinc-900"
+          className="text-[var(--color-muted)] underline underline-offset-4 hover:text-[var(--color-foreground)]"
         >
           ← クラブ一覧に戻る
         </Link>
       </nav>
 
-      <div className="space-y-6 rounded-lg border border-zinc-200 bg-white p-6 sm:p-8">
+      <div className="space-y-6 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-soft)] sm:p-8">
         <header className="space-y-1 text-left">
-          <p className="text-sm font-medium tracking-wide text-zinc-500">
+          <p className="text-sm font-medium tracking-wide text-[var(--color-muted)]">
             大洲市児童館クラブ予約
           </p>
-          <h1 className="text-2xl font-bold">管理者ログイン</h1>
-          <p className="text-xs leading-6 text-zinc-600">
+          <h1 className="text-2xl font-semibold">管理者ログイン</h1>
+          <p className="text-xs leading-6 text-[var(--color-muted)]">
             登録済みのメールアドレスとパスワードでログインしてください。
           </p>
         </header>
 
         {callbackError && (
-          <p
-            role="alert"
-            className="rounded-md bg-red-50 p-3 text-sm whitespace-pre-line text-red-800"
-          >
-            {callbackError}
-          </p>
+          <FormMessage tone="danger">{callbackError}</FormMessage>
         )}
 
         <LoginForm next={next} />
