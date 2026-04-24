@@ -39,6 +39,8 @@ export function ClubFilterBar({
       const next = new URLSearchParams(params?.toString() ?? "");
       if (value) next.set(key, value);
       else next.delete(key);
+      // 絞り込み条件が変わったら必ず先頭ページに戻す。
+      next.delete("page");
       const qs = next.toString();
       startTransition(() => {
         router.replace(qs ? `${basePath}?${qs}` : basePath, { scroll: false });

@@ -8,7 +8,7 @@ import {
   parseFacilityFilter,
   parseStatusFilter,
 } from "@/components/clubs/filter-utils";
-import { VirtualClubList } from "@/components/clubs/virtual-club-list";
+import { PaginatedClubList } from "@/components/clubs/paginated-club-list";
 import { FACILITY_NAMES } from "@/lib/facility";
 import {
   AuthenticationRequiredError,
@@ -120,7 +120,7 @@ export default async function AdminClubsListPage({ searchParams }: Props) {
                 : "公開中のクラブはまだありません。"}
             </div>
           ) : (
-            <VirtualClubList clubs={filtered} variant="admin" />
+            <PaginatedClubList clubs={filtered} variant="admin" />
           )}
         </>
       )}

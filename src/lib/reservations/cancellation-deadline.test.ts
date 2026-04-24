@@ -76,35 +76,23 @@ describe("isCancellable", () => {
 describe("cancellationBlockedReason", () => {
   it("returns null when within the cancellation window", () => {
     expect(
-      cancellationBlockedReason(
-        "2026-05-22T01:00:00Z",
-        "2026-05-10T00:00:00Z",
-      ),
+      cancellationBlockedReason("2026-05-22T01:00:00Z", "2026-05-10T00:00:00Z"),
     ).toBeNull();
   });
 
   it("returns 'past-deadline' after deadline but before the event", () => {
     // 締切 2026-05-20 08:00 UTC、開催 2026-05-22 01:00 UTC
     expect(
-      cancellationBlockedReason(
-        "2026-05-22T01:00:00Z",
-        "2026-05-21T00:00:00Z",
-      ),
+      cancellationBlockedReason("2026-05-22T01:00:00Z", "2026-05-21T00:00:00Z"),
     ).toBe("past-deadline");
   });
 
   it("returns 'event-started' at or after the event start time", () => {
     expect(
-      cancellationBlockedReason(
-        "2026-05-22T01:00:00Z",
-        "2026-05-22T01:00:00Z",
-      ),
+      cancellationBlockedReason("2026-05-22T01:00:00Z", "2026-05-22T01:00:00Z"),
     ).toBe("event-started");
     expect(
-      cancellationBlockedReason(
-        "2026-05-22T01:00:00Z",
-        "2026-05-23T00:00:00Z",
-      ),
+      cancellationBlockedReason("2026-05-22T01:00:00Z", "2026-05-23T00:00:00Z"),
     ).toBe("event-started");
   });
 });

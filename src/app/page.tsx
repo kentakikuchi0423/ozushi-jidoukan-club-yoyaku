@@ -7,7 +7,7 @@ import {
   parseFacilityFilter,
   parseStatusFilter,
 } from "@/components/clubs/filter-utils";
-import { VirtualClubList } from "@/components/clubs/virtual-club-list";
+import { PaginatedClubList } from "@/components/clubs/paginated-club-list";
 import { FACILITY_CODES } from "@/lib/facility";
 
 // クラブ一覧（利用者向けトップページ）。
@@ -76,7 +76,7 @@ export default async function HomePage({ searchParams }: Props) {
             : "現在予約できるクラブはありません。"}
         </div>
       ) : (
-        <VirtualClubList clubs={filtered} variant="public" />
+        <PaginatedClubList clubs={filtered} variant="public" />
       )}
     </main>
   );
