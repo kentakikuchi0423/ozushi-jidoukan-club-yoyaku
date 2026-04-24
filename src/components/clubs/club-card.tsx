@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { PublishClubButton } from "@/app/admin/clubs/publish-club-button";
 import {
   deriveClubAvailability,
   hasValidPhotoUrl,
@@ -48,6 +49,11 @@ export function ClubCard({ club, variant }: Props) {
           >
             {AVAILABILITY_LABEL[availability]}
           </span>
+          {variant === "admin" && club.publishedAt === null && (
+            <span className="rounded-full bg-amber-100 px-2 py-0.5 font-medium text-amber-800">
+              未公開
+            </span>
+          )}
           <span className="text-zinc-600">
             <time dateTime={club.startAt}>{formatJstDate(club.startAt)}</time>
             <span className="mx-1 text-zinc-400">·</span>
@@ -100,12 +106,18 @@ export function ClubCard({ club, variant }: Props) {
             </Link>
           )
         ) : (
-          <Link
-            href={`/admin/clubs/${club.id}/edit`}
-            className="inline-flex shrink-0 items-center justify-center rounded-md border border-zinc-300 bg-white px-4 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
-          >
-            編集
-          </Link>
+          <>
+            <Link
+              href={`/admin/clubs/${club.id}/edit`}
+              className="inline-flex shrink-0 items-center justify-center rounded-md border border-zinc-300 bg-white px-4 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+            >
+              編集
+            </Link>
+            <PublishClubButton
+              clubId={club.id}
+              alreadyPublished={club.publishedAt !== null}
+            />
+          </>
         )}
       </div>
     </article>

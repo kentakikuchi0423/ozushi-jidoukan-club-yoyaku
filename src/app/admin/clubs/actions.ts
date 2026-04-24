@@ -88,6 +88,8 @@ export async function createClubAction(
     };
   }
 
+  // 新規作成時は未公開（published_at = null）でスタート。
+  // 管理画面の「公開する」ボタンで明示的に公開するまで利用者画面には出ない。
   const { data, error } = await admin
     .from("clubs")
     .insert({
@@ -99,6 +101,7 @@ export async function createClubAction(
       photo_url: input.photoUrl,
       description: input.description,
       created_by: ctx.adminId,
+      published_at: null,
     })
     .select("id")
     .single<{ id: string }>();
@@ -235,6 +238,57 @@ export async function updateClubAction(
   revalidatePath("/admin/clubs");
   revalidatePath("/");
   redirect("/admin/clubs");
+}
+
+/**
+ * クラブを公開する。既に公開済みなら何もしない（idempotent）。
+ * 取り消しは運用上「編集 → 削除」で行うため、非公開に戻すアクションは用意しない。
+ */
+export async function publishClubAction(
+  clubId: string,
+): Promise<ClubActionResult | never> {
+  const ctx = await requireAdmin();
+  const existing = await fetchClubForAdmin(clubId, ctx.facilities);
+  if (!existing) {
+    return {
+      ok: false,
+      kind: "not_found",
+      message: "クラブが見つからないか、権限がありません。",
+    };
+  }
+
+  const admin = getSupabaseAdminClient();
+  // 既に公開済みの行は上書きしない（公開日時を保持）。
+  const { error } = await admin
+    .from("clubs")
+    .update({ published_at: new Date().toISOString() })
+    .eq("id", clubId)
+    .is("published_at", null);
+
+  if (error) {
+    console.error("[admin.clubs.publish] update failed", {
+      code: error.code,
+      message: error.message,
+      hint: error.hint,
+    });
+    return {
+      ok: false,
+      kind: "unknown",
+      message: "クラブの公開に失敗しました。",
+    };
+  }
+
+  await logAdminAction({
+    adminId: ctx.adminId,
+    action: "club.publish",
+    targetType: "club",
+    targetId: clubId,
+    metadata: { facilityCode: existing.facilityCode },
+  });
+
+  revalidatePath("/admin/clubs");
+  revalidatePath("/");
+  return { ok: true };
 }
 
 /** クラブをソフト削除（deleted_at に now() をセット）。 */

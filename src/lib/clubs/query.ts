@@ -17,6 +17,7 @@ interface ListPublicClubsRow {
   capacity: number;
   photo_url: string | null;
   description: string | null;
+  published_at: string | null;
   confirmed_count: number;
   waitlisted_count: number;
 }
@@ -36,6 +37,7 @@ function toClubListing(row: ListPublicClubsRow): ClubListing | null {
     capacity: row.capacity,
     photoUrl: row.photo_url,
     description: row.description,
+    publishedAt: row.published_at,
     confirmedCount: row.confirmed_count,
     waitlistedCount: row.waitlisted_count,
   };

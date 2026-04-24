@@ -36,12 +36,21 @@ interface Props {
 const LABELS = {
   facilityCode: "館",
   programId: "クラブ・事業",
-  startAt: "開始日時",
-  endAt: "終了日時",
+  eventDate: "開催日",
+  startTime: "開始時刻",
+  endTime: "終了時刻",
   capacity: "定員",
   photoUrl: "写真 URL",
   description: "説明",
 } as const;
+
+/** `YYYY-MM-DDTHH:MM` を `{date, time}` に分解する。datetime-local 前提。 */
+function splitDatetimeLocal(dt: string): { date: string; time: string } {
+  if (!dt) return { date: "", time: "" };
+  const [date, timeWithMaybeSec = ""] = dt.split("T");
+  const time = timeWithMaybeSec.slice(0, 5);
+  return { date: date ?? "", time };
+}
 
 export function ClubForm({
   mode,
@@ -53,6 +62,14 @@ export function ClubForm({
   deleteAction,
 }: Props) {
   const [values, setValues] = useState<ClubFormValues>(initial);
+  // 日時入力は「日付 1 つ + 開始時刻 + 終了時刻」の 3 フィールドに分けて扱う。
+  // submit 時に `YYYY-MM-DDTHH:MM` 形式の datetime-local 文字列に戻して
+  // ClubFormValues.startAt / endAt に書き込む（server 側の zod スキーマは不変）。
+  const initialStart = splitDatetimeLocal(initial.startAt);
+  const initialEnd = splitDatetimeLocal(initial.endAt);
+  const [eventDate, setEventDate] = useState(initialStart.date);
+  const [startTime, setStartTime] = useState(initialStart.time);
+  const [endTime, setEndTime] = useState(initialEnd.time);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -100,8 +117,39 @@ export function ClubForm({
     e.preventDefault();
     setFieldErrors({});
     setFormError(null);
+
+    // 日付・時刻のフロント側前処理: 未入力を検出し、OK なら datetime-local に合成する。
+    const localErrors: Record<string, string> = {};
+    if (!eventDate) localErrors.eventDate = "開催日を入力してください";
+    if (!startTime) localErrors.startTime = "開始時刻を入力してください";
+    if (!endTime) localErrors.endTime = "終了時刻を入力してください";
+    if (
+      !localErrors.startTime &&
+      !localErrors.endTime &&
+      startTime &&
+      endTime &&
+      endTime <= startTime
+    ) {
+      // 同日前提なので文字列比較でも十分（"HH:MM" は辞書順で時刻順に一致）
+      localErrors.endTime = "終了時刻は開始時刻より後にしてください";
+    }
+    if (Object.keys(localErrors).length > 0) {
+      setFieldErrors(localErrors);
+      setFormError("入力内容を確認してください。");
+      return;
+    }
+
+    const startAt = `${eventDate}T${startTime}`;
+    const endAt = `${eventDate}T${endTime}`;
+    const payload: ClubFormValues = {
+      ...values,
+      startAt,
+      endAt,
+    };
+    setValues(payload);
+
     startTransition(async () => {
-      const result = await submitAction(values);
+      const result = await submitAction(payload);
       if (!result.ok) handleFailure(result);
     });
   }
@@ -124,7 +172,19 @@ export function ClubForm({
 
   function handleFailure(result: ClubActionResult & { ok: false }) {
     if (result.kind === "input") {
-      setFieldErrors(result.fieldErrors);
+      // server-side の zod は `startAt` / `endAt` 名でエラーを返すので、
+      // 3 フィールド UI（eventDate / startTime / endTime）に対応付け直す。
+      const mapped: Record<string, string> = {};
+      for (const [key, value] of Object.entries(result.fieldErrors)) {
+        if (key === "startAt") {
+          mapped.startTime = value;
+        } else if (key === "endAt") {
+          mapped.endTime = value;
+        } else {
+          mapped[key] = value;
+        }
+      }
+      setFieldErrors(mapped);
       setFormError("入力内容を確認してください。");
       return;
     }
@@ -225,33 +285,53 @@ export function ClubForm({
         )}
       </FieldGroup>
 
+      <FieldGroup
+        id="eventDate"
+        label={LABELS.eventDate}
+        error={fieldErrors.eventDate}
+      >
+        <input
+          id="eventDate"
+          name="eventDate"
+          type="date"
+          value={eventDate}
+          onChange={(e) => setEventDate(e.target.value)}
+          {...fieldAriaProps("eventDate", fieldErrors.eventDate)}
+          className={inputClass(fieldErrors.eventDate)}
+        />
+      </FieldGroup>
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <FieldGroup
-          id="startAt"
-          label={LABELS.startAt}
-          error={fieldErrors.startAt}
+          id="startTime"
+          label={LABELS.startTime}
+          error={fieldErrors.startTime}
         >
           <input
-            id="startAt"
-            name="startAt"
-            type="datetime-local"
+            id="startTime"
+            name="startTime"
+            type="time"
             step={600}
-            value={values.startAt}
-            onChange={(e) => update("startAt", e.target.value)}
-            {...fieldAriaProps("startAt", fieldErrors.startAt)}
-            className={inputClass(fieldErrors.startAt)}
+            value={startTime}
+            onChange={(e) => setStartTime(e.target.value)}
+            {...fieldAriaProps("startTime", fieldErrors.startTime)}
+            className={inputClass(fieldErrors.startTime)}
           />
         </FieldGroup>
-        <FieldGroup id="endAt" label={LABELS.endAt} error={fieldErrors.endAt}>
+        <FieldGroup
+          id="endTime"
+          label={LABELS.endTime}
+          error={fieldErrors.endTime}
+        >
           <input
-            id="endAt"
-            name="endAt"
-            type="datetime-local"
+            id="endTime"
+            name="endTime"
+            type="time"
             step={600}
-            value={values.endAt}
-            onChange={(e) => update("endAt", e.target.value)}
-            {...fieldAriaProps("endAt", fieldErrors.endAt)}
-            className={inputClass(fieldErrors.endAt)}
+            value={endTime}
+            onChange={(e) => setEndTime(e.target.value)}
+            {...fieldAriaProps("endTime", fieldErrors.endTime)}
+            className={inputClass(fieldErrors.endTime)}
           />
         </FieldGroup>
       </div>

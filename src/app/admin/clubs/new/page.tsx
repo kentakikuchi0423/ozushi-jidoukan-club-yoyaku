@@ -70,9 +70,11 @@ export default async function AdminClubNewPage() {
         </p>
         <h1 className="text-2xl font-bold sm:text-3xl">クラブを新規登録</h1>
         <p className="text-xs leading-6 text-zinc-600">
-          担当する館とクラブ・事業を選び、日時と定員を入力してください。
+          担当する館とクラブ・事業を選び、開催日と開始・終了時刻、定員を入力してください。
           <br />
           クラブ名・対象年齢・概要はマスター（クラブ・事業の管理）から自動で取得します。
+          <br />
+          登録直後は「未公開」状態です。クラブ一覧の「公開する」を押すと利用者画面に表示されます。
         </p>
       </header>
 

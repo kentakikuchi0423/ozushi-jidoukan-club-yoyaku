@@ -16,6 +16,8 @@ export interface ClubListing {
   readonly capacity: number;
   readonly photoUrl: string | null;
   readonly description: string | null;
+  /** 公開日時。NULL なら未公開（下書き）。公開 RPC 経由では常に非 NULL が返る。 */
+  readonly publishedAt: string | null;
   readonly confirmedCount: number;
   readonly waitlistedCount: number;
 }

@@ -19,14 +19,15 @@ function pad(n: number): string {
   return String(n).padStart(2, "0");
 }
 
-function futureJstLocalString(offsetDays: number, hour: number): string {
+function futureJstDateString(offsetDays: number): string {
+  // JST で offsetDays 日後の `YYYY-MM-DD` を返す
   const nowUtc = new Date();
   const jstMs = nowUtc.getTime() + 9 * 60 * 60 * 1000;
   const d = new Date(jstMs);
   d.setUTCDate(d.getUTCDate() + offsetDays);
   return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(
     d.getUTCDate(),
-  )}T${pad(hour)}:00`;
+  )}`;
 }
 
 test("super_admin can create, edit, and delete a club end-to-end", async ({
@@ -101,10 +102,11 @@ test("super_admin can create, edit, and delete a club end-to-end", async ({
   // 作った program を select から選ぶ
   await page.selectOption("#programId", { label: programLabel });
 
-  const startAt = futureJstLocalString(45, 10);
-  const endAt = futureJstLocalString(45, 12);
-  await page.locator("#startAt").fill(startAt);
-  await page.locator("#endAt").fill(endAt);
+  // 新設計: 開催日 1 つ + 開始時刻 + 終了時刻の 3 入力
+  const eventDate = futureJstDateString(45);
+  await page.locator("#eventDate").fill(eventDate);
+  await page.locator("#startTime").fill("10:00");
+  await page.locator("#endTime").fill("12:00");
   await page.locator("#capacity").fill("5");
   await page
     .locator("#description")
@@ -112,13 +114,22 @@ test("super_admin can create, edit, and delete a club end-to-end", async ({
 
   await page.getByRole("button", { name: "登録する" }).click({ force: true });
 
-  // 5. 新規登録後はクラブ一覧に戻り、新クラブが表示される
+  // 5. 新規登録後はクラブ一覧に戻り、新クラブが「未公開」で表示される
   await page.waitForURL("**/admin/clubs");
-  await expect(page.getByText(programLabel)).toBeVisible({ timeout: 15_000 });
+  const createdRow = page.getByRole("article").filter({ hasText: programLabel });
+  await expect(createdRow).toBeVisible({ timeout: 15_000 });
+  await expect(createdRow).toContainText("未公開");
 
-  // 6. 編集に進む
-  const newRow = page.getByRole("article").filter({ hasText: programLabel });
-  await newRow.getByRole("link", { name: "編集" }).click({ force: true });
+  // 6. 「公開する」を押す → 「公開済み」になる
+  page.once("dialog", (dialog) => dialog.accept());
+  await createdRow
+    .getByRole("button", { name: "公開する" })
+    .click({ force: true });
+  await expect(createdRow).toContainText("公開済み", { timeout: 15_000 });
+  await expect(createdRow).not.toContainText("未公開");
+
+  // 7. 編集に進む
+  await createdRow.getByRole("link", { name: "編集" }).click({ force: true });
   await page.waitForURL(/\/admin\/clubs\/[^/]+\/edit$/);
   await page.waitForSelector("html[data-club-form-ready='true']");
 
@@ -130,14 +141,14 @@ test("super_admin can create, edit, and delete a club end-to-end", async ({
     .getByRole("button", { name: "変更を保存する" })
     .click({ force: true });
 
-  // 7. 一覧に戻り、capacity=8 の行になっていることを確認
+  // 8. 一覧に戻り、capacity=8 の行になっていることを確認
   await page.waitForURL("**/admin/clubs");
   const updatedRow = page
     .getByRole("article")
     .filter({ hasText: programLabel });
   await expect(updatedRow).toContainText("定員 8名");
 
-  // 8. 削除フロー
+  // 9. 削除フロー
   await updatedRow.getByRole("link", { name: "編集" }).click({ force: true });
   await page.waitForURL(/\/admin\/clubs\/[^/]+\/edit$/);
   await page.waitForSelector("html[data-club-form-ready='true']");

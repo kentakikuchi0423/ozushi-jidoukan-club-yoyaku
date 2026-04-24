@@ -14,6 +14,7 @@ export interface ClubForEdit {
   readonly capacity: number;
   readonly photoUrl: string | null;
   readonly description: string | null;
+  readonly publishedAt: string | null;
 }
 
 interface AdminClubRow {
@@ -24,6 +25,7 @@ interface AdminClubRow {
   photo_url: string | null;
   description: string | null;
   deleted_at: string | null;
+  published_at: string | null;
   program_id: string;
   facility: { code: string };
   program: { name: string; deleted_at: string | null };
@@ -50,6 +52,7 @@ export async function fetchClubForAdmin(
        photo_url,
        description,
        deleted_at,
+       published_at,
        program_id,
        facility:facilities!inner(code),
        program:club_programs!inner(name, deleted_at)`,
@@ -75,5 +78,6 @@ export async function fetchClubForAdmin(
     capacity: data.capacity,
     photoUrl: data.photo_url,
     description: data.description,
+    publishedAt: data.published_at,
   };
 }

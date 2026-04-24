@@ -2,7 +2,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 
-import { fetchListableClubs } from "@/lib/clubs/query";
 import { ClubFilterBar } from "@/components/clubs/filter-bar";
 import {
   applyClubFilters,
@@ -17,6 +16,7 @@ import {
 } from "@/server/auth/guards";
 import { computeIsSuperAdmin } from "@/server/auth/permissions";
 import { fetchAdminProfile } from "@/server/auth/profile";
+import { fetchAdminListableClubs } from "@/server/clubs/admin-list";
 
 import { logoutAction } from "../actions";
 
@@ -53,7 +53,8 @@ export default async function AdminClubsListPage({ searchParams }: Props) {
   const facilityFilter = parseFacilityFilter(facilityParam, ctx.facilities);
   const statusFilter = parseStatusFilter(statusParam);
 
-  const allClubs = await fetchListableClubs();
+  // 管理画面では未公開クラブも含めて一覧表示する。
+  const allClubs = await fetchAdminListableClubs();
   const mine = allClubs.filter((club) =>
     ctx.facilities.includes(club.facilityCode),
   );
