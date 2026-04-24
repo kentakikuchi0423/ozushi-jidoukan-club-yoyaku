@@ -11,7 +11,9 @@ export interface ClubFormValues {
   programId: string;
   startAt: string; // datetime-local
   endAt: string;
-  capacity: number;
+  // ユーザがフィールドを一瞬空にするケースがあるため null 許容にしている。
+  // null のまま保存ボタンを押すと server action の zod が弾いて日本語エラーを返す。
+  capacity: number | null;
   photoUrl: string;
   description: string;
 }
@@ -265,10 +267,16 @@ export function ClubForm({
           type="number"
           min={1}
           max={1000}
-          value={values.capacity}
-          onChange={(e) =>
-            update("capacity", Number.parseInt(e.target.value, 10))
-          }
+          value={values.capacity ?? ""}
+          onChange={(e) => {
+            const raw = e.target.value;
+            if (raw === "") {
+              update("capacity", null);
+              return;
+            }
+            const n = Number.parseInt(raw, 10);
+            update("capacity", Number.isNaN(n) ? null : n);
+          }}
           {...fieldAriaProps("capacity", fieldErrors.capacity)}
           className={inputClass(fieldErrors.capacity)}
         />
