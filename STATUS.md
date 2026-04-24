@@ -5,7 +5,53 @@
 
 ---
 
-## 最終更新: 2026-04-24（館の管理を追加 + 館マスターを動的化）
+## 最終更新: 2026-04-24（本番デプロイ前整備一式: セキュリティ / 保守性 / デザイン / 受入テスト / マニュアル / README）
+
+### このチャンクで解消したもの
+1. **Sub-phase A — 館の管理機能コミット** (`9eca98b`)
+2. **Sub-phase B — セキュリティ最終仕上げ** (`75722ca`):
+   - `loginAction` に `admin.login.succeeded` / `admin.login.failed` 監査ログを追加（email / IP / reason）
+   - `e2e/permission-guard.spec.ts` に非 super_admin の amber 警告 E2E（`RUN_PERMISSION_E2E=1`）
+   - `docs/security-review.md` の棚卸し（`pnpm audit` で moderate 1 件だが実行経路への影響なし）
+   - `docs/operations.md §10` に監査ログの tail 手順（SQL 4 本）を追記
+3. **Sub-phase C — UI プリミティブ共通化 + 純粋関数抽出** (`6612aaf`):
+   - `src/components/ui/` に Button / Field / Input / Textarea / Select / Badge / Card / FormMessage を新設（CSS 変数ベース）
+   - facility-form / program-form / invite-form / delete-*-button / login-form / password-form をプリミティブ化
+   - `fetchActiveFacilityContacts` を `src/server/facilities/list.ts` に追加、mail/notify.ts から重複を解消
+   - `createFacilityAction` の super_admin 判定を `src/server/auth/super-admin.ts` の純粋関数 `findSuperAdminIdsToGrant`（5 テストケース）に抽出
+4. **Sub-phase D — 和みパステル配色への刷新** (`02dc67d`):
+   - `globals.css` に theme tokens（生成り背景・若草 primary・桜 accent・空色 info・山吹 warning・若葉 success・淡紅 danger）
+   - 主要ページ（/, /clubs/[id], /clubs/[id]/done, /reservations, /admin/* 群）を新トークンに移行、角丸 rounded-xl / rounded-2xl、見出し font-semibold、focus-visible ring
+5. **Sub-phase E — 受入テスト** (`ebe2a45`):
+   - `docs/acceptance-tests.md` を新設、利用者 8 本 + 管理者 10 本を《前提 / 手順 / 期待結果 / NG 時》で整理
+   - `e2e/reservation-flow.spec.ts` に「待ちリスト → 繰り上がり」シナリオ追加（`RUN_WAITLIST_E2E=1` + `E2E_WAITLIST_CLUB_ID`）
+   - `docs/operations.md §11` にリリース前チェック手順を追記
+6. **Sub-phase F — マニュアル** (`c0bb1ba`):
+   - `docs/user-manual.md`（8 節の保護者向けガイド + FAQ + 個人情報注記）
+   - `docs/admin-manual.md`（11 節の職員向けガイド、super_admin 限定機能も詳述）
+   - `docs/manual-index.md`（入口）+ `docs/images/{user,admin}/` 空ディレクトリ
+7. **Sub-phase G — README 刷新**（このチャンク）:
+   - 冒頭に「3 分で把握する全体像」「本番を立てるのに必要な外部サービス」「本番セットアップの 6 ステップ」
+   - FAQ（`pnpm db:push` SASL / Resend 届かない / Vercel Cron 401 / `/admin/login` できない / Vitest worker flake）
+   - `.env.example` を整理（`ADMIN_BOOTSTRAP_*` は E2E 用途であることを明記、`ADMIN_SINGLE_FACILITY_*` / `E2E_WAITLIST_CLUB_ID` を追加）
+   - MIT `LICENSE` を追加
+
+### テスト結果
+- `pnpm format` / `pnpm lint` / `pnpm typecheck`: all green
+- `pnpm test`: 93+ cases 通過（vitest worker flake は引き続き、個別 run で全通過を再確認）
+- `pnpm build`: 20 routes + proxy
+- `pnpm test:e2e`（default）: 13 passed / 2 skipped
+- `RUN_ADMIN_FLOW_E2E=1`: 2 passed（club + 館 CRUD、serial）
+- `RUN_RESERVATION_FLOW_E2E=1`: 1 passed
+- `pnpm audit`: moderate 1 件（resend > svix > uuid@10、実行経路への影響なし）
+
+### 次の一手
+- GitHub に push → Vercel 接続 → 環境変数投入 → `pnpm db:push`（本番） → 初期 super_admin 作成 → `docs/acceptance-tests.md` の 18 本を手動で確認
+- 運用開始後 3 ヶ月で、Sentry / レート制限 / Dependabot の必要性を再評価（`docs/open-questions.md` に記録予定）
+
+---
+
+## 1 つ前: 2026-04-24（館の管理を追加 + 館マスターを動的化）
 
 ### このチャンクで解消したもの
 1. **管理画面に「館の管理」を追加 + 館マスターの動的 CRUD**:

@@ -15,7 +15,7 @@
 | 3 | 利用者画面 | 95% |
 | 4 | 管理画面 | 90% |
 | 5 | 予約待ち / 繰り上げ / 期限管理 | 80% |
-| 6 | テスト / セキュリティ / 仕上げ | 80% |
+| 6 | テスト / セキュリティ / 仕上げ | 95% |
 
 ---
 
@@ -144,27 +144,30 @@
 
 ---
 
-## Phase 6: テスト / セキュリティ / 仕上げ (75%)
+## Phase 6: テスト / セキュリティ / 仕上げ (95%)
 
 **完了条件**: docs/security-review.md のチェックリストが全て済み、主要フローが E2E で通る。公開前の最終確認が完了している。
 
 - [x] unit test カバレッジ確認（`pnpm test --coverage` を回して、format / status / guards error class / templates shared の pure modules を追加。DB タッチする wrapper は integration test に回す）
 - [x] Next.js 16 の middleware → proxy 命名 deprecation 対応（`src/proxy.ts` + `export function proxy`、warning 解消）
-- [ ] integration test（pg テストコンテナ or Supabase 実 DB で予約 RPC の状態遷移と競合）
-- [x] E2E: 利用者フロー（`e2e/reservation-flow.spec.ts`、opt-in）
-- [x] E2E: 管理者 CRUD フロー（`e2e/admin-flow.spec.ts`、opt-in）
-- [x] E2E: 未ログイン時の /admin/* リダイレクト、/api/cron/* の 401/503、セキュリティヘッダー、CSP、skip-link（`e2e/permission-guard.spec.ts`）
-- [ ] 権限越権テスト（別館 admin で他館クラブ編集 → 403、anon で Server Action → 401）
+- [ ] integration test（pg テストコンテナ or Supabase 実 DB で予約 RPC の状態遷移と競合）— 運用開始後に評価
+- [x] E2E: 利用者フロー（`e2e/reservation-flow.spec.ts`、opt-in）+ 待ちリスト→繰り上げ（`RUN_WAITLIST_E2E=1`）
+- [x] E2E: 管理者 CRUD フロー（`e2e/admin-flow.spec.ts`、opt-in、クラブ + 館 CRUD）
+- [x] E2E: 未ログイン時の /admin/* リダイレクト、/api/cron/* の 401/503、セキュリティヘッダー、CSP、skip-link、非 super_admin の amber 警告（`e2e/permission-guard.spec.ts`）
+- [ ] 権限越権テスト（別館 admin で他館クラブ編集 → 403）— 2 人目 admin を用意すれば手動確認可能
 - [x] CSRF / XSS / SQLi 観点レビュー（`docs/security-review.md` §3）
-- [ ] レート制限 / Bot 対策（当面 Supabase 既定 + 必要に応じて hCaptcha 検討、Phase 6 後半）
+- [ ] レート制限 / Bot 対策（当面 Supabase 既定 + 運用 3 ヶ月後に再評価）
 - [x] 個人情報ログ出力チェック（Server Action / mail wrapper が tag / code のみログ）
+- [x] 管理者ログインの監査ログ（`admin.login.succeeded` / `admin.login.failed`、運用は `docs/operations.md §10` で tail）
 - [x] セキュリティヘッダー（X-Frame-Options / HSTS / Referrer-Policy / Permissions-Policy）
 - [x] CSP（nonce ベース、middleware で本番のみ付与）
-- [x] a11y 基礎（skip-to-content、フォーム `aria-invalid` / `aria-describedby` / `aria-required`、focus-visible outline）
-- [x] `pnpm audit`（No known vulnerabilities、初回確認済み）
+- [x] a11y 基礎（skip-to-content、フォーム `aria-invalid` / `aria-describedby` / `aria-required`、focus-visible ring）
+- [x] `pnpm audit`（moderate 1 件: resend > svix > uuid@10、実行経路への影響なし、`docs/security-review.md` §5）
 - [ ] Dependabot 設定（GitHub 接続後）
-- [ ] UI ポリッシュ（モバイル / アクセシビリティ、WCAG 2.1 AA 目標、残タスク：focus management on stage transitions 等）
-- [x] 運用ドキュメント（`docs/operations.md` bootstrap / retention / Cron / secret ローテーション / §9 本番デプロイ runbook）
-- [x] README の最終整備（デプロイ手順、env 一覧の更新、opt-in E2E）
+- [x] UI プリミティブ化 + 和みパステル配色への刷新（Button / Field / Input / Badge / Card / FormMessage、`src/components/ui/`）
+- [x] 運用ドキュメント（`docs/operations.md` bootstrap / retention / Cron / §9 本番デプロイ runbook / §10 監査ログ tail / §11 リリース前手順）
+- [x] 受入テスト（`docs/acceptance-tests.md` に利用者 8 本 + 管理者 10 本のシナリオ）
+- [x] 利用者マニュアル（`docs/user-manual.md`）と管理者マニュアル（`docs/admin-manual.md`）
+- [x] README の最終整備（初心者向けセットアップ全体像、FAQ、opt-in E2E、env 一覧の更新）
 - [x] ステージ遷移アクセシビリティ（`aria-live` announce）
-- [ ] ライセンス決定（Phase 6 公開前）
+- [x] ライセンス決定: MIT（`LICENSE` を追加）
