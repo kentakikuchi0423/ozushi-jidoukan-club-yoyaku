@@ -26,18 +26,23 @@ function toProgram(
 export type ClubProgramListItem = ClubProgram & { deletedAt: string | null };
 
 /**
- * クラブ・事業マスター一覧を name 昇順で取得する。
- * `includeDeleted` が true なら soft delete 済みのものも含める（マスター管理画面向け）。
- * デフォルト（false）ではクラブ作成フォームのドロップダウン用途で、有効な行のみ返す。
+ * クラブ・事業マスター一覧を取得する。
+ *   * `orderBy`: `"name"`（既定、ドロップダウン用）または `"created_at"`
+ *     （管理一覧ページで古い順に並べる）
+ *   * `includeDeleted`: ソフト削除済みを含むかどうか。既定は false
  */
 export async function fetchClubPrograms(
-  options: { includeDeleted?: boolean } = {},
+  options: {
+    includeDeleted?: boolean;
+    orderBy?: "name" | "created_at";
+  } = {},
 ): Promise<ClubProgramListItem[]> {
+  const orderBy = options.orderBy ?? "name";
   const admin = getSupabaseAdminClient();
   let query = admin
     .from("club_programs")
     .select("id, name, target_age, summary, deleted_at")
-    .order("name", { ascending: true });
+    .order(orderBy, { ascending: true });
   if (!options.includeDeleted) {
     query = query.is("deleted_at", null);
   }
@@ -61,19 +66,4 @@ export async function fetchClubProgramById(
     throw new Error(`failed to fetch club program: ${error.message}`);
   }
   return data ? toProgram(data) : null;
-}
-
-/** この program を参照しているクラブが何件あるか（ソフト削除済み含む）。 */
-export async function countClubsUsingProgram(
-  programId: string,
-): Promise<number> {
-  const admin = getSupabaseAdminClient();
-  const { count, error } = await admin
-    .from("clubs")
-    .select("id", { count: "exact", head: true })
-    .eq("program_id", programId);
-  if (error) {
-    throw new Error(`failed to count clubs: ${error.message}`);
-  }
-  return count ?? 0;
 }

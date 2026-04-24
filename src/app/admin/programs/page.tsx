@@ -6,17 +6,14 @@ import {
   AuthenticationRequiredError,
   requireAdmin,
 } from "@/server/auth/guards";
-import {
-  countClubsUsingProgram,
-  fetchClubPrograms,
-} from "@/server/clubs/programs";
+import { fetchClubPrograms } from "@/server/clubs/programs";
 
 import { DeleteProgramButton } from "./delete-program-button";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "クラブ・事業の編集",
+  title: "クラブ・事業の管理",
   robots: { index: false, follow: false },
 };
 
@@ -30,10 +27,8 @@ export default async function AdminProgramsPage() {
     throw error;
   }
 
-  const programs = await fetchClubPrograms({ includeDeleted: true });
-  const counts = await Promise.all(
-    programs.map((p) => countClubsUsingProgram(p.id)),
-  );
+  // 削除済みは一覧に出さない。追加日時の昇順（古いものが上）で表示する。
+  const programs = await fetchClubPrograms({ orderBy: "created_at" });
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8 sm:px-6">
@@ -51,7 +46,7 @@ export default async function AdminProgramsPage() {
           <p className="text-sm font-medium tracking-wide text-zinc-500">
             管理画面
           </p>
-          <h1 className="text-2xl font-bold sm:text-3xl">クラブ・事業の編集</h1>
+          <h1 className="text-2xl font-bold sm:text-3xl">クラブ・事業の管理</h1>
           <p className="text-xs leading-6 text-zinc-600">
             クラブ作成フォームで選べる「クラブ・事業」のマスター一覧です。
             <br />
@@ -77,61 +72,35 @@ export default async function AdminProgramsPage() {
         </div>
       ) : (
         <ul className="flex flex-col gap-3">
-          {programs.map((p, i) => {
-            const usage = counts[i] ?? 0;
-            const isDeleted = p.deletedAt !== null;
-            return (
-              <li key={p.id}>
-                <article
-                  className={`flex flex-col gap-3 rounded-lg border bg-white p-4 shadow-sm sm:flex-row sm:items-start sm:justify-between sm:p-5 ${
-                    isDeleted ? "border-zinc-300 opacity-70" : "border-zinc-200"
-                  }`}
-                >
-                  <div className="min-w-0 flex-1 space-y-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h2 className="text-base font-bold text-zinc-900 sm:text-lg">
-                        {p.name}
-                      </h2>
-                      {isDeleted && (
-                        <span className="rounded-full bg-zinc-200 px-2 py-0.5 text-xs font-medium text-zinc-700">
-                          削除済み
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs text-zinc-600">
-                      <span className="font-medium text-zinc-500">
-                        対象年齢:{" "}
-                      </span>
-                      {p.targetAge}
-                    </p>
-                    <p className="text-xs whitespace-pre-wrap text-zinc-700">
-                      {p.summary}
-                    </p>
-                    <p className="text-xs text-zinc-500">
-                      参照中のクラブ: {usage} 件
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 items-start gap-2">
-                    {!isDeleted && (
-                      <Link
-                        href={`/admin/programs/${p.id}/edit`}
-                        className="inline-flex items-center justify-center rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
-                      >
-                        編集
-                      </Link>
-                    )}
-                    {!isDeleted && (
-                      <DeleteProgramButton
-                        programId={p.id}
-                        programName={p.name}
-                        referencedClubCount={usage}
-                      />
-                    )}
-                  </div>
-                </article>
-              </li>
-            );
-          })}
+          {programs.map((p) => (
+            <li key={p.id}>
+              <article className="flex flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-4 shadow-sm sm:flex-row sm:items-start sm:justify-between sm:p-5">
+                <div className="min-w-0 flex-1 space-y-2">
+                  <h2 className="text-base font-bold text-zinc-900 sm:text-lg">
+                    {p.name}
+                  </h2>
+                  <p className="text-xs text-zinc-600">
+                    <span className="font-medium text-zinc-500">
+                      対象年齢:{" "}
+                    </span>
+                    {p.targetAge}
+                  </p>
+                  <p className="text-xs whitespace-pre-wrap text-zinc-700">
+                    {p.summary}
+                  </p>
+                </div>
+                <div className="flex shrink-0 items-start gap-2">
+                  <Link
+                    href={`/admin/programs/${p.id}/edit`}
+                    className="inline-flex items-center justify-center rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+                  >
+                    編集
+                  </Link>
+                  <DeleteProgramButton programId={p.id} programName={p.name} />
+                </div>
+              </article>
+            </li>
+          ))}
         </ul>
       )}
     </main>

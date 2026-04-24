@@ -170,7 +170,7 @@ export function ClubForm({
         label={LABELS.programId}
         hint={
           programsForDropdown.length === 0
-            ? "先に「クラブ・事業の編集」から事業を登録してください。"
+            ? "先に「クラブ・事業の管理」から事業を登録してください。"
             : undefined
         }
         error={fieldErrors.programId}

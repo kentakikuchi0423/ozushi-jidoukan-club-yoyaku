@@ -170,7 +170,7 @@ function AdminTopBar({
           href="/admin/programs"
           className="text-zinc-600 underline underline-offset-4 hover:text-zinc-900"
         >
-          クラブ・事業の編集
+          クラブ・事業の管理
         </Link>
         <Link
           href="/admin/password"

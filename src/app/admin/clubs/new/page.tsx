@@ -72,7 +72,7 @@ export default async function AdminClubNewPage() {
         <p className="text-xs leading-6 text-zinc-600">
           担当する館とクラブ・事業を選び、日時と定員を入力してください。
           <br />
-          クラブ名・対象年齢・概要はマスター（クラブ・事業の編集）から自動で取得します。
+          クラブ名・対象年齢・概要はマスター（クラブ・事業の管理）から自動で取得します。
         </p>
       </header>
 

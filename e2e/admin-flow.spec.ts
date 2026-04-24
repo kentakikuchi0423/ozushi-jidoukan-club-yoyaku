@@ -71,7 +71,7 @@ test("super_admin can create, edit, and delete a club end-to-end", async ({
 
   // 3. まずクラブ・事業マスターを作る
   await page
-    .getByRole("link", { name: "クラブ・事業の編集" })
+    .getByRole("link", { name: "クラブ・事業の管理" })
     .click({ force: true });
   await page.waitForURL("**/admin/programs");
   await page.getByRole("link", { name: "新規登録" }).click({ force: true });
@@ -151,9 +151,9 @@ test("super_admin can create, edit, and delete a club end-to-end", async ({
   await page.waitForURL("**/admin/clubs");
   await expect(page.getByText(programLabel)).toHaveCount(0);
 
-  // 10. クラブ・事業マスターも削除（ソフト削除）
+  // 10. クラブ・事業マスターも削除（ソフト削除 → 一覧から消える）
   await page
-    .getByRole("link", { name: "クラブ・事業の編集" })
+    .getByRole("link", { name: "クラブ・事業の管理" })
     .click({ force: true });
   await page.waitForURL("**/admin/programs");
   const programArticle = page
@@ -163,7 +163,9 @@ test("super_admin can create, edit, and delete a club end-to-end", async ({
   await programArticle
     .getByRole("button", { name: "削除" })
     .click({ force: true });
-  await expect(programArticle).toContainText("削除済み", { timeout: 15_000 });
+  await expect(
+    page.getByRole("article").filter({ hasText: programLabel }),
+  ).toHaveCount(0, { timeout: 15_000 });
 
   // 11. ログアウト（クラブ一覧の上部バーから）
   await page.goto("/admin/clubs");

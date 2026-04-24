@@ -8,30 +8,20 @@ import { deleteProgramAction } from "./actions";
 interface Props {
   readonly programId: string;
   readonly programName: string;
-  readonly referencedClubCount: number;
 }
 
-export function DeleteProgramButton({
-  programId,
-  programName,
-  referencedClubCount,
-}: Props) {
+export function DeleteProgramButton({ programId, programName }: Props) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   function handleClick() {
-    const detail =
-      referencedClubCount > 0
-        ? `「${programName}」を削除します。\n現在 ${referencedClubCount} 件のクラブが参照しています。\n削除後はフォームの選択肢から消えますが、既存クラブの表示には影響しません。\nよろしいですか？`
-        : `「${programName}」を削除します。\nこの操作は取り消せません。\nよろしいですか？`;
+    const detail = `「${programName}」を削除します。\nこの操作は取り消せません。\nよろしいですか？`;
     if (!window.confirm(detail)) return;
     setError(null);
     startTransition(async () => {
       const result = await deleteProgramAction(programId);
       if (!result.ok) {
-        // 削除系の server action は kind: "input" を返す経路が無いが、型上あり得るので
-        // ガードしつつ、未知ケースは汎用メッセージを表示する。
         const message =
           "message" in result
             ? result.message
