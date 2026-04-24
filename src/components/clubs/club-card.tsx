@@ -116,7 +116,19 @@ export function ClubCard({ club, variant }: Props) {
             <PublishClubButton
               clubId={club.id}
               alreadyPublished={club.publishedAt !== null}
+              clubName={club.name}
+              facilityName={club.facilityName}
+              startAt={club.startAt}
+              endAt={club.endAt}
+              capacity={club.capacity}
+              targetAge={club.targetAge}
             />
+            <Link
+              href={`/admin/clubs/${club.id}/reservations`}
+              className="inline-flex shrink-0 items-center justify-center rounded-md border border-zinc-300 bg-white px-4 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+            >
+              予約者を見る
+            </Link>
           </>
         )}
       </div>

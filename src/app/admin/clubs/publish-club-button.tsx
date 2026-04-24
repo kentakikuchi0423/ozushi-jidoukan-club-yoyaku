@@ -3,15 +3,33 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
+import { formatJstDate, formatJstTime } from "@/lib/format";
+
 import { publishClubAction } from "./actions";
 
 interface Props {
   readonly clubId: string;
   /** 公開済みクラブはボタンをグレーアウトして「公開済み」表示にする。 */
   readonly alreadyPublished: boolean;
+  /** 公開前確認ダイアログに載せるクラブ情報。 */
+  readonly clubName: string;
+  readonly facilityName: string;
+  readonly startAt: string;
+  readonly endAt: string;
+  readonly capacity: number;
+  readonly targetAge: string;
 }
 
-export function PublishClubButton({ clubId, alreadyPublished }: Props) {
+export function PublishClubButton({
+  clubId,
+  alreadyPublished,
+  clubName,
+  facilityName,
+  startAt,
+  endAt,
+  capacity,
+  targetAge,
+}: Props) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -19,9 +37,24 @@ export function PublishClubButton({ clubId, alreadyPublished }: Props) {
   const [optimisticPublished, setOptimisticPublished] =
     useState(alreadyPublished);
 
+  function buildConfirmText(): string {
+    const dateLabel = formatJstDate(startAt);
+    const startLabel = formatJstTime(startAt);
+    const endLabel = formatJstTime(endAt);
+    return [
+      "以下のクラブを公開します。よろしいですか？",
+      "",
+      `クラブ名: ${clubName}`,
+      `館: ${facilityName}`,
+      `開催日時: ${dateLabel} ${startLabel}〜${endLabel}`,
+      `対象年齢: ${targetAge}`,
+      `定員: ${capacity} 名`,
+    ].join("\n");
+  }
+
   function handleClick() {
     if (optimisticPublished) return;
-    if (!window.confirm("このクラブを公開します。\nよろしいですか？")) return;
+    if (!window.confirm(buildConfirmText())) return;
     setError(null);
     setOptimisticPublished(true);
     startTransition(async () => {

@@ -3,8 +3,8 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 
 import {
+  cancellationBlockedReason,
   computeCancellationDeadline,
-  isCancellable,
 } from "@/lib/reservations/cancellation-deadline";
 import { isReservationNumber } from "@/lib/reservations/number";
 import type { ReservationStatus } from "@/lib/reservations/status";
@@ -75,10 +75,25 @@ function CancelSection({
   secureToken: string;
 }) {
   const deadline = computeCancellationDeadline(reservation.club.startAt);
-  const cancellable = isCancellable(reservation.club.startAt);
+  const blocked = cancellationBlockedReason(reservation.club.startAt);
   const deadlineLabel = `${formatJstDate(deadline)} ${formatJstTime(deadline)}`;
 
-  if (!cancellable) {
+  if (blocked === "event-started") {
+    return (
+      <section className="mt-8 space-y-3 rounded-lg border border-zinc-200 bg-white p-4 sm:p-6">
+        <h2 className="text-sm font-semibold text-zinc-700">
+          予約のキャンセル
+        </h2>
+        <p className="rounded-md bg-zinc-100 p-3 text-sm text-zinc-700">
+          開催日時を過ぎているため、キャンセルできません。
+          <br />
+          お困りの場合は各館へ直接ご連絡ください。
+        </p>
+      </section>
+    );
+  }
+
+  if (blocked === "past-deadline") {
     return (
       <section className="mt-8 space-y-3 rounded-lg border border-zinc-200 bg-white p-4 sm:p-6">
         <h2 className="text-sm font-semibold text-zinc-700">

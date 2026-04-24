@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { isCancellable } from "@/lib/reservations/cancellation-deadline";
+import { cancellationBlockedReason } from "@/lib/reservations/cancellation-deadline";
 import {
   notifyReservationCanceled,
   notifyReservationPromoted,
@@ -41,13 +41,24 @@ export async function cancelReservationAction(
     secureToken,
   ).catch(() => null);
 
-  // 既にキャンセル期限を過ぎていれば、RPC を叩かずにここで止める
-  if (beforeCancel && !isCancellable(beforeCancel.club.startAt)) {
-    return {
-      ok: false,
-      kind: "deadline_passed",
-      message: "キャンセル期限を過ぎています。\n各館へ直接ご連絡ください。",
-    };
+  // 開催日時を過ぎている / 締切を過ぎている場合は RPC を叩かず理由別に止める
+  if (beforeCancel) {
+    const blocked = cancellationBlockedReason(beforeCancel.club.startAt);
+    if (blocked === "event-started") {
+      return {
+        ok: false,
+        kind: "deadline_passed",
+        message:
+          "開催日時を過ぎているため、キャンセルできません。\n各館へ直接ご連絡ください。",
+      };
+    }
+    if (blocked === "past-deadline") {
+      return {
+        ok: false,
+        kind: "deadline_passed",
+        message: "キャンセル期限を過ぎています。\n各館へ直接ご連絡ください。",
+      };
+    }
   }
 
   try {

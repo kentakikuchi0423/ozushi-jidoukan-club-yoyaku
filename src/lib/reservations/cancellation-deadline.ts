@@ -71,14 +71,37 @@ export function computeCancellationDeadline(
 /**
  * 現時点で `clubStartAt` のクラブをキャンセル可能か判定する。
  * 現在時刻が締切と同時刻なら「可」（`<=` で判定）。
+ * ただし、開催日時を過ぎていたら締切前でも不可（防御的に明示的にチェック）。
  */
 export function isCancellable(
   clubStartAt: Date | string | number,
   now: Date | string | number = new Date(),
 ): boolean {
   const nowDate = toDate(now);
+  const startDate = toDate(clubStartAt);
+  if (nowDate.getTime() >= startDate.getTime()) return false;
   const deadline = computeCancellationDeadline(clubStartAt);
   return nowDate.getTime() <= deadline.getTime();
+}
+
+/**
+ * キャンセル不可の理由を返す。`null` ならキャンセル可能。
+ *   - `"event-started"`: 開催日時を過ぎている
+ *   - `"past-deadline"`: 開催前だがキャンセル期限を過ぎている
+ * UI で理由ごとに異なるメッセージを出すために使う。
+ */
+export type CancellationBlockedReason = "event-started" | "past-deadline";
+
+export function cancellationBlockedReason(
+  clubStartAt: Date | string | number,
+  now: Date | string | number = new Date(),
+): CancellationBlockedReason | null {
+  const nowDate = toDate(now);
+  const startDate = toDate(clubStartAt);
+  if (nowDate.getTime() >= startDate.getTime()) return "event-started";
+  const deadline = computeCancellationDeadline(clubStartAt);
+  if (nowDate.getTime() > deadline.getTime()) return "past-deadline";
+  return null;
 }
 
 function toDate(value: Date | string | number): Date {
