@@ -53,7 +53,11 @@ export default async function HomePage({ searchParams }: Props) {
         <p className="text-sm leading-7 text-zinc-600">
           大洲児童館・喜多児童館・徳森児童センターのクラブをまとめて表示しています。
           <br />
-          気になるクラブを選ぶと、予約の手続きに進めます。
+          気になるクラブの「予約する」から予約の手続きに進めます。
+          <br />
+          クラブ開催後は準備が整い次第、活動を記録した写真も閲覧できます。
+          <br />
+          なお、一定期間終了後に掲載を削除いたしますので、ご了承ください。
         </p>
       </header>
 

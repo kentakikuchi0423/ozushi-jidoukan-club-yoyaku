@@ -88,7 +88,7 @@ export default async function AdminClubReservationsPage({ params }: Props) {
           クラブ「{program?.name ?? "（削除済み）"}」（
           {FACILITY_NAMES[club.facilityCode]}）の予約者一覧です。
           <br />
-          申込時間の早い順に表示しています。
+          申込日時の早い順に表示しています。
         </p>
         <p className="text-xs text-zinc-600">
           開催日時:{" "}
@@ -151,14 +151,14 @@ function ReservationCard({
       </div>
 
       <p className="text-xs">
-        <span className="text-zinc-500">申込時間: </span>
+        <span className="text-zinc-500">申込日時: </span>
         <time dateTime={r.createdAt}>
           {formatJstDate(r.createdAt)} {formatJstTime(r.createdAt)}
         </time>
         {r.canceledAt && (
           <>
             <span className="mx-1.5 text-zinc-400">/</span>
-            <span className="text-zinc-500">キャンセル時間: </span>
+            <span className="text-zinc-500">キャンセル日時: </span>
             <time dateTime={r.canceledAt}>
               {formatJstDate(r.canceledAt)} {formatJstTime(r.canceledAt)}
             </time>

@@ -184,7 +184,7 @@ function AdminTopBar({
             href="/admin/accounts"
             className="text-zinc-600 underline underline-offset-4 hover:text-zinc-900"
           >
-            アカウント追加
+            アカウント追加・削除
           </Link>
         )}
       </nav>

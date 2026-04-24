@@ -98,7 +98,7 @@ export default async function ClubDetailPage({ params }: Props) {
 
         {club.description && (
           <div className="rounded-md border border-zinc-200 bg-white p-4 text-sm whitespace-pre-wrap text-zinc-700">
-            <p className="mb-1 text-xs font-medium text-zinc-500">説明</p>
+            <p className="mb-1 text-xs font-medium text-zinc-500">補足説明</p>
             {club.description}
           </div>
         )}

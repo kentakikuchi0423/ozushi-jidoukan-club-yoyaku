@@ -162,11 +162,8 @@ export function ProgramForm({ mode, initial, submitAction }: Props) {
             {fieldErrors.summary}
           </p>
         ) : (
-          <p
-            id="program-summary-hint"
-            className="text-xs whitespace-pre-line text-zinc-500"
-          >
-            {"2000 字以内。\n改行は本文でそのまま反映されます。"}
+          <p id="program-summary-hint" className="text-xs text-zinc-500">
+            2000 字以内。
           </p>
         )}
       </div>
