@@ -9,7 +9,6 @@ import {
   parseStatusFilter,
 } from "@/components/clubs/filter-utils";
 import { PaginatedClubList } from "@/components/clubs/paginated-club-list";
-import { FACILITY_NAMES } from "@/lib/facility";
 import {
   AuthenticationRequiredError,
   requireAdmin,
@@ -17,6 +16,7 @@ import {
 import { computeIsSuperAdmin } from "@/server/auth/permissions";
 import { fetchAdminProfile } from "@/server/auth/profile";
 import { fetchAdminListableClubs } from "@/server/clubs/admin-list";
+import { fetchFacilities } from "@/server/facilities/list";
 
 import { logoutAction } from "../actions";
 
@@ -42,11 +42,15 @@ export default async function AdminClubsListPage({ searchParams }: Props) {
     throw error;
   }
 
-  const profile = await fetchAdminProfile(ctx.adminId);
-  const isSuper = computeIsSuperAdmin(ctx.facilities);
+  const [profile, isSuper, allFacilities] = await Promise.all([
+    fetchAdminProfile(ctx.adminId),
+    computeIsSuperAdmin(ctx.facilities),
+    fetchFacilities({ includeDeleted: true }),
+  ]);
+  const nameByCode = new Map(allFacilities.map((f) => [f.code, f.name]));
   const facilitiesLabel =
     ctx.facilities.length > 0
-      ? ctx.facilities.map((code) => FACILITY_NAMES[code]).join(" / ")
+      ? ctx.facilities.map((code) => nameByCode.get(code) ?? code).join(" / ")
       : "割り当てられた館がありません";
 
   const { facility: facilityParam, status: statusParam } = await searchParams;
@@ -95,7 +99,10 @@ export default async function AdminClubsListPage({ searchParams }: Props) {
           </header>
 
           <ClubFilterBar
-            facilities={ctx.facilities}
+            facilities={ctx.facilities.map((code) => ({
+              code,
+              name: nameByCode.get(code) ?? code,
+            }))}
             initialFacility={facilityFilter}
             initialStatus={statusFilter}
             basePath="/admin/clubs"
@@ -179,14 +186,18 @@ function AdminTopBar({
         >
           パスワード変更
         </Link>
-        {isSuper && (
-          <Link
-            href="/admin/accounts"
-            className="text-zinc-600 underline underline-offset-4 hover:text-zinc-900"
-          >
-            アカウント追加・削除
-          </Link>
-        )}
+        <Link
+          href="/admin/facilities"
+          className="text-zinc-600 underline underline-offset-4 hover:text-zinc-900"
+        >
+          館の管理
+        </Link>
+        <Link
+          href="/admin/accounts"
+          className="text-zinc-600 underline underline-offset-4 hover:text-zinc-900"
+        >
+          アカウント追加・削除
+        </Link>
       </nav>
     </section>
   );

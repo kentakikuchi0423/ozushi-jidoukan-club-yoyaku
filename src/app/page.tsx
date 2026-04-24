@@ -8,7 +8,7 @@ import {
   parseStatusFilter,
 } from "@/components/clubs/filter-utils";
 import { PaginatedClubList } from "@/components/clubs/paginated-club-list";
-import { FACILITY_CODES } from "@/lib/facility";
+import { fetchFacilities } from "@/server/facilities/list";
 
 // クラブ一覧（利用者向けトップページ）。
 //
@@ -25,10 +25,14 @@ interface Props {
 
 export default async function HomePage({ searchParams }: Props) {
   const { facility: facilityParam, status: statusParam } = await searchParams;
-  const facilityFilter = parseFacilityFilter(facilityParam, FACILITY_CODES);
+  const [allClubs, activeFacilities] = await Promise.all([
+    fetchListableClubs(),
+    fetchFacilities({ includeDeleted: false }),
+  ]);
+  const facilityCodes = activeFacilities.map((f) => f.code);
+  const facilityFilter = parseFacilityFilter(facilityParam, facilityCodes);
   const statusFilter = parseStatusFilter(statusParam);
 
-  const allClubs = await fetchListableClubs();
   const filtered = applyClubFilters(allClubs, facilityFilter, statusFilter);
   const hasFilter = Boolean(facilityFilter || statusFilter);
 
@@ -62,7 +66,10 @@ export default async function HomePage({ searchParams }: Props) {
       </header>
 
       <ClubFilterBar
-        facilities={FACILITY_CODES}
+        facilities={activeFacilities.map((f) => ({
+          code: f.code,
+          name: f.name,
+        }))}
         initialFacility={facilityFilter}
         initialStatus={statusFilter}
         basePath="/"

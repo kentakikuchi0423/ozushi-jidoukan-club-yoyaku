@@ -1,23 +1,39 @@
 import { describe, expect, it } from "vitest";
-import { FACILITY_CODES } from "@/lib/facility";
-import { computeIsSuperAdmin, hasFacilityPermission } from "./permissions";
+import {
+  computeIsSuperAdminFromCount,
+  hasFacilityPermission,
+} from "./permissions";
 
-describe("computeIsSuperAdmin", () => {
-  it("returns true when the admin owns all three facilities", () => {
-    expect(computeIsSuperAdmin(["ozu", "kita", "toku"])).toBe(true);
-    expect(computeIsSuperAdmin([...FACILITY_CODES])).toBe(true);
+describe("computeIsSuperAdminFromCount", () => {
+  it("returns true when the admin owns all active facilities", () => {
+    expect(computeIsSuperAdminFromCount(["ozu", "kita", "toku"], 3)).toBe(true);
   });
 
   it("is insensitive to ordering and duplicates", () => {
-    expect(computeIsSuperAdmin(["toku", "ozu", "kita"])).toBe(true);
-    expect(computeIsSuperAdmin(["ozu", "ozu", "kita", "toku"])).toBe(true);
+    expect(computeIsSuperAdminFromCount(["toku", "ozu", "kita"], 3)).toBe(true);
+    expect(
+      computeIsSuperAdminFromCount(["ozu", "ozu", "kita", "toku"], 3),
+    ).toBe(true);
   });
 
-  it("returns false whenever any facility is missing", () => {
-    expect(computeIsSuperAdmin([])).toBe(false);
-    expect(computeIsSuperAdmin(["ozu"])).toBe(false);
-    expect(computeIsSuperAdmin(["ozu", "kita"])).toBe(false);
-    expect(computeIsSuperAdmin(["kita", "toku"])).toBe(false);
+  it("returns false when the admin owns fewer than the active count", () => {
+    expect(computeIsSuperAdminFromCount([], 3)).toBe(false);
+    expect(computeIsSuperAdminFromCount(["ozu"], 3)).toBe(false);
+    expect(computeIsSuperAdminFromCount(["ozu", "kita"], 3)).toBe(false);
+  });
+
+  it("returns false when there are no active facilities", () => {
+    expect(computeIsSuperAdminFromCount([], 0)).toBe(false);
+    expect(computeIsSuperAdminFromCount(["ozu"], 0)).toBe(false);
+  });
+
+  it("scales to additional dynamic facilities", () => {
+    expect(
+      computeIsSuperAdminFromCount(["ozu", "kita", "toku", "shin1"], 4),
+    ).toBe(true);
+    expect(computeIsSuperAdminFromCount(["ozu", "kita", "toku"], 4)).toBe(
+      false,
+    );
   });
 });
 

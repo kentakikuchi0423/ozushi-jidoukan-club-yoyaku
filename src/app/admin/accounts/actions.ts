@@ -3,12 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import {
-  FACILITY_CODES,
-  FACILITY_ID_BY_CODE,
-  FACILITY_NAMES,
-  type FacilityCode,
-} from "@/lib/facility";
+import { FACILITY_CODE_REGEX } from "@/lib/facility";
 import { isPasswordStrong, PASSWORD_ERROR } from "@/lib/auth/password";
 import { publicEnv } from "@/lib/env";
 import { logAdminAction } from "@/server/audit/log";
@@ -16,6 +11,7 @@ import {
   requireSuperAdmin,
   SuperAdminRequiredError,
 } from "@/server/auth/guards";
+import { fetchFacilities } from "@/server/facilities/list";
 import { getSupabaseAdminClient } from "@/server/supabase/admin";
 import { renderAdminInviteEmail } from "@/server/mail/templates/admin-invite";
 import { sendEmail } from "@/server/mail/send";
@@ -34,10 +30,9 @@ export type DeleteAdminResult =
   | { ok: false; kind: "self"; message: string }
   | { ok: false; kind: "unknown"; message: string };
 
-const facilityCodeSchema = z.enum(
-  FACILITY_CODES as unknown as [FacilityCode, ...FacilityCode[]],
-  { message: "館の指定が正しくありません" },
-);
+const facilityCodeSchema = z
+  .string()
+  .regex(FACILITY_CODE_REGEX, { message: "館の指定が正しくありません" });
 
 const addAdminSchema = z
   .object({
@@ -59,8 +54,7 @@ const addAdminSchema = z
     confirmPassword: z.string(),
     facilityCodes: z
       .array(facilityCodeSchema)
-      .min(1, { message: "館を 1 つ以上選択してください" })
-      .max(3, { message: "館は最大 3 つまでです" }),
+      .min(1, { message: "館を 1 つ以上選択してください" }),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "パスワードが一致しません",
@@ -146,6 +140,23 @@ export async function addAdminAction(
   const input = parsed.data;
   const admin = getSupabaseAdminClient();
 
+  // 選択された館が有効な（非削除）館として存在することを確認する。
+  const activeFacilities = await fetchFacilities({ includeDeleted: false });
+  const facilityByCode = new Map(activeFacilities.map((f) => [f.code, f]));
+  const unknownCodes = input.facilityCodes.filter(
+    (code) => !facilityByCode.has(code),
+  );
+  if (unknownCodes.length > 0) {
+    return {
+      ok: false,
+      kind: "input",
+      fieldErrors: {
+        facilityCodes:
+          "選択された館が見つかりませんでした。画面を再読み込みしてからもう一度お試しください。",
+      },
+    };
+  }
+
   // 1) email 未確認の状態で auth.users を作成（パスワードも保存される）
   const { data: created, error: createError } =
     await admin.auth.admin.createUser({
@@ -190,7 +201,7 @@ export async function addAdminAction(
   const { error: afError } = await admin.from("admin_facilities").insert(
     input.facilityCodes.map((code) => ({
       admin_id: newUserId,
-      facility_id: FACILITY_ID_BY_CODE[code],
+      facility_id: facilityByCode.get(code)!.id,
     })),
   );
   if (afError) {
@@ -234,13 +245,22 @@ export async function addAdminAction(
   }
 
   // 4) 日本語で招待メールを送る
-  const facilityNames = input.facilityCodes.map((code) => FACILITY_NAMES[code]);
-  const email = renderAdminInviteEmail({
-    email: input.email,
-    displayName: input.displayName,
-    facilityNames,
-    actionLink,
-  });
+  const facilityNames = input.facilityCodes.map(
+    (code) => facilityByCode.get(code)!.name,
+  );
+  const footerFacilities = activeFacilities.map((f) => ({
+    name: f.name,
+    phone: f.phone,
+  }));
+  const email = renderAdminInviteEmail(
+    {
+      email: input.email,
+      displayName: input.displayName,
+      facilityNames,
+      actionLink,
+    },
+    footerFacilities,
+  );
   await sendEmail({
     tag: "admin.invite",
     to: input.email,

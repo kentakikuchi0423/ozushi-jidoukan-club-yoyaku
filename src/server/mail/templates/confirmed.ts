@@ -1,13 +1,15 @@
 import {
   buildConfirmUrl,
+  type FacilityContact,
   formatDateTimeRange,
-  FOOTER,
+  renderFooter,
   type ReservationEmailContext,
   type RenderedEmail,
 } from "./shared";
 
 export function renderConfirmedEmail(
   ctx: ReservationEmailContext,
+  facilities: ReadonlyArray<FacilityContact>,
 ): RenderedEmail {
   const url = buildConfirmUrl(ctx.reservationNumber, ctx.secureToken);
   return {
@@ -31,6 +33,6 @@ ${url}
 キャンセルは開催日の 2 営業日前 17 時までにお願いします。
 それ以降のキャンセルおよび無断欠席は、他の利用者への影響が大きいため原則ご遠慮ください。
 キャンセルが続く場合は、今後のご利用をお断りすることがあります。
-${FOOTER}`,
+${renderFooter(facilities)}`,
   };
 }

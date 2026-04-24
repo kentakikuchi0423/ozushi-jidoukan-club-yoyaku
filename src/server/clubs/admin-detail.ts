@@ -1,6 +1,6 @@
 import "server-only";
 
-import { isFacilityCode, type FacilityCode } from "@/lib/facility";
+import { isFacilityCodeFormat, type FacilityCode } from "@/lib/facility";
 import { getSupabaseAdminClient } from "@/server/supabase/admin";
 
 export interface ClubForEdit {
@@ -64,7 +64,7 @@ export async function fetchClubForAdmin(
     throw new Error(`failed to fetch club for admin: ${error.message}`);
   }
   if (!data || data.deleted_at) return null;
-  if (!isFacilityCode(data.facility.code)) return null;
+  if (!isFacilityCodeFormat(data.facility.code)) return null;
   if (!allowedFacilities.includes(data.facility.code)) return null;
 
   return {

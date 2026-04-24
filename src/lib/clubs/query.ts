@@ -1,7 +1,7 @@
 import "server-only";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { isFacilityCode } from "@/lib/facility";
+import { isFacilityCodeFormat } from "@/lib/facility";
 import type { ClubListing } from "./types";
 
 interface ListPublicClubsRow {
@@ -23,7 +23,7 @@ interface ListPublicClubsRow {
 }
 
 function toClubListing(row: ListPublicClubsRow): ClubListing | null {
-  if (!isFacilityCode(row.facility_code)) return null;
+  if (!isFacilityCodeFormat(row.facility_code)) return null;
   return {
     id: row.id,
     facilityCode: row.facility_code,

@@ -1,7 +1,7 @@
 import "server-only";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { isFacilityCode, type FacilityCode } from "@/lib/facility";
+import { isFacilityCodeFormat, type FacilityCode } from "@/lib/facility";
 import type { ReservationStatus } from "@/lib/reservations/status";
 
 export interface ReservationPerson {
@@ -89,7 +89,7 @@ export async function fetchMyReservation(
   const rows = (data ?? []) as GetMyReservationRow[];
   if (rows.length === 0) return null;
   const row = rows[0];
-  if (!isFacilityCode(row.facility_code)) return null;
+  if (!isFacilityCodeFormat(row.facility_code)) return null;
 
   return {
     reservationNumber: row.reservation_number,

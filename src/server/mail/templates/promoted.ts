@@ -1,13 +1,15 @@
 import {
   buildConfirmUrl,
+  type FacilityContact,
   formatDateTimeRange,
-  FOOTER,
+  renderFooter,
   type ReservationEmailContext,
   type RenderedEmail,
 } from "./shared";
 
 export function renderPromotedEmail(
   ctx: ReservationEmailContext,
+  facilities: ReadonlyArray<FacilityContact>,
 ): RenderedEmail {
   const url = buildConfirmUrl(ctx.reservationNumber, ctx.secureToken);
   return {
@@ -29,6 +31,6 @@ ${url}
 
 ご都合が合わなくなった場合は、他の方への影響を最小限にするため
 お早めにキャンセルのお手続きをお願いします。
-${FOOTER}`,
+${renderFooter(facilities)}`,
   };
 }

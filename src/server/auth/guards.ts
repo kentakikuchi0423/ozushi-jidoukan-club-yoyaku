@@ -29,7 +29,7 @@ export class FacilityPermissionDeniedError extends Error {
 
 export class SuperAdminRequiredError extends Error {
   constructor() {
-    super("この操作は 3 館すべての権限を持つ管理者のみ実行できます。");
+    super("この操作は全館管理者のみ実行できます。");
     this.name = "SuperAdminRequiredError";
   }
 }
@@ -58,7 +58,7 @@ export async function requireFacilityPermission(
 
 export async function requireSuperAdmin(): Promise<AdminContext> {
   const ctx = await requireAdmin();
-  if (!computeIsSuperAdmin(ctx.facilities)) {
+  if (!(await computeIsSuperAdmin(ctx.facilities))) {
     throw new SuperAdminRequiredError();
   }
   return ctx;

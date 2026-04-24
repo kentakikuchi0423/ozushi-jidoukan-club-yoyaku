@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
 import { clubInputSchema } from "@/lib/clubs/input-schema";
-import { FACILITY_ID_BY_CODE } from "@/lib/facility";
 import { datetimeLocalJstToUtcIso } from "@/lib/format";
 import {
   FacilityPermissionDeniedError,
@@ -13,6 +12,7 @@ import {
 } from "@/server/auth/guards";
 import { logAdminAction } from "@/server/audit/log";
 import { fetchClubForAdmin } from "@/server/clubs/admin-detail";
+import { fetchFacilityByCode } from "@/server/facilities/list";
 import { getSupabaseAdminClient } from "@/server/supabase/admin";
 
 // 管理画面のクラブ CRUD Server Actions。
@@ -72,6 +72,17 @@ export async function createClubAction(
   const admin = getSupabaseAdminClient();
   const startAtUtc = datetimeLocalJstToUtcIso(input.startAt);
   const endAtUtc = datetimeLocalJstToUtcIso(input.endAt);
+  const facility = await fetchFacilityByCode(input.facilityCode);
+  if (!facility || facility.deletedAt) {
+    return {
+      ok: false,
+      kind: "input",
+      fieldErrors: {
+        facilityCode:
+          "選択した館が見つからないか、削除済みです。\n画面を再読み込みしてもう一度お試しください。",
+      },
+    };
+  }
   // 参照先プログラムが有効（soft delete されていない）か確認
   const { data: program, error: programError } = await admin
     .from("club_programs")
@@ -93,7 +104,7 @@ export async function createClubAction(
   const { data, error } = await admin
     .from("clubs")
     .insert({
-      facility_id: FACILITY_ID_BY_CODE[input.facilityCode],
+      facility_id: facility.id,
       program_id: input.programId,
       start_at: startAtUtc,
       end_at: endAtUtc,
@@ -179,6 +190,17 @@ export async function updateClubAction(
   // 変更「元」の権限も持っていることを上の fetchClubForAdmin で保証。
 
   const admin = getSupabaseAdminClient();
+  const facility = await fetchFacilityByCode(input.facilityCode);
+  if (!facility || facility.deletedAt) {
+    return {
+      ok: false,
+      kind: "input",
+      fieldErrors: {
+        facilityCode:
+          "選択した館が見つからないか、削除済みです。\n画面を再読み込みしてもう一度お試しください。",
+      },
+    };
+  }
   // 参照先プログラムが有効か確認（既存クラブが削除済みプログラムを持っていても、
   // 更新時には有効なプログラムへ差し替えられる運用）
   const { data: program, error: programError } = await admin
@@ -199,7 +221,7 @@ export async function updateClubAction(
   const { error } = await admin
     .from("clubs")
     .update({
-      facility_id: FACILITY_ID_BY_CODE[input.facilityCode],
+      facility_id: facility.id,
       program_id: input.programId,
       start_at: datetimeLocalJstToUtcIso(input.startAt),
       end_at: datetimeLocalJstToUtcIso(input.endAt),

@@ -1,4 +1,9 @@
-import { formatDateTimeRange, FOOTER, type RenderedEmail } from "./shared";
+import {
+  type FacilityContact,
+  formatDateTimeRange,
+  renderFooter,
+  type RenderedEmail,
+} from "./shared";
 
 export interface CanceledEmailContext {
   readonly parentName: string;
@@ -9,7 +14,10 @@ export interface CanceledEmailContext {
   readonly reservationNumber: string;
 }
 
-export function renderCanceledEmail(ctx: CanceledEmailContext): RenderedEmail {
+export function renderCanceledEmail(
+  ctx: CanceledEmailContext,
+  facilities: ReadonlyArray<FacilityContact>,
+): RenderedEmail {
   return {
     subject: `【大洲市児童館クラブ予約】キャンセルを承りました（${ctx.reservationNumber}）`,
     text: `${ctx.parentName} 様
@@ -23,6 +31,6 @@ export function renderCanceledEmail(ctx: CanceledEmailContext): RenderedEmail {
 ────────────────────
 
 またのご利用を心よりお待ちしております。
-${FOOTER}`,
+${renderFooter(facilities)}`,
   };
 }

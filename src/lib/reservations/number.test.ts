@@ -61,9 +61,23 @@ describe("reservation number", () => {
       expect(parseReservationNumber("ozu_1234567")).toBeNull();
       expect(parseReservationNumber("ozu-123456")).toBeNull();
       expect(parseReservationNumber("OZU_123456")).toBeNull();
-      expect(parseReservationNumber("abc_123456")).toBeNull();
       expect(parseReservationNumber(" ozu_123456")).toBeNull();
       expect(parseReservationNumber("ozu_123456 ")).toBeNull();
+      // prefix は 2 文字以上（`[a-z][a-z0-9]+`）なので 1 文字は弾く
+      expect(parseReservationNumber("a_123456")).toBeNull();
+      // 先頭は数字でない（`[a-z]` スタート）
+      expect(parseReservationNumber("1bc_123456")).toBeNull();
+    });
+
+    it("accepts dynamically-added facility prefixes", () => {
+      expect(parseReservationNumber("abc_123456")).toEqual({
+        code: "abc",
+        sequence: 123456,
+      });
+      expect(parseReservationNumber("shin1_100000")).toEqual({
+        code: "shin1",
+        sequence: 100000,
+      });
     });
 
     it("round-trips build → parse", () => {

@@ -1,29 +1,31 @@
 import { describe, expect, it } from "vitest";
-import {
-  FACILITY_CODES,
-  FACILITY_NAMES,
-  facilityName,
-  isFacilityCode,
-} from "./facility";
+import { FACILITY_CODE_REGEX, isFacilityCodeFormat } from "./facility";
 
 describe("facility", () => {
-  it("exposes exactly three facility codes", () => {
-    expect(FACILITY_CODES).toHaveLength(3);
-    expect([...FACILITY_CODES].sort()).toEqual(["kita", "ozu", "toku"]);
+  it("FACILITY_CODE_REGEX accepts valid prefix formats", () => {
+    expect(FACILITY_CODE_REGEX.test("ozu")).toBe(true);
+    expect(FACILITY_CODE_REGEX.test("kita")).toBe(true);
+    expect(FACILITY_CODE_REGEX.test("toku")).toBe(true);
+    expect(FACILITY_CODE_REGEX.test("ab")).toBe(true); // 最小 2 文字
+    expect(FACILITY_CODE_REGEX.test("abcdefghij")).toBe(true); // 最大 10 文字
+    expect(FACILITY_CODE_REGEX.test("shin1")).toBe(true);
   });
 
-  it("maps every code to a human-readable name", () => {
-    for (const code of FACILITY_CODES) {
-      expect(FACILITY_NAMES[code]).toBeTruthy();
-      expect(facilityName(code)).toBe(FACILITY_NAMES[code]);
-    }
+  it("FACILITY_CODE_REGEX rejects invalid formats", () => {
+    expect(FACILITY_CODE_REGEX.test("")).toBe(false);
+    expect(FACILITY_CODE_REGEX.test("a")).toBe(false); // 1 文字だけ
+    expect(FACILITY_CODE_REGEX.test("abcdefghijk")).toBe(false); // 11 文字
+    expect(FACILITY_CODE_REGEX.test("1abc")).toBe(false); // 数字始まり
+    expect(FACILITY_CODE_REGEX.test("Ozu")).toBe(false); // 大文字
+    expect(FACILITY_CODE_REGEX.test("ab_c")).toBe(false); // アンダースコア
+    expect(FACILITY_CODE_REGEX.test("ab-c")).toBe(false); // ハイフン
   });
 
-  it("narrows arbitrary strings with isFacilityCode", () => {
-    expect(isFacilityCode("ozu")).toBe(true);
-    expect(isFacilityCode("kita")).toBe(true);
-    expect(isFacilityCode("toku")).toBe(true);
-    expect(isFacilityCode("other")).toBe(false);
-    expect(isFacilityCode("")).toBe(false);
+  it("isFacilityCodeFormat matches FACILITY_CODE_REGEX", () => {
+    expect(isFacilityCodeFormat("ozu")).toBe(true);
+    expect(isFacilityCodeFormat("kita")).toBe(true);
+    expect(isFacilityCodeFormat("toku")).toBe(true);
+    expect(isFacilityCodeFormat("invalid_code")).toBe(false);
+    expect(isFacilityCodeFormat("")).toBe(false);
   });
 });

@@ -12,9 +12,14 @@ import {
   fetchClubProgramById,
   fetchClubPrograms,
 } from "@/server/clubs/programs";
+import { fetchFacilities } from "@/server/facilities/list";
 
 import { deleteClubAction, updateClubAction } from "../../actions";
-import { ClubForm, type ClubFormValues } from "../../club-form";
+import {
+  ClubForm,
+  type AvailableFacility,
+  type ClubFormValues,
+} from "../../club-form";
 
 export const dynamic = "force-dynamic";
 
@@ -43,10 +48,14 @@ export default async function AdminClubEditPage({ params }: Props) {
   const club = await fetchClubForAdmin(id, ctx.facilities);
   if (!club) notFound();
 
-  const [programs, currentProgram] = await Promise.all([
+  const [programs, currentProgram, allFacilities] = await Promise.all([
     fetchClubPrograms(),
     fetchClubProgramById(club.programId),
+    fetchFacilities({ includeDeleted: false }),
   ]);
+  const availableFacilities: AvailableFacility[] = allFacilities
+    .filter((f) => ctx.facilities.includes(f.code))
+    .map((f) => ({ code: f.code, name: f.name }));
 
   const initial: ClubFormValues = {
     facilityCode: club.facilityCode,
@@ -92,7 +101,7 @@ export default async function AdminClubEditPage({ params }: Props) {
       <section className="rounded-lg border border-zinc-200 bg-white p-4 sm:p-6">
         <ClubForm
           mode="edit"
-          availableFacilities={ctx.facilities}
+          availableFacilities={availableFacilities}
           availablePrograms={programs}
           currentProgram={currentProgram}
           initial={initial}

@@ -7,9 +7,14 @@ import {
   requireAdmin,
 } from "@/server/auth/guards";
 import { fetchClubPrograms } from "@/server/clubs/programs";
+import { fetchFacilities } from "@/server/facilities/list";
 
 import { createClubAction } from "../actions";
-import { ClubForm, type ClubFormValues } from "../club-form";
+import {
+  ClubForm,
+  type AvailableFacility,
+  type ClubFormValues,
+} from "../club-form";
 
 export const dynamic = "force-dynamic";
 
@@ -41,10 +46,16 @@ export default async function AdminClubNewPage() {
     );
   }
 
-  const programs = await fetchClubPrograms();
+  const [programs, allFacilities] = await Promise.all([
+    fetchClubPrograms(),
+    fetchFacilities({ includeDeleted: false }),
+  ]);
+  const availableFacilities: AvailableFacility[] = allFacilities
+    .filter((f) => ctx.facilities.includes(f.code))
+    .map((f) => ({ code: f.code, name: f.name }));
 
   const initial: ClubFormValues = {
-    facilityCode: ctx.facilities[0],
+    facilityCode: availableFacilities[0]?.code ?? ctx.facilities[0],
     programId: programs[0]?.id ?? "",
     startAt: "",
     endAt: "",
@@ -81,7 +92,7 @@ export default async function AdminClubNewPage() {
       <section className="rounded-lg border border-zinc-200 bg-white p-4 sm:p-6">
         <ClubForm
           mode="create"
-          availableFacilities={ctx.facilities}
+          availableFacilities={availableFacilities}
           availablePrograms={programs}
           currentProgram={null}
           initial={initial}

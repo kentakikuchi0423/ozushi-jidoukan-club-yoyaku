@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { FACILITY_CODES, type FacilityCode } from "@/lib/facility";
+import { FACILITY_CODE_REGEX } from "@/lib/facility";
 
 // 管理画面のクラブ登録・編集フォームの zod スキーマ。
 //
@@ -31,10 +31,9 @@ function preprocessInput(raw: unknown): unknown {
   return out;
 }
 
-const facilityCodeSchema = z.enum(
-  FACILITY_CODES as unknown as [FacilityCode, ...FacilityCode[]],
-  { message: "館を選択してください" },
-);
+const facilityCodeSchema = z
+  .string()
+  .regex(FACILITY_CODE_REGEX, { message: "館を選択してください" });
 
 export const clubInputSchema = z.preprocess(
   preprocessInput,
@@ -109,3 +108,44 @@ export const programInputSchema = z.preprocess(
 );
 
 export type ProgramInput = z.infer<typeof programInputSchema>;
+
+// 館マスター編集フォームの schema。code は新規作成時のみ使用（編集時は無視）。
+// 電話番号の regex は DB の `facilities.phone` CHECK と同じ。
+const phoneRegex = /^[0-9+\-() ]{7,20}$/;
+
+export const facilityCreateInputSchema = z.preprocess(
+  preprocessInput,
+  z.object({
+    code: z
+      .string()
+      .min(2, { message: "prefix は 2 文字以上で入力してください" })
+      .max(10, { message: "prefix は 10 文字以内で入力してください" })
+      .regex(FACILITY_CODE_REGEX, {
+        message:
+          "prefix は小文字アルファベットで始まり、英数字 2〜10 文字で入力してください",
+      }),
+    name: z
+      .string()
+      .min(1, { message: "館名を入力してください" })
+      .max(100, { message: "館名は 100 字以内で入力してください" }),
+    phone: z
+      .string()
+      .regex(phoneRegex, { message: "電話番号の形式が正しくありません" }),
+  }),
+);
+
+export const facilityUpdateInputSchema = z.preprocess(
+  preprocessInput,
+  z.object({
+    name: z
+      .string()
+      .min(1, { message: "館名を入力してください" })
+      .max(100, { message: "館名は 100 字以内で入力してください" }),
+    phone: z
+      .string()
+      .regex(phoneRegex, { message: "電話番号の形式が正しくありません" }),
+  }),
+);
+
+export type FacilityCreateInput = z.infer<typeof facilityCreateInputSchema>;
+export type FacilityUpdateInput = z.infer<typeof facilityUpdateInputSchema>;

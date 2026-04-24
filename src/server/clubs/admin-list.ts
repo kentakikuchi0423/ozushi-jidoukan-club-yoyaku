@@ -1,6 +1,6 @@
 import "server-only";
 
-import { isFacilityCode } from "@/lib/facility";
+import { isFacilityCodeFormat } from "@/lib/facility";
 import type { ClubListing } from "@/lib/clubs/types";
 import { getSupabaseAdminClient } from "@/server/supabase/admin";
 
@@ -81,7 +81,7 @@ export async function fetchAdminListableClubs(): Promise<ClubListing[]> {
   }
 
   return rows
-    .filter((r) => isFacilityCode(r.facility.code))
+    .filter((r) => isFacilityCodeFormat(r.facility.code))
     .map<ClubListing>((r) => {
       const c = counts.get(r.id) ?? { confirmed: 0, waitlisted: 0 };
       return {

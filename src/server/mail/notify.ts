@@ -1,9 +1,11 @@
 import "server-only";
 
+import { fetchFacilities } from "@/server/facilities/list";
 import { getSupabaseAdminClient } from "@/server/supabase/admin";
 import { renderCanceledEmail } from "./templates/canceled";
 import { renderConfirmedEmail } from "./templates/confirmed";
 import { renderPromotedEmail } from "./templates/promoted";
+import type { FacilityContact } from "./templates/shared";
 import { renderWaitlistedEmail } from "./templates/waitlisted";
 import { sendEmail } from "./send";
 
@@ -14,6 +16,18 @@ import { sendEmail } from "./send";
 //
 // メールの冒頭の「○○ 様」は、保護者の 1 人目の氏名を使う。複数人いる場合も
 // 代表者として 1 人目に送るのが無難（DB 的にも position=0 = 最初に登録した人）。
+
+async function fetchFooterFacilities(): Promise<FacilityContact[]> {
+  try {
+    const rows = await fetchFacilities({ includeDeleted: false });
+    return rows.map((r) => ({ name: r.name, phone: r.phone }));
+  } catch (error) {
+    console.error("[mail] failed to load facilities for footer", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return [];
+  }
+}
 
 export interface CreatedContext {
   readonly reservationNumber: string;
@@ -31,16 +45,20 @@ export interface CreatedContext {
 export async function notifyReservationCreated(
   ctx: CreatedContext,
 ): Promise<void> {
+  const facilities = await fetchFooterFacilities();
   if (ctx.status === "confirmed") {
-    const msg = renderConfirmedEmail({
-      reservationNumber: ctx.reservationNumber,
-      secureToken: ctx.secureToken,
-      parentName: ctx.parentName,
-      facilityName: ctx.facilityName,
-      clubName: ctx.clubName,
-      clubStartAt: ctx.clubStartAt,
-      clubEndAt: ctx.clubEndAt,
-    });
+    const msg = renderConfirmedEmail(
+      {
+        reservationNumber: ctx.reservationNumber,
+        secureToken: ctx.secureToken,
+        parentName: ctx.parentName,
+        facilityName: ctx.facilityName,
+        clubName: ctx.clubName,
+        clubStartAt: ctx.clubStartAt,
+        clubEndAt: ctx.clubEndAt,
+      },
+      facilities,
+    );
     await sendEmail({
       tag: "reservation.confirmed",
       to: ctx.email,
@@ -51,16 +69,19 @@ export async function notifyReservationCreated(
   }
 
   if (ctx.waitlistPosition === null) return; // 規約上ありえないが保険
-  const msg = renderWaitlistedEmail({
-    reservationNumber: ctx.reservationNumber,
-    secureToken: ctx.secureToken,
-    parentName: ctx.parentName,
-    facilityName: ctx.facilityName,
-    clubName: ctx.clubName,
-    clubStartAt: ctx.clubStartAt,
-    clubEndAt: ctx.clubEndAt,
-    waitlistPosition: ctx.waitlistPosition,
-  });
+  const msg = renderWaitlistedEmail(
+    {
+      reservationNumber: ctx.reservationNumber,
+      secureToken: ctx.secureToken,
+      parentName: ctx.parentName,
+      facilityName: ctx.facilityName,
+      clubName: ctx.clubName,
+      clubStartAt: ctx.clubStartAt,
+      clubEndAt: ctx.clubEndAt,
+      waitlistPosition: ctx.waitlistPosition,
+    },
+    facilities,
+  );
   await sendEmail({
     tag: "reservation.waitlisted",
     to: ctx.email,
@@ -82,14 +103,18 @@ export interface CanceledContext {
 export async function notifyReservationCanceled(
   ctx: CanceledContext,
 ): Promise<void> {
-  const msg = renderCanceledEmail({
-    reservationNumber: ctx.reservationNumber,
-    parentName: ctx.parentName,
-    facilityName: ctx.facilityName,
-    clubName: ctx.clubName,
-    clubStartAt: ctx.clubStartAt,
-    clubEndAt: ctx.clubEndAt,
-  });
+  const facilities = await fetchFooterFacilities();
+  const msg = renderCanceledEmail(
+    {
+      reservationNumber: ctx.reservationNumber,
+      parentName: ctx.parentName,
+      facilityName: ctx.facilityName,
+      clubName: ctx.clubName,
+      clubStartAt: ctx.clubStartAt,
+      clubEndAt: ctx.clubEndAt,
+    },
+    facilities,
+  );
   await sendEmail({
     tag: "reservation.canceled",
     to: ctx.email,
@@ -156,15 +181,19 @@ export async function notifyReservationPromoted(
   const primaryParentName =
     data.parents && data.parents.length > 0 ? data.parents[0].name : "ご予約者";
 
-  const msg = renderPromotedEmail({
-    reservationNumber: data.reservation_number,
-    secureToken: data.secure_token,
-    parentName: primaryParentName,
-    facilityName: data.club.facility.name,
-    clubName: data.club.program.name,
-    clubStartAt: data.club.start_at,
-    clubEndAt: data.club.end_at,
-  });
+  const facilities = await fetchFooterFacilities();
+  const msg = renderPromotedEmail(
+    {
+      reservationNumber: data.reservation_number,
+      secureToken: data.secure_token,
+      parentName: primaryParentName,
+      facilityName: data.club.facility.name,
+      clubName: data.club.program.name,
+      clubStartAt: data.club.start_at,
+      clubEndAt: data.club.end_at,
+    },
+    facilities,
+  );
 
   await sendEmail({
     tag: "reservation.promoted",

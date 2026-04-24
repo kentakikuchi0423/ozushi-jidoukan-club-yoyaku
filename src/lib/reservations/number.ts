@@ -1,9 +1,12 @@
-import { isFacilityCode, type FacilityCode } from "../facility";
+import { isFacilityCodeFormat, type FacilityCode } from "../facility";
 
 export const RESERVATION_NUMBER_SEQUENCE_MIN = 100_000;
 export const RESERVATION_NUMBER_SEQUENCE_MAX = 999_999;
 
-export const RESERVATION_NUMBER_REGEX = /^(ozu|kita|toku)_(\d{6})$/;
+// 予約番号: `<facility_code>_<6-digit>`。facility_code は
+// FACILITY_CODE_REGEX (`^[a-z][a-z0-9]{1,9}$`) と同じ形式。
+// 予約番号全体の regex はグローバルに使うので `g` フラグを付けないこと。
+export const RESERVATION_NUMBER_REGEX = /^([a-z][a-z0-9]{1,9})_(\d{6})$/;
 
 export interface ParsedReservationNumber {
   code: FacilityCode;
@@ -34,7 +37,7 @@ export function parseReservationNumber(
   const match = RESERVATION_NUMBER_REGEX.exec(value);
   if (!match) return null;
   const code = match[1];
-  if (!isFacilityCode(code)) return null;
+  if (!isFacilityCodeFormat(code)) return null;
   return { code, sequence: Number(match[2]) };
 }
 

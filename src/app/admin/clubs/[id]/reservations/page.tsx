@@ -2,7 +2,6 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
 
-import { FACILITY_NAMES } from "@/lib/facility";
 import { formatJstDate, formatJstTime } from "@/lib/format";
 import {
   AuthenticationRequiredError,
@@ -10,6 +9,7 @@ import {
 } from "@/server/auth/guards";
 import { fetchClubForAdmin } from "@/server/clubs/admin-detail";
 import { fetchClubProgramById } from "@/server/clubs/programs";
+import { fetchFacilityByCode } from "@/server/facilities/list";
 import {
   fetchClubReservationsForAdmin,
   type AdminReservationListItem,
@@ -55,8 +55,11 @@ export default async function AdminClubReservationsPage({ params }: Props) {
   const club = await fetchClubForAdmin(id, ctx.facilities);
   if (!club) notFound();
 
-  const program = await fetchClubProgramById(club.programId);
-  const reservations = await fetchClubReservationsForAdmin(id);
+  const [program, reservations, facility] = await Promise.all([
+    fetchClubProgramById(club.programId),
+    fetchClubReservationsForAdmin(id),
+    fetchFacilityByCode(club.facilityCode),
+  ]);
 
   const confirmedCount = reservations.filter(
     (r) => r.status === "confirmed",
@@ -86,7 +89,7 @@ export default async function AdminClubReservationsPage({ params }: Props) {
         <h1 className="text-2xl font-bold sm:text-3xl">予約者一覧</h1>
         <p className="text-xs leading-6 text-zinc-600">
           クラブ「{program?.name ?? "（削除済み）"}」（
-          {FACILITY_NAMES[club.facilityCode]}）の予約者一覧です。
+          {facility?.name ?? club.facilityCode}）の予約者一覧です。
           <br />
           申込日時の早い順に表示しています。
         </p>

@@ -13,7 +13,7 @@
 | 1 | 開発基盤 | 100% |
 | 2 | DB / 認証 / 権限 | 95% |
 | 3 | 利用者画面 | 95% |
-| 4 | 管理画面 | 80% |
+| 4 | 管理画面 | 90% |
 | 5 | 予約待ち / 繰り上げ / 期限管理 | 80% |
 | 6 | テスト / セキュリティ / 仕上げ | 80% |
 
@@ -111,9 +111,9 @@
 
 ---
 
-## Phase 4: 管理画面 (75%)
+## Phase 4: 管理画面 (90%)
 
-**完了条件**: 各館 admin が自館のクラブを CRUD でき、super_admin のみがアカウント追加できる。全ての管理操作が audit_logs に記録される。
+**完了条件**: 各館 admin が自館のクラブを CRUD でき、super_admin のみがアカウント追加・館マスター管理できる。全ての管理操作が audit_logs に記録される。
 
 - [x] ログイン / ログアウト（`/admin/login` + `loginAction` + `logoutAction`、`next` パラメータは `/admin*` だけに制限）
 - [x] ダッシュボード `/admin`（display_name、管理館、super_admin バッジ、メニュー 4 枚が実リンク化）
@@ -122,9 +122,10 @@
 - [x] クラブ編集 `/admin/clubs/[id]/edit`（UPDATE + ソフト削除、監査ログ）
 - [x] パスワード変更 `/admin/password`（現パス再認証 + 新パス複雑性 + updateUser + 監査ログ）
 - [x] super_admin のみ アカウント追加画面 `/admin/accounts`（invite + admins/admin_facilities INSERT + 監査ログ、管理者一覧表示）
+- [x] 館マスター管理画面 `/admin/facilities`（super_admin 限定、CRUD + soft delete + 既存 super_admin へ新館権限を自動付与、監査ログ）
 - [x] 写真リンクの外部 URL validation（`clubInputSchema` で http(s) 限定）
 - [ ] モバイル対応の仕上げ（Phase 6 の UI ポリッシュで実施）
-- [ ] 管理者 E2E テスト（Phase 6）
+- [ ] 管理者 E2E テスト（Phase 6、クラブ CRUD + 館 CRUD は追加済み）
 
 ---
 

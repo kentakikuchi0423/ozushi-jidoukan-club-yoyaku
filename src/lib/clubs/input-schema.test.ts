@@ -19,12 +19,18 @@ describe("clubInputSchema", () => {
     expect(result.success).toBe(true);
   });
 
-  it("rejects an unknown facilityCode", () => {
-    const result = clubInputSchema.safeParse({
-      ...valid,
-      facilityCode: "xxx",
-    });
-    expect(result.success).toBe(false);
+  it("rejects a malformed facilityCode", () => {
+    // 大文字始まりや特殊文字は形式チェックで落ちる。
+    // 実在するかは action 側で DB 参照して確認する。
+    expect(
+      clubInputSchema.safeParse({ ...valid, facilityCode: "XXX" }).success,
+    ).toBe(false);
+    expect(
+      clubInputSchema.safeParse({ ...valid, facilityCode: "1bc" }).success,
+    ).toBe(false);
+    expect(
+      clubInputSchema.safeParse({ ...valid, facilityCode: "" }).success,
+    ).toBe(false);
   });
 
   it("rejects a missing programId", () => {

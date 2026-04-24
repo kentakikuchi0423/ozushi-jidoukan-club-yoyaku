@@ -3,8 +3,13 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 
 import type { ClubProgram } from "@/lib/clubs/types";
-import { FACILITY_NAMES, type FacilityCode } from "@/lib/facility";
+import type { FacilityCode } from "@/lib/facility";
 import type { ClubActionResult } from "./actions";
+
+export interface AvailableFacility {
+  readonly code: FacilityCode;
+  readonly name: string;
+}
 
 export interface ClubFormValues {
   facilityCode: FacilityCode;
@@ -20,7 +25,7 @@ export interface ClubFormValues {
 
 interface Props {
   mode: "create" | "edit";
-  availableFacilities: readonly FacilityCode[];
+  availableFacilities: ReadonlyArray<AvailableFacility>;
   /** ドロップダウンで選択可能なマスター一覧（soft delete 済みは除外済み）。 */
   availablePrograms: ReadonlyArray<ClubProgram>;
   /**
@@ -219,9 +224,9 @@ export function ClubForm({
           {...fieldAriaProps("facilityCode", fieldErrors.facilityCode)}
           className={selectClass(fieldErrors.facilityCode)}
         >
-          {availableFacilities.map((code) => (
-            <option key={code} value={code}>
-              {FACILITY_NAMES[code]}
+          {availableFacilities.map((f) => (
+            <option key={f.code} value={f.code}>
+              {f.name}
             </option>
           ))}
         </select>

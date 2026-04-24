@@ -1,32 +1,25 @@
-export const FACILITY_CODES = ["ozu", "kita", "toku"] as const;
-export type FacilityCode = (typeof FACILITY_CODES)[number];
+// 館（児童館・児童センター）マスターの型とフォーマット定義。
+//
+// 以前は 3 館固定だったが、管理画面から追加・編集できるようにしたため
+// 実行時のマスターデータは DB（public.facilities）が正とする。
+// `FacilityCode` は自由文字列だが形式は `FACILITY_CODE_REGEX` で縛る。
+// 具体的な名称や電話番号は `src/server/facilities/list.ts` の
+// `fetchFacilities()` / `fetchFacilityByCode()` を使って取得する。
 
-export const FACILITY_NAMES: Record<FacilityCode, string> = {
-  ozu: "大洲児童館",
-  kita: "喜多児童館",
-  toku: "徳森児童センター",
-};
+/** 予約番号の prefix としても使われる館コード。例: "ozu", "kita", "toku", "new" 等。 */
+export type FacilityCode = string;
 
-// `public.facilities` テーブルの smallint 主キーと `FacilityCode` の対応。
-// 初期 migration で各館の ID が 1..3 に固定されている（20260421000000_initial_schema.sql）。
-// ここを参照することで、admin 画面からクラブを INSERT する際に `facilities` を
-// 毎回 SELECT しなくて済む。
-export const FACILITY_ID_BY_CODE: Record<FacilityCode, number> = {
-  ozu: 1,
-  kita: 2,
-  toku: 3,
-};
+/**
+ * 館コードのフォーマット。
+ *   - 小文字アルファベット 1 文字で始まる
+ *   - 続く文字は英小文字または数字
+ *   - 全体で 2〜10 文字
+ *
+ * DB 側の `facilities_code_check` 制約とも一致させる。
+ * 予約番号 `ozu_123456` のような形で利用されるため、文字数や形式を厳しめに制限。
+ */
+export const FACILITY_CODE_REGEX = /^[a-z][a-z0-9]{1,9}$/;
 
-export const FACILITY_CODE_BY_ID: Record<number, FacilityCode> = {
-  1: "ozu",
-  2: "kita",
-  3: "toku",
-};
-
-export function isFacilityCode(value: string): value is FacilityCode {
-  return (FACILITY_CODES as readonly string[]).includes(value);
-}
-
-export function facilityName(code: FacilityCode): string {
-  return FACILITY_NAMES[code];
+export function isFacilityCodeFormat(value: string): boolean {
+  return FACILITY_CODE_REGEX.test(value);
 }

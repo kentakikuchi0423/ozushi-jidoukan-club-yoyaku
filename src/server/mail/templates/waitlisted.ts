@@ -1,7 +1,8 @@
 import {
   buildConfirmUrl,
+  type FacilityContact,
   formatDateTimeRange,
-  FOOTER,
+  renderFooter,
   type ReservationEmailContext,
   type RenderedEmail,
 } from "./shared";
@@ -12,6 +13,7 @@ export interface WaitlistedEmailContext extends ReservationEmailContext {
 
 export function renderWaitlistedEmail(
   ctx: WaitlistedEmailContext,
+  facilities: ReadonlyArray<FacilityContact>,
 ): RenderedEmail {
   const url = buildConfirmUrl(ctx.reservationNumber, ctx.secureToken);
   return {
@@ -34,6 +36,6 @@ export function renderWaitlistedEmail(
 ■ お申込み内容の確認・取り消し
 以下の URL からお手続きいただけます。このメールは大切に保管してください。
 ${url}
-${FOOTER}`,
+${renderFooter(facilities)}`,
   };
 }

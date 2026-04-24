@@ -1,4 +1,8 @@
-import { FOOTER, type RenderedEmail } from "./shared";
+import {
+  type FacilityContact,
+  renderFooter,
+  type RenderedEmail,
+} from "./shared";
 
 export interface AdminInviteContext {
   /** 招待先のメールアドレス（参考表示用）。 */
@@ -16,7 +20,10 @@ export interface AdminInviteContext {
  * 手続き: リンクをクリック → メール確認 + 自動ログイン → クラブ一覧に着地。
  * パスワードは招待時に設定済みなので、次回以降はログイン画面から使える。
  */
-export function renderAdminInviteEmail(ctx: AdminInviteContext): RenderedEmail {
+export function renderAdminInviteEmail(
+  ctx: AdminInviteContext,
+  facilities: ReadonlyArray<FacilityContact>,
+): RenderedEmail {
   const greeting = ctx.displayName
     ? `${ctx.displayName} 様`
     : `${ctx.email} 様`;
@@ -44,6 +51,6 @@ ${ctx.actionLink}
 このリンクは一定時間で無効になります。
 期限切れの場合は、発行者にもう一度お知らせください。
 
-ご不明な点があれば、招待を送った全館管理者までお問い合わせください。${FOOTER}`,
+ご不明な点があれば、招待を送った全館管理者までお問い合わせください。${renderFooter(facilities)}`,
   };
 }

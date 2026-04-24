@@ -28,9 +28,9 @@ describe("FacilityPermissionDeniedError", () => {
 });
 
 describe("SuperAdminRequiredError", () => {
-  it("carries name='SuperAdminRequiredError' and mentions 3 facilities", () => {
+  it("carries name='SuperAdminRequiredError' with a super-admin-only message", () => {
     const err = new SuperAdminRequiredError();
     expect(err.name).toBe("SuperAdminRequiredError");
-    expect(err.message).toMatch(/3 館/);
+    expect(err.message).toMatch(/全館管理者/);
   });
 });

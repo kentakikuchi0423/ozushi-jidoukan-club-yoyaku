@@ -3,7 +3,7 @@ import {
   type ClubAvailability,
   type ClubListing,
 } from "@/lib/clubs/types";
-import { isFacilityCode, type FacilityCode } from "@/lib/facility";
+import { isFacilityCodeFormat, type FacilityCode } from "@/lib/facility";
 
 const STATUS_VALUES = ["available", "waitlist", "ended"] as const;
 
@@ -21,7 +21,7 @@ export function parseFacilityFilter(
   allowed: readonly FacilityCode[],
 ): FacilityCode | "" {
   if (!value) return "";
-  if (!isFacilityCode(value)) return "";
+  if (!isFacilityCodeFormat(value)) return "";
   return allowed.includes(value) ? value : "";
 }
 

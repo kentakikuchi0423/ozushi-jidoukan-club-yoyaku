@@ -3,7 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useTransition } from "react";
 
-import { FACILITY_NAMES, type FacilityCode } from "@/lib/facility";
+import type { FacilityCode } from "@/lib/facility";
 import type { ClubAvailability } from "@/lib/clubs/types";
 
 // 公開ページ `/` と管理画面 `/admin/clubs` で共有するフィルタバー。
@@ -15,9 +15,14 @@ const STATUS_LABEL: Record<ClubAvailability, string> = {
   ended: "終了",
 };
 
+export interface FilterFacility {
+  readonly code: FacilityCode;
+  readonly name: string;
+}
+
 interface Props {
-  /** 表示・指定可能な館コード。公開画面なら全 3 館、管理画面なら担当館のみ。 */
-  readonly facilities: readonly FacilityCode[];
+  /** 表示・指定可能な館（コード + 表示名）。公開画面なら全非削除館、管理画面なら担当館のみ。 */
+  readonly facilities: ReadonlyArray<FilterFacility>;
   readonly initialFacility: FacilityCode | "";
   readonly initialStatus: ClubAvailability | "";
   /** URL 置換時のベースパス（`/` または `/admin/clubs`）。 */
@@ -78,9 +83,9 @@ export function ClubFilterBar({
             className="rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-500 disabled:opacity-60"
           >
             <option value="">すべて</option>
-            {facilities.map((code) => (
-              <option key={code} value={code}>
-                {FACILITY_NAMES[code]}
+            {facilities.map((f) => (
+              <option key={f.code} value={f.code}>
+                {f.name}
               </option>
             ))}
           </select>

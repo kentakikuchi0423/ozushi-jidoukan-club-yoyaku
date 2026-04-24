@@ -5,7 +5,40 @@
 
 ---
 
-## 最終更新: 2026-04-24（公開ボタン導入 + 日時入力を 3 フィールドに分割）
+## 最終更新: 2026-04-24（館の管理を追加 + 館マスターを動的化）
+
+### このチャンクで解消したもの
+1. **管理画面に「館の管理」を追加 + 館マスターの動的 CRUD**:
+   - `facilities` テーブルに `phone TEXT NOT NULL` と `deleted_at TIMESTAMPTZ` を追加（既存 3 館は SQL migration で backfill: 0893-24-2285 / 0893-24-2722 / 0893-25-4735）
+   - `code` の CHECK を `^[a-z][a-z0-9]{1,9}$` に緩和し、IDENTITY（`facilities_id_seq`、start with 4）で新規行を挿入可能に
+   - `reservations.reservation_number` の CHECK も `^[a-z][a-z0-9]+_[0-9]{6}$` に緩和、facility INSERT 時に `reservation_number_sequences` へ自動 seed するトリガーを追加
+   - `/admin/facilities` 画面を 3 ルート新設（`page.tsx` / `new/page.tsx` / `[id]/edit/page.tsx`）+ `FacilityForm` / `DeleteFacilityButton` / `actions.ts`
+   - `prefix`（予約番号の識別子）は作成時のみ入力、編集では grayed out + 「予約番号との整合のため変更できません」注釈
+   - 削除は soft delete（既存クラブ・予約・admin_facilities 行は温存）
+   - `createFacilityAction` は新館挿入直後に「作成前の有効館をすべて持つ既存 super_admin」に新館の `admin_facilities` 行を自動挿入して super 権限を維持
+   - 監査ログは `facility.create` / `facility.update` / `facility.delete`
+2. **館マスターを「DB 引きのみ」に統一**:
+   - `src/lib/facility.ts` から `FACILITY_CODES` / `FACILITY_NAMES` / `FACILITY_ID_BY_CODE` / `FACILITY_CODE_BY_ID` / `isFacilityCode` / `facilityName` を削除し、`FacilityCode = string` + `FACILITY_CODE_REGEX` + `isFacilityCodeFormat` のみに
+   - `src/server/facilities/list.ts` に `fetchFacilities({includeDeleted})` / `fetchFacilityByCode` / `fetchFacilityById` / `countActiveFacilities` を新設（admin client、RLS バイパス）
+   - `computeIsSuperAdmin(facilities)` を async 化（DB から非削除館数を取り比較）、純粋関数 `computeIsSuperAdminFromCount` を分離してテスタブル化
+   - 画面・action 側は `FACILITY_NAMES[code]` → DB / 親 prop 経由の参照へ差し替え（`/admin/clubs/*`, `/admin/accounts/*`, `/admin/clubs/[id]/reservations`, `/`, `ClubFilterBar`, `ClubForm`, `InviteAdminForm`）
+3. **メールフッターを「全館の連絡先を列挙」する関数に**:
+   - `FOOTER` 定数を `renderFooter(facilities)` に変換、5 つのメールテンプレート（confirmed / waitlisted / promoted / canceled / admin-invite）を第 2 引数で `FacilityContact[]` を受け取るシグネチャに変更
+   - `notify.ts` は `fetchFacilities({includeDeleted:false})` の結果を各テンプレートに渡す
+4. **ナビゲーション**: `/admin/clubs` 上部の「館の管理」「アカウント追加・削除」を全 admin に常時表示、アクセス制御は各ページ側で `requireSuperAdmin()` → amber 警告
+
+### テスト結果
+- `pnpm format` / `pnpm lint` / `pnpm typecheck`: all green
+- `pnpm test`: 12 files / 96 cases pass（vitest worker flake は引き続き `thread worker timeout` で数件発生するが、単独実行で全 green を再確認）
+- `pnpm build`: 20 routes + proxy（/admin/facilities 3 ルート追加）
+- `pnpm test:e2e`（default）: 13 passed / 2 skipped
+- `RUN_ADMIN_FLOW_E2E=1`: 2 passed（club CRUD + 館 CRUD、`describe.configure({mode:"serial"})` で直列化）
+- `RUN_RESERVATION_FLOW_E2E=1`: 1 passed
+- `pnpm db:push`: `20260424000003_facility_phone_and_dynamic.sql` 適用済み
+
+---
+
+## 1 つ前: 2026-04-24（公開ボタン導入 + 日時入力を 3 フィールドに分割）
 
 ### このチャンクで解消したもの
 1. **クラブを「公開ボタン」で公開するようにした**:
@@ -25,18 +58,9 @@
    - `docs/architecture.md` の clubs DDL に `published_at` を追記
    - `docs/operations.md` のテストクラブ投入 SQL を `published_at: now()` 付きに変更、クリーンアップ SQL も program_id 経由に
 
-### テスト結果
-- `pnpm format` / `pnpm lint` / `pnpm typecheck`: all green
-- `pnpm test`: 14 files / 94 cases pass（vitest worker flake 1 件は既知、ワーカー起動失敗のみ）
-- `pnpm build`: 15 routes + proxy
-- `pnpm test:e2e`（default）: 13 passed / 2 skipped
-- `RUN_ADMIN_FLOW_E2E=1`: 新フロー（program 作成 → クラブ作成（date+time）→ 未公開表示 → 公開ボタン → 公開済み表示 → 編集 → 削除）を 13.1s で green
-- `RUN_RESERVATION_FLOW_E2E=1`: 1 passed（7.1s、公開済み既存クラブで予約完了）
-- `pnpm db:push`: `20260424000002_clubs_published_at.sql` 適用済み
-
 ---
 
-## 1 つ前: 2026-04-24（クラブ・事業マスター化 + 仮想スクロール 他）
+## 2 つ前: 2026-04-24（クラブ・事業マスター化 + 仮想スクロール 他）
 
 ### このチャンクで解消したもの
 1. **クラブ・事業マスターの新設**:

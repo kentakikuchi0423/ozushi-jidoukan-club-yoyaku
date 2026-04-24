@@ -2,17 +2,18 @@
 
 import { useEffect, useState, useTransition } from "react";
 
-import {
-  FACILITY_CODES,
-  FACILITY_NAMES,
-  type FacilityCode,
-} from "@/lib/facility";
+import type { FacilityCode } from "@/lib/facility";
 import { PASSWORD_HINT } from "@/lib/auth/password";
+import type { Facility } from "@/server/facilities/list";
 import { addAdminAction } from "./actions";
 
 const EMPTY_FIELD_ERRORS: Record<string, string> = {};
 
-export function InviteAdminForm() {
+interface Props {
+  readonly facilities: ReadonlyArray<Facility>;
+}
+
+export function InviteAdminForm({ facilities }: Props) {
   const [email, setEmail] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [password, setPassword] = useState("");
@@ -217,27 +218,32 @@ export function InviteAdminForm() {
           館の権限（複数選択可、1 つ以上）
         </legend>
         <div className="space-y-1 pt-1">
-          {FACILITY_CODES.map((code) => (
-            <label
-              key={code}
-              className="flex cursor-pointer items-center gap-2 text-sm"
-            >
-              <input
-                type="checkbox"
-                checked={facilityCodes.includes(code)}
-                onChange={() => toggleFacility(code)}
-                className="h-4 w-4 rounded border-zinc-300"
-              />
-              <span>{FACILITY_NAMES[code]}</span>
-            </label>
-          ))}
+          {facilities.length === 0 ? (
+            <p className="text-xs text-zinc-500">
+              有効な館がありません。先に「館の管理」で登録してください。
+            </p>
+          ) : (
+            facilities.map((f) => (
+              <label
+                key={f.code}
+                className="flex cursor-pointer items-center gap-2 text-sm"
+              >
+                <input
+                  type="checkbox"
+                  checked={facilityCodes.includes(f.code)}
+                  onChange={() => toggleFacility(f.code)}
+                  className="h-4 w-4 rounded border-zinc-300"
+                />
+                <span>{f.name}</span>
+              </label>
+            ))
+          )}
         </div>
         {fieldErrors.facilityCodes && (
           <p className="text-xs text-red-700">{fieldErrors.facilityCodes}</p>
         )}
         <p className="text-xs text-zinc-500">
-          3
-          館すべてを付与すると全館管理者として扱われ、アカウント追加も可能になります。
+          有効な館をすべて付与すると全館管理者として扱われ、アカウント追加や館の管理も可能になります。
         </p>
       </fieldset>
 

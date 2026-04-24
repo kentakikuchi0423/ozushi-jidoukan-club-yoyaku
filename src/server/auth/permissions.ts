@@ -1,22 +1,34 @@
 import "server-only";
 
-import {
-  FACILITY_CODES,
-  isFacilityCode,
-  type FacilityCode,
-} from "@/lib/facility";
+import { isFacilityCodeFormat, type FacilityCode } from "@/lib/facility";
+import { countActiveFacilities } from "@/server/facilities/list";
 import { getSupabaseAdminClient } from "@/server/supabase/admin";
 
-// 純粋ロジック（DB 非依存）
-// --------------------------------------------------------------------------
-// super_admin は「3 館すべての権限を持つ admin」（ADR-0007）。個別カラムは
-// 持たず、権限集合から都度判定する。
+// super_admin は「非削除の全 facilities を担当している admin」（ADR-0007 の動的化版）。
+// 館マスターが動的になった（管理画面から追加・削除できる）ため、現時点の有効館数を
+// DB から取得して比較する。
+// 館数が 0（全て soft-delete されている想定外ケース）のときは super_admin 判定も false。
 
-export function computeIsSuperAdmin(
+/**
+ * 有効館数を既に取得済みの場面で使える純粋関数版。
+ * テストや、同一リクエスト内で有効館リストを別途取得している画面から呼ぶ。
+ */
+export function computeIsSuperAdminFromCount(
   facilities: readonly FacilityCode[],
+  totalActive: number,
 ): boolean {
+  if (totalActive <= 0) return false;
   const owned = new Set<FacilityCode>(facilities);
-  return FACILITY_CODES.every((code) => owned.has(code));
+  // owned はログイン admin 自身の admin_facilities から派生した code 集合。
+  // 削除済み館の code が紛れていても active と数が合わないので最終的には false になる。
+  return owned.size >= totalActive;
+}
+
+export async function computeIsSuperAdmin(
+  facilities: readonly FacilityCode[],
+): Promise<boolean> {
+  const total = await countActiveFacilities();
+  return computeIsSuperAdminFromCount(facilities, total);
 }
 
 export function hasFacilityPermission(
@@ -32,10 +44,12 @@ export function hasFacilityPermission(
 // 判定そのものを信頼できる形で行うために secret key 経由の admin クライアント
 // を使い、RLS の影響を受けない状態で facility_code を取得する。
 //
-// 返却順は保証しない（判定側で Set 化して使う）。
+// 削除済み facility に紐づく admin_facilities 行は super_admin 判定で
+// カウントされないよう `facilities.deleted_at is null` で絞る。
 
 interface FacilityCodeRow {
   code: string;
+  deleted_at: string | null;
 }
 
 interface AdminFacilityJoinRow {
@@ -48,7 +62,7 @@ export async function fetchAdminFacilityCodes(
   const admin = getSupabaseAdminClient();
   const { data, error } = await admin
     .from("admin_facilities")
-    .select("facilities!inner(code)")
+    .select("facilities!inner(code, deleted_at)")
     .eq("admin_id", adminId);
 
   if (error) {
@@ -62,7 +76,8 @@ export async function fetchAdminFacilityCodes(
     if (!joined) continue;
     const items = Array.isArray(joined) ? joined : [joined];
     for (const item of items) {
-      if (isFacilityCode(item.code)) codes.push(item.code);
+      if (item.deleted_at) continue;
+      if (isFacilityCodeFormat(item.code)) codes.push(item.code);
     }
   }
   return codes;
