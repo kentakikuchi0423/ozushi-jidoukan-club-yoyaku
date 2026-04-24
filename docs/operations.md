@@ -151,7 +151,10 @@ values (
 )
 on conflict (name) do nothing;
 
--- 翌月開催のテスト用クラブ（大洲児童館 / 定員 2 名）
+-- 翌月開催のテスト用クラブ（大洲児童館 / 定員 2 名 / 即時公開）
+-- published_at を now() でセットすれば公開画面に即表示される。
+-- 未公開で入れたい場合は published_at = null のまま残し、/admin/clubs の
+-- 「公開する」ボタンで公開する運用でも OK。
 insert into public.clubs (
   facility_id,
   program_id,
@@ -159,7 +162,8 @@ insert into public.clubs (
   end_at,
   capacity,
   photo_url,
-  description
+  description,
+  published_at
 ) values (
   1,  -- 1=大洲児童館、2=喜多児童館、3=徳森児童センター
   (select id from public.club_programs where name = 'テスト用 こども英会話（初級）'),
@@ -167,15 +171,16 @@ insert into public.clubs (
   (now() + interval '30 days')::date + time '12:00' at time zone 'Asia/Tokyo',
   2,
   null,
-  E'当日の補足: 雨天時は大洲児童館 2F 会議室に変更します。'
+  E'当日の補足: 雨天時は大洲児童館 2F 会議室に変更します。',
+  now()
 );
 
 -- 登録されたか確認（id を控える）
-select c.id, c.facility_id, cp.name, c.start_at, c.capacity
+select c.id, c.facility_id, cp.name, c.start_at, c.capacity, c.published_at
   from public.clubs c
   join public.club_programs cp on cp.id = c.program_id
-  where name like 'テスト用%'
-  order by created_at desc
+  where cp.name like 'テスト用%'
+  order by c.created_at desc
   limit 5;
 ```
 
@@ -184,7 +189,10 @@ select c.id, c.facility_id, cp.name, c.start_at, c.capacity
 
 ```sql
 -- 該当クラブと紐づく予約（cascade 対象）まとめて削除
-delete from public.clubs where name like 'テスト用%';
+delete from public.clubs
+ where program_id in (
+   select id from public.club_programs where name like 'テスト用%'
+ );
 ```
 
 ## 6. Resend（メール送信）

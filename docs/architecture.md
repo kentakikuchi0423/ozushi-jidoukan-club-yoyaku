@@ -136,7 +136,10 @@ create table public.clubs (
   description text check (description is null or length(description) <= 2000),
   created_at timestamptz not null default now(),
   created_by uuid references public.admins(id),
-  deleted_at timestamptz
+  deleted_at timestamptz,
+  -- 公開制: NULL は下書き、タイムスタンプが入ると公開中。
+  -- 管理画面の「公開する」ボタンで now() を入れる。
+  published_at timestamptz
 );
 
 create type public.reservation_status as enum ('confirmed','waitlisted','canceled');

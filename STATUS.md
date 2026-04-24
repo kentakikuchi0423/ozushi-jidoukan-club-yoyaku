@@ -5,7 +5,38 @@
 
 ---
 
-## 最終更新: 2026-04-24（クラブ・事業マスター化 + 仮想スクロール 他）
+## 最終更新: 2026-04-24（公開ボタン導入 + 日時入力を 3 フィールドに分割）
+
+### このチャンクで解消したもの
+1. **クラブを「公開ボタン」で公開するようにした**:
+   - `clubs.published_at TIMESTAMPTZ` を追加（NULL = 下書き、値あり = 公開中）
+   - RLS `clubs_select_public` と `list_public_clubs` / `get_public_club` RPC を `published_at IS NOT NULL` でフィルタ
+   - 新規作成時は `published_at = null`。既存クラブは migration で `created_at` バックフィル
+   - `/admin/clubs` のカード「編集」の右側に**緑の「公開する」ボタン**を追加
+   - 押下 → 確認ダイアログ → 公開 → グレーアウトの「公開済み」ラベルに切り替わる（トグルは作らない、取り消しは「編集 → 削除」運用）
+   - 未公開クラブは admin 画面で「未公開」バッジが付く
+   - 公開 action は idempotent、監査ログ `club.publish` を記録
+   - 新設 `fetchAdminListableClubs()`（admin client で RLS バイパス）で未公開も一覧表示
+2. **クラブ作成フォームの日時を 3 フィールドに分割**:
+   - 開催日（`<input type="date">` × 1）+ 開始時刻（`<input type="time">`）+ 終了時刻（`<input type="time">`）
+   - 送信直前に `${date}T${start}` / `${date}T${end}` へ合成して既存の `clubInputSchema` に渡す（server 側は無変更）
+   - 終了 > 開始をクライアント側でも検証、server エラー (`startAt/endAt`) は `startTime/endTime` に再マッピング
+3. **ドキュメント整備**:
+   - `docs/architecture.md` の clubs DDL に `published_at` を追記
+   - `docs/operations.md` のテストクラブ投入 SQL を `published_at: now()` 付きに変更、クリーンアップ SQL も program_id 経由に
+
+### テスト結果
+- `pnpm format` / `pnpm lint` / `pnpm typecheck`: all green
+- `pnpm test`: 14 files / 94 cases pass（vitest worker flake 1 件は既知、ワーカー起動失敗のみ）
+- `pnpm build`: 15 routes + proxy
+- `pnpm test:e2e`（default）: 13 passed / 2 skipped
+- `RUN_ADMIN_FLOW_E2E=1`: 新フロー（program 作成 → クラブ作成（date+time）→ 未公開表示 → 公開ボタン → 公開済み表示 → 編集 → 削除）を 13.1s で green
+- `RUN_RESERVATION_FLOW_E2E=1`: 1 passed（7.1s、公開済み既存クラブで予約完了）
+- `pnpm db:push`: `20260424000002_clubs_published_at.sql` 適用済み
+
+---
+
+## 1 つ前: 2026-04-24（クラブ・事業マスター化 + 仮想スクロール 他）
 
 ### このチャンクで解消したもの
 1. **クラブ・事業マスターの新設**:

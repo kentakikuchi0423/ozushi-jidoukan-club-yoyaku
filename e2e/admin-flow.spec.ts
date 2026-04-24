@@ -116,7 +116,9 @@ test("super_admin can create, edit, and delete a club end-to-end", async ({
 
   // 5. 新規登録後はクラブ一覧に戻り、新クラブが「未公開」で表示される
   await page.waitForURL("**/admin/clubs");
-  const createdRow = page.getByRole("article").filter({ hasText: programLabel });
+  const createdRow = page
+    .getByRole("article")
+    .filter({ hasText: programLabel });
   await expect(createdRow).toBeVisible({ timeout: 15_000 });
   await expect(createdRow).toContainText("未公開");
 
