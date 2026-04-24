@@ -74,7 +74,7 @@ export function PublishClubButton({
     return (
       <span
         aria-disabled="true"
-        className="inline-flex shrink-0 items-center justify-center rounded-md border border-zinc-200 bg-zinc-100 px-4 py-1.5 text-sm font-medium text-zinc-500"
+        className="inline-flex shrink-0 items-center justify-center rounded-md border border-zinc-200 bg-zinc-100 px-3 py-1.5 text-xs font-medium text-zinc-500"
       >
         公開済み
       </span>
@@ -87,7 +87,7 @@ export function PublishClubButton({
         type="button"
         onClick={handleClick}
         disabled={pending}
-        className="inline-flex shrink-0 items-center justify-center rounded-md bg-emerald-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-60"
+        className="inline-flex shrink-0 items-center justify-center rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-60"
       >
         {pending ? "公開中…" : "公開する"}
       </button>

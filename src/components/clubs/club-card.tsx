@@ -38,8 +38,8 @@ export function ClubCard({ club, variant }: Props) {
   const isEnded = availability === "ended";
 
   return (
-    <article className="flex flex-col gap-2 rounded-lg border border-zinc-200 bg-white p-3 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:p-4">
-      <div className="min-w-0 flex-1 space-y-1">
+    <article className="flex flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-3 shadow-sm sm:p-4">
+      <div className="min-w-0 space-y-1">
         <div className="flex flex-wrap items-center gap-2 text-xs">
           <span className="rounded-full bg-zinc-100 px-2 py-0.5 font-medium text-zinc-700">
             {club.facilityName}
@@ -75,62 +75,66 @@ export function ClubCard({ club, variant }: Props) {
         </p>
       </div>
 
-      <div className="flex shrink-0 items-center gap-3 text-sm sm:flex-col sm:items-end sm:gap-2">
-        {hasValidPhotoUrl(club.photoUrl) ? (
-          <a
-            href={club.photoUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs text-zinc-600 underline underline-offset-4 hover:text-zinc-900"
-          >
-            写真を見る
-          </a>
-        ) : (
-          <span className="text-xs text-zinc-400">写真：準備中</span>
-        )}
-
-        {variant === "public" ? (
-          isEnded ? (
-            <span
-              aria-disabled="true"
-              className="inline-flex shrink-0 items-center justify-center rounded-md bg-zinc-200 px-3 py-1.5 text-sm font-medium text-zinc-500"
+      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-zinc-100 pt-3 text-sm">
+        <div className="shrink-0">
+          {hasValidPhotoUrl(club.photoUrl) ? (
+            <a
+              href={club.photoUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-zinc-600 underline underline-offset-4 hover:text-zinc-900"
             >
-              受付終了
-            </span>
+              写真を見る
+            </a>
           ) : (
-            <Link
-              href={`/clubs/${club.id}`}
-              className="inline-flex shrink-0 items-center justify-center rounded-md bg-zinc-900 px-4 py-1.5 text-sm font-medium text-white hover:bg-zinc-800"
-            >
-              予約する
-            </Link>
-          )
-        ) : (
-          <>
-            <Link
-              href={`/admin/clubs/${club.id}/edit`}
-              className="inline-flex shrink-0 items-center justify-center rounded-md border border-zinc-300 bg-white px-4 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
-            >
-              編集
-            </Link>
-            <PublishClubButton
-              clubId={club.id}
-              alreadyPublished={club.publishedAt !== null}
-              clubName={club.name}
-              facilityName={club.facilityName}
-              startAt={club.startAt}
-              endAt={club.endAt}
-              capacity={club.capacity}
-              targetAge={club.targetAge}
-            />
-            <Link
-              href={`/admin/clubs/${club.id}/reservations`}
-              className="inline-flex shrink-0 items-center justify-center rounded-md border border-zinc-300 bg-white px-4 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
-            >
-              予約者を見る
-            </Link>
-          </>
-        )}
+            <span className="text-xs text-zinc-400">写真：準備中</span>
+          )}
+        </div>
+
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {variant === "public" ? (
+            isEnded ? (
+              <span
+                aria-disabled="true"
+                className="inline-flex shrink-0 items-center justify-center rounded-md bg-zinc-200 px-3 py-1.5 text-sm font-medium text-zinc-500"
+              >
+                受付終了
+              </span>
+            ) : (
+              <Link
+                href={`/clubs/${club.id}`}
+                className="inline-flex shrink-0 items-center justify-center rounded-md bg-zinc-900 px-4 py-1.5 text-sm font-medium text-white hover:bg-zinc-800"
+              >
+                予約する
+              </Link>
+            )
+          ) : (
+            <>
+              <Link
+                href={`/admin/clubs/${club.id}/edit`}
+                className="inline-flex shrink-0 items-center justify-center rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+              >
+                編集
+              </Link>
+              <PublishClubButton
+                clubId={club.id}
+                alreadyPublished={club.publishedAt !== null}
+                clubName={club.name}
+                facilityName={club.facilityName}
+                startAt={club.startAt}
+                endAt={club.endAt}
+                capacity={club.capacity}
+                targetAge={club.targetAge}
+              />
+              <Link
+                href={`/admin/clubs/${club.id}/reservations`}
+                className="inline-flex shrink-0 items-center justify-center rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+              >
+                予約者を見る
+              </Link>
+            </>
+          )}
+        </div>
       </div>
     </article>
   );
