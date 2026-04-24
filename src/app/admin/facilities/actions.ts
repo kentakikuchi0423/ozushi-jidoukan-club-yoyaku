@@ -12,6 +12,10 @@ import {
   requireSuperAdmin,
   SuperAdminRequiredError,
 } from "@/server/auth/guards";
+import {
+  findSuperAdminIdsToGrant,
+  type AdminFacilityRow,
+} from "@/server/auth/super-admin";
 import { countActiveFacilities } from "@/server/facilities/list";
 import { getSupabaseAdminClient } from "@/server/supabase/admin";
 
@@ -122,8 +126,7 @@ export async function createFacilityAction(
   }
 
   // 既存 super_admin（= 作成前の全有効館を持っていた admin）に新館の権限を自動付与。
-  // admin_facilities を admin_id ごとに集計し、「作成前の totalActiveBefore 件以上持つ」
-  // admin を洗い出す。
+  // 集計・判定ロジックは `findSuperAdminIdsToGrant`（pure function）に寄せている。
   if (totalActiveBefore > 0) {
     const { data: joined, error: listError } = await admin
       .from("admin_facilities")
@@ -137,36 +140,33 @@ export async function createFacilityAction(
         },
       );
     } else {
-      const activeByAdmin = new Map<string, Set<number>>();
-      type Row = {
+      type Raw = {
         admin_id: string;
         facilities:
           | { id: number; deleted_at: string | null }
           | Array<{ id: number; deleted_at: string | null }>
           | null;
       };
-      for (const raw of (joined ?? []) as Row[]) {
+      const flat: AdminFacilityRow[] = [];
+      for (const raw of (joined ?? []) as Raw[]) {
         const items = Array.isArray(raw.facilities)
           ? raw.facilities
           : raw.facilities
             ? [raw.facilities]
             : [];
         for (const item of items) {
-          if (item.deleted_at) continue;
-          // 新しく作った facility は totalActiveBefore に含まれないのでスキップ
-          if (item.id === data.id) continue;
-          const set =
-            activeByAdmin.get(raw.admin_id) ??
-            (activeByAdmin
-              .set(raw.admin_id, new Set())
-              .get(raw.admin_id) as Set<number>);
-          set.add(item.id);
+          flat.push({
+            adminId: raw.admin_id,
+            facilityId: item.id,
+            facilityDeletedAt: item.deleted_at,
+          });
         }
       }
-      const superAdminIds: string[] = [];
-      for (const [adminId, set] of activeByAdmin.entries()) {
-        if (set.size >= totalActiveBefore) superAdminIds.push(adminId);
-      }
+      const superAdminIds = findSuperAdminIdsToGrant(
+        flat,
+        totalActiveBefore,
+        data.id,
+      );
       if (superAdminIds.length > 0) {
         const { error: insertError } = await admin
           .from("admin_facilities")

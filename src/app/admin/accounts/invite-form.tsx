@@ -2,6 +2,13 @@
 
 import { useEffect, useState, useTransition } from "react";
 
+import {
+  Button,
+  Field,
+  FormMessage,
+  Input,
+  fieldAriaProps,
+} from "@/components/ui";
 import type { FacilityCode } from "@/lib/facility";
 import { PASSWORD_HINT } from "@/lib/auth/password";
 import type { Facility } from "@/server/facilities/list";
@@ -80,146 +87,105 @@ export function InviteAdminForm({ facilities }: Props) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4" noValidate>
       {formMessage && (
-        <p
-          role={formMessage.kind === "error" ? "alert" : "status"}
-          className={`rounded-md p-3 text-sm whitespace-pre-line ${
-            formMessage.kind === "error"
-              ? "bg-red-50 text-red-800"
-              : "bg-emerald-50 text-emerald-800"
-          }`}
-        >
+        <FormMessage tone={formMessage.kind === "error" ? "danger" : "success"}>
           {formMessage.message}
-        </p>
+        </FormMessage>
       )}
 
-      <div className="space-y-1">
-        <label
-          htmlFor="invite-email"
-          className="block text-sm font-medium text-zinc-700"
-        >
-          招待するメールアドレス
-        </label>
-        <input
+      <Field
+        id="invite-email"
+        label="招待するメールアドレス"
+        error={fieldErrors.email}
+        required
+      >
+        <Input
           id="invite-email"
           type="email"
           required
-          aria-required="true"
           autoComplete="off"
-          aria-invalid={fieldErrors.email ? true : undefined}
-          aria-describedby={
-            fieldErrors.email ? "invite-email-error" : undefined
-          }
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className={inputClass(fieldErrors.email)}
+          invalid={Boolean(fieldErrors.email)}
+          {...fieldAriaProps({
+            id: "invite-email",
+            error: fieldErrors.email,
+            required: true,
+          })}
         />
-        {fieldErrors.email && (
-          <p id="invite-email-error" className="text-xs text-red-700">
-            {fieldErrors.email}
-          </p>
-        )}
-      </div>
+      </Field>
 
-      <div className="space-y-1">
-        <label
-          htmlFor="invite-display-name"
-          className="block text-sm font-medium text-zinc-700"
-        >
-          表示名（任意）
-        </label>
-        <input
+      <Field
+        id="invite-display-name"
+        label="表示名（任意）"
+        error={fieldErrors.displayName}
+      >
+        <Input
           id="invite-display-name"
           type="text"
           maxLength={100}
-          aria-invalid={fieldErrors.displayName ? true : undefined}
-          aria-describedby={
-            fieldErrors.displayName ? "invite-display-name-error" : undefined
-          }
           value={displayName}
           onChange={(e) => setDisplayName(e.target.value)}
-          className={inputClass(fieldErrors.displayName)}
+          invalid={Boolean(fieldErrors.displayName)}
+          {...fieldAriaProps({
+            id: "invite-display-name",
+            error: fieldErrors.displayName,
+          })}
         />
-        {fieldErrors.displayName && (
-          <p id="invite-display-name-error" className="text-xs text-red-700">
-            {fieldErrors.displayName}
-          </p>
-        )}
-      </div>
+      </Field>
 
-      <div className="space-y-1">
-        <label
-          htmlFor="invite-password"
-          className="block text-sm font-medium text-zinc-700"
-        >
-          初期パスワード
-        </label>
-        <input
+      <Field
+        id="invite-password"
+        label="初期パスワード"
+        hint={PASSWORD_HINT}
+        error={fieldErrors.password}
+        required
+      >
+        <Input
           id="invite-password"
           type="password"
           required
-          aria-required="true"
           autoComplete="new-password"
-          aria-invalid={fieldErrors.password ? true : undefined}
-          aria-describedby={
-            fieldErrors.password
-              ? "invite-password-error"
-              : "invite-password-hint"
-          }
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className={inputClass(fieldErrors.password)}
+          invalid={Boolean(fieldErrors.password)}
+          {...fieldAriaProps({
+            id: "invite-password",
+            error: fieldErrors.password,
+            hint: PASSWORD_HINT,
+            required: true,
+          })}
         />
-        {fieldErrors.password ? (
-          <p id="invite-password-error" className="text-xs text-red-700">
-            {fieldErrors.password}
-          </p>
-        ) : (
-          <p id="invite-password-hint" className="text-xs text-zinc-500">
-            {PASSWORD_HINT}
-          </p>
-        )}
-      </div>
+      </Field>
 
-      <div className="space-y-1">
-        <label
-          htmlFor="invite-password-confirm"
-          className="block text-sm font-medium text-zinc-700"
-        >
-          初期パスワード（確認用）
-        </label>
-        <input
+      <Field
+        id="invite-password-confirm"
+        label="初期パスワード（確認用）"
+        error={fieldErrors.confirmPassword}
+        required
+      >
+        <Input
           id="invite-password-confirm"
           type="password"
           required
-          aria-required="true"
           autoComplete="new-password"
-          aria-invalid={fieldErrors.confirmPassword ? true : undefined}
-          aria-describedby={
-            fieldErrors.confirmPassword
-              ? "invite-password-confirm-error"
-              : undefined
-          }
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
-          className={inputClass(fieldErrors.confirmPassword)}
+          invalid={Boolean(fieldErrors.confirmPassword)}
+          {...fieldAriaProps({
+            id: "invite-password-confirm",
+            error: fieldErrors.confirmPassword,
+            required: true,
+          })}
         />
-        {fieldErrors.confirmPassword && (
-          <p
-            id="invite-password-confirm-error"
-            className="text-xs text-red-700"
-          >
-            {fieldErrors.confirmPassword}
-          </p>
-        )}
-      </div>
+      </Field>
 
       <fieldset className="space-y-1">
-        <legend className="block text-sm font-medium text-zinc-700">
+        <legend className="block text-sm font-medium text-[var(--color-foreground,theme(colors.zinc.700))]">
           館の権限（複数選択可、1 つ以上）
         </legend>
         <div className="space-y-1 pt-1">
           {facilities.length === 0 ? (
-            <p className="text-xs text-zinc-500">
+            <p className="text-xs text-[var(--color-muted,theme(colors.zinc.500))]">
               有効な館がありません。先に「館の管理」で登録してください。
             </p>
           ) : (
@@ -232,7 +198,7 @@ export function InviteAdminForm({ facilities }: Props) {
                   type="checkbox"
                   checked={facilityCodes.includes(f.code)}
                   onChange={() => toggleFacility(f.code)}
-                  className="h-4 w-4 rounded border-zinc-300"
+                  className="h-4 w-4 rounded border-[var(--color-border,theme(colors.zinc.300))]"
                 />
                 <span>{f.name}</span>
               </label>
@@ -240,28 +206,18 @@ export function InviteAdminForm({ facilities }: Props) {
           )}
         </div>
         {fieldErrors.facilityCodes && (
-          <p className="text-xs text-red-700">{fieldErrors.facilityCodes}</p>
+          <p className="text-xs text-[var(--color-danger,theme(colors.red.700))]">
+            {fieldErrors.facilityCodes}
+          </p>
         )}
-        <p className="text-xs text-zinc-500">
+        <p className="text-xs text-[var(--color-muted,theme(colors.zinc.500))]">
           有効な館をすべて付与すると全館管理者として扱われ、アカウント追加や館の管理も可能になります。
         </p>
       </fieldset>
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="w-full rounded-md bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60 sm:w-auto"
-      >
+      <Button type="submit" disabled={pending} fullWidth>
         {pending ? "招待送信中…" : "招待を送信する"}
-      </button>
+      </Button>
     </form>
   );
-}
-
-function inputClass(error?: string): string {
-  return `w-full rounded-md border px-3 py-2 text-sm shadow-sm focus:outline-none ${
-    error
-      ? "border-red-400 focus:border-red-500"
-      : "border-zinc-300 focus:border-zinc-500"
-  }`;
 }

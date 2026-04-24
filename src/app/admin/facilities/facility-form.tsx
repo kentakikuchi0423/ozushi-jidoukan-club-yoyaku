@@ -2,6 +2,14 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 
+import {
+  Button,
+  Field,
+  FormMessage,
+  Input,
+  fieldAriaProps,
+} from "@/components/ui";
+
 import type { FacilityActionResult } from "./actions";
 
 export interface FacilityFormValues {
@@ -15,6 +23,10 @@ interface Props {
   initial: FacilityFormValues;
   submitAction: (input: FacilityFormValues) => Promise<FacilityActionResult>;
 }
+
+const CODE_HINT_CREATE =
+  "予約番号の先頭に付く識別子です。例: 「ozu」にすると予約番号は「ozu_123456」のように発行されます。\n小文字アルファベットで始まり、英数字 2〜10 文字で入力してください。作成後は変更できません。";
+const CODE_HINT_EDIT = "予約番号との整合のため、登録後は変更できません。";
 
 export function FacilityForm({ mode, initial, submitAction }: Props) {
   const [values, setValues] = useState<FacilityFormValues>(initial);
@@ -61,33 +73,23 @@ export function FacilityForm({ mode, initial, submitAction }: Props) {
   return (
     <form onSubmit={handleSubmit} className="space-y-5" noValidate>
       {formError && (
-        <p
-          ref={errorRef}
-          tabIndex={-1}
-          role="alert"
-          className="rounded-md bg-red-50 p-3 text-sm whitespace-pre-line text-red-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500"
-        >
+        <FormMessage tone="danger" messageRef={errorRef} tabIndex={-1}>
           {formError}
-        </p>
+        </FormMessage>
       )}
 
-      <div className="space-y-1">
-        <label
-          htmlFor="facility-code"
-          className="block text-sm font-medium text-zinc-700"
-        >
-          prefix（予約番号の識別子）
-        </label>
-        <input
+      <Field
+        id="facility-code"
+        label="prefix（予約番号の識別子）"
+        hint={mode === "create" ? CODE_HINT_CREATE : CODE_HINT_EDIT}
+        error={fieldErrors.code}
+        required={mode === "create"}
+      >
+        <Input
           id="facility-code"
           name="code"
           type="text"
           required={mode === "create"}
-          aria-required={mode === "create" ? "true" : undefined}
-          aria-invalid={fieldErrors.code ? true : undefined}
-          aria-describedby={
-            fieldErrors.code ? "facility-code-error" : "facility-code-hint"
-          }
           maxLength={10}
           value={values.code}
           onChange={(e) =>
@@ -95,111 +97,68 @@ export function FacilityForm({ mode, initial, submitAction }: Props) {
           }
           disabled={mode === "edit"}
           readOnly={mode === "edit"}
-          className={`${inputClass(fieldErrors.code)} ${
-            mode === "edit"
-              ? "cursor-not-allowed bg-zinc-100 text-zinc-500"
-              : ""
-          }`}
+          invalid={Boolean(fieldErrors.code)}
+          {...fieldAriaProps({
+            id: "facility-code",
+            error: fieldErrors.code,
+            hint: CODE_HINT_CREATE,
+            required: mode === "create",
+          })}
         />
-        {fieldErrors.code ? (
-          <p id="facility-code-error" className="text-xs text-red-700">
-            {fieldErrors.code}
-          </p>
-        ) : (
-          <p
-            id="facility-code-hint"
-            className="text-xs whitespace-pre-line text-zinc-500"
-          >
-            {mode === "create"
-              ? "予約番号の先頭に付く識別子です。例: 「ozu」にすると予約番号は「ozu_123456」のように発行されます。\n小文字アルファベットで始まり、英数字 2〜10 文字で入力してください。作成後は変更できません。"
-              : "予約番号との整合のため、登録後は変更できません。"}
-          </p>
-        )}
-      </div>
+      </Field>
 
-      <div className="space-y-1">
-        <label
-          htmlFor="facility-name"
-          className="block text-sm font-medium text-zinc-700"
-        >
-          館名
-        </label>
-        <input
+      <Field id="facility-name" label="館名" error={fieldErrors.name} required>
+        <Input
           id="facility-name"
           name="name"
           type="text"
           required
-          aria-required="true"
-          aria-invalid={fieldErrors.name ? true : undefined}
-          aria-describedby={
-            fieldErrors.name ? "facility-name-error" : undefined
-          }
           maxLength={100}
           value={values.name}
           onChange={(e) => update("name", e.target.value)}
-          className={inputClass(fieldErrors.name)}
+          invalid={Boolean(fieldErrors.name)}
+          {...fieldAriaProps({
+            id: "facility-name",
+            error: fieldErrors.name,
+            required: true,
+          })}
         />
-        {fieldErrors.name && (
-          <p id="facility-name-error" className="text-xs text-red-700">
-            {fieldErrors.name}
-          </p>
-        )}
-      </div>
+      </Field>
 
-      <div className="space-y-1">
-        <label
-          htmlFor="facility-phone"
-          className="block text-sm font-medium text-zinc-700"
-        >
-          電話番号（お問い合わせ先）
-        </label>
-        <input
+      <Field
+        id="facility-phone"
+        label="電話番号（お問い合わせ先）"
+        hint="利用者向けメールの問い合わせ先として表示されます。"
+        error={fieldErrors.phone}
+        required
+      >
+        <Input
           id="facility-phone"
           name="phone"
           type="tel"
           required
-          aria-required="true"
-          aria-invalid={fieldErrors.phone ? true : undefined}
-          aria-describedby={
-            fieldErrors.phone ? "facility-phone-error" : "facility-phone-hint"
-          }
           maxLength={20}
           value={values.phone}
           onChange={(e) => update("phone", e.target.value)}
-          className={inputClass(fieldErrors.phone)}
+          invalid={Boolean(fieldErrors.phone)}
+          {...fieldAriaProps({
+            id: "facility-phone",
+            error: fieldErrors.phone,
+            hint: "利用者向けメールの問い合わせ先として表示されます。",
+            required: true,
+          })}
         />
-        {fieldErrors.phone ? (
-          <p id="facility-phone-error" className="text-xs text-red-700">
-            {fieldErrors.phone}
-          </p>
-        ) : (
-          <p id="facility-phone-hint" className="text-xs text-zinc-500">
-            利用者向けメールの問い合わせ先として表示されます。
-          </p>
-        )}
-      </div>
+      </Field>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
-        <button
-          type="submit"
-          disabled={pending}
-          className="w-full rounded-md bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60 sm:w-auto"
-        >
+        <Button type="submit" disabled={pending} fullWidth>
           {pending
             ? "保存中…"
             : mode === "create"
               ? "登録する"
               : "変更を保存する"}
-        </button>
+        </Button>
       </div>
     </form>
   );
-}
-
-function inputClass(error?: string): string {
-  return `w-full rounded-md border px-3 py-2 text-sm shadow-sm focus:outline-none ${
-    error
-      ? "border-red-400 focus:border-red-500"
-      : "border-zinc-300 focus:border-zinc-500"
-  }`;
 }

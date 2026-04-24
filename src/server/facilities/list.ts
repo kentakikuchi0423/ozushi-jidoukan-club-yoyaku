@@ -93,3 +93,14 @@ export async function countActiveFacilities(): Promise<number> {
   }
   return count ?? 0;
 }
+
+/**
+ * メールフッター等、連絡先だけが欲しい場面で使う軽量版。
+ * `fetchFacilities({includeDeleted:false}).map(...)` の重複を一箇所に寄せる。
+ */
+export async function fetchActiveFacilityContacts(): Promise<
+  ReadonlyArray<{ readonly name: string; readonly phone: string }>
+> {
+  const rows = await fetchFacilities({ includeDeleted: false });
+  return rows.map((r) => ({ name: r.name, phone: r.phone }));
+}

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { fetchFacilities } from "@/server/facilities/list";
+import { fetchActiveFacilityContacts } from "@/server/facilities/list";
 import { getSupabaseAdminClient } from "@/server/supabase/admin";
 import { renderCanceledEmail } from "./templates/canceled";
 import { renderConfirmedEmail } from "./templates/confirmed";
@@ -17,10 +17,11 @@ import { sendEmail } from "./send";
 // メールの冒頭の「○○ 様」は、保護者の 1 人目の氏名を使う。複数人いる場合も
 // 代表者として 1 人目に送るのが無難（DB 的にも position=0 = 最初に登録した人）。
 
-async function fetchFooterFacilities(): Promise<FacilityContact[]> {
+async function fetchFooterFacilities(): Promise<
+  ReadonlyArray<FacilityContact>
+> {
   try {
-    const rows = await fetchFacilities({ includeDeleted: false });
-    return rows.map((r) => ({ name: r.name, phone: r.phone }));
+    return await fetchActiveFacilityContacts();
   } catch (error) {
     console.error("[mail] failed to load facilities for footer", {
       error: error instanceof Error ? error.message : String(error),
