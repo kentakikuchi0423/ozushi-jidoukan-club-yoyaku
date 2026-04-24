@@ -367,3 +367,30 @@ where action like 'retention.%'
 order by created_at desc
 limit 30;
 ```
+
+---
+
+## 11. リリース前の受入テスト
+
+リリース前には `docs/acceptance-tests.md` の 18 本のシナリオに沿って、人の目で動作確認する。利用者シナリオ 8 本 + 管理者シナリオ 10 本。★ マークがあるものは Playwright で自動化済み。
+
+```bash
+# default（smoke + permission-guard）
+pnpm test:e2e
+
+# 実 DB に書き込むフロー（opt-in）
+RUN_ADMIN_FLOW_E2E=1 pnpm test:e2e e2e/admin-flow.spec.ts
+RUN_RESERVATION_FLOW_E2E=1 pnpm test:e2e e2e/reservation-flow.spec.ts
+RUN_WAITLIST_E2E=1 E2E_WAITLIST_CLUB_ID=<capacity=1 のクラブ id> pnpm test:e2e e2e/reservation-flow.spec.ts
+RUN_PERMISSION_E2E=1 pnpm test:e2e e2e/permission-guard.spec.ts
+```
+
+手動で確認するもの:
+- 受付期限後のクラブ（A-4）
+- 他人の予約番号に無効 token を付けた 404（A-5）
+- キャンセル期限超過時のブロック（A-6）
+- 未公開クラブが利用者に見えない（A-7）
+- 写真リンクの表示切替（A-8）
+- 削除済み館のクラブの参照整合性（B-7）
+- アカウント招待の実メール受信（B-8、Resend ダッシュボードで）
+- パスワード変更後の再ログイン（B-9）

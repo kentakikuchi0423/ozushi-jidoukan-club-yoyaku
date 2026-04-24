@@ -149,3 +149,108 @@ test("user can create a reservation via the browser", async ({ page }) => {
     page.getByRole("button", { name: "この予約をキャンセルする" }),
   ).toHaveCount(0);
 });
+
+// 定員 1 名のクラブで: 利用者 A → confirmed、利用者 B → waitlisted、
+// A がキャンセル → B が confirmed に繰り上がる、というフローを検証する。
+//
+// 実 DB を変更するため opt-in（`RUN_WAITLIST_E2E=1`）。事前に:
+//   - capacity=1 の公開クラブを用意し、その id を `E2E_WAITLIST_CLUB_ID` で渡す
+//     （operations.md §5 のクリーンアップ SQL を事前に回しておくと吉）。
+//
+// 実メール配信は Resend のサンドボックスで別アドレス宛に対して失敗するが、
+// `notifyReservationCreated` / `notifyReservationPromoted` はエラーを投げず
+// 握りつぶすので、予約そのものは成功する（UX 優先の方針、ADR-0014）。
+test("waitlisted reservation is promoted when the confirmed one is canceled", async ({
+  page,
+  browser,
+}) => {
+  test.skip(
+    !process.env.RUN_WAITLIST_E2E,
+    "RUN_WAITLIST_E2E=1 で opt-in（capacity=1 のクラブと E2E_WAITLIST_CLUB_ID が必要）",
+  );
+  const clubId = process.env.E2E_WAITLIST_CLUB_ID;
+  if (!clubId) {
+    throw new Error(
+      ".env.local に E2E_WAITLIST_CLUB_ID（capacity=1 の公開クラブ id）を設定してください",
+    );
+  }
+
+  page.on("pageerror", (err) =>
+    console.error("[browser:pageerror]", err.message),
+  );
+
+  async function reserveAs(
+    onPage: typeof page,
+    personName: string,
+    personKana: string,
+    email: string,
+  ): Promise<{ url: string; r: string; t: string }> {
+    await onPage.goto(`/clubs/${clubId}`);
+    await onPage.waitForSelector("html[data-reservation-form-ready='true']");
+    await onPage.locator("#children-0-name").fill(personName);
+    await onPage.locator("#children-0-kana").fill(personKana);
+    await onPage.locator("#phone").fill("090-0000-0000");
+    await onPage.locator("#email").fill(email);
+    await onPage
+      .getByRole("button", { name: "内容を確認する" })
+      .click({ force: true });
+    await onPage
+      .getByRole("button", { name: "予約を確定する" })
+      .click({ force: true });
+    await onPage.waitForURL(/\/clubs\/[^/]+\/done\?/, { timeout: 30_000 });
+    const doneUrl = new URL(onPage.url());
+    const r = doneUrl.searchParams.get("r");
+    const t = doneUrl.searchParams.get("t");
+    if (!r || !t) throw new Error(`done URL に r/t が無い: ${onPage.url()}`);
+    return { url: onPage.url(), r, t };
+  }
+
+  // 利用者 A: 同じブラウザタブを使う
+  const a = await reserveAs(
+    page,
+    "テスト 一郎",
+    "てすと いちろう",
+    "kenta.kikuchi.0423+a@gmail.com",
+  );
+
+  // 利用者 A の done ページから「キャンセル待ち」or「ご予約ありがとうございました」を読む
+  // capacity=1 なら A が必ず confirmed のはず
+  await page.goto(`/reservations?r=${a.r}&t=${a.t}`);
+  await expect(page.getByText(/ご予約は確定しています/)).toBeVisible();
+
+  // 利用者 B: 独立したブラウザコンテキストで予約する（cookie 分離）
+  const contextB = await browser.newContext();
+  const pageB = await contextB.newPage();
+  const b = await reserveAs(
+    pageB,
+    "テスト 次郎",
+    "てすと じろう",
+    "kenta.kikuchi.0423+b@gmail.com",
+  );
+
+  // 利用者 B はキャンセル待ちで入る
+  await pageB.goto(`/reservations?r=${b.r}&t=${b.t}`);
+  await expect(pageB.getByText(/現在はキャンセル待ちです/)).toBeVisible();
+
+  // 利用者 A が自分の予約をキャンセル
+  await page.goto(`/reservations?r=${a.r}&t=${a.t}`);
+  await page.waitForSelector("html[data-cancel-form-ready='true']");
+  await page
+    .getByRole("button", { name: "この予約をキャンセルする" })
+    .click({ force: true });
+  await page
+    .getByRole("button", { name: "キャンセルを確定する" })
+    .click({ force: true });
+  await expect(page.getByText("この予約はキャンセル済みです")).toBeVisible({
+    timeout: 15_000,
+  });
+
+  // 繰り上げ後、利用者 B の確認画面が「ご予約は確定しています」に変わる
+  // Server Action の revalidate は即時なので、reload すれば反映されているはず
+  await pageB.reload();
+  await expect(pageB.getByText(/ご予約は確定しています/)).toBeVisible({
+    timeout: 15_000,
+  });
+
+  await contextB.close();
+});
