@@ -1,7 +1,9 @@
 "use server";
 
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { logAdminAction } from "@/server/audit/log";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type LoginActionResult = { ok: false; message: string };
@@ -12,8 +14,10 @@ export type LoginActionResult = { ok: false; message: string };
  * Redirect 防止、security-review §3）。失敗時は汎用メッセージを返し、
  * 「メールが存在しない」/「パスワード違い」を区別しない（ユーザー列挙対策）。
  *
- * 戻り値は失敗時のみで、成功時は `redirect()` が throw するので関数から
- * 戻ることは無い。呼び出し元では `if (result && !result.ok) ...` で扱う。
+ * 監査ログ: 成功 `admin.login.succeeded`、失敗 `admin.login.failed` を
+ * `audit_logs` に記録する。管理者のログイン email は運用識別子のため例外的に
+ * metadata に含めるが、パスワードは絶対に記録しない（既定の「PII は書かない」
+ * ルールの例外は login 系とアカウント招待系に限定）。
  */
 export async function loginAction(input: {
   email: string;
@@ -21,18 +25,54 @@ export async function loginAction(input: {
   next?: string;
 }): Promise<LoginActionResult | never> {
   const supabase = await createSupabaseServerClient();
-  const { error } = await supabase.auth.signInWithPassword({
+  const { data, error } = await supabase.auth.signInWithPassword({
     email: input.email,
     password: input.password,
   });
 
-  if (error) {
+  const ip = await resolveClientIp();
+
+  if (error || !data.user) {
+    // 失敗理由の内訳（メール存在 / 不一致 / ロックアウト等）はユーザーには
+    // 出さないが、運用追跡のため reason としてコードだけ残す。
+    await logAdminAction({
+      adminId: null,
+      action: "admin.login.failed",
+      targetType: "admin",
+      metadata: {
+        email: input.email,
+        ip,
+        reason: error?.code ?? "unknown",
+      },
+    }).catch((e) => {
+      // 監査ログの失敗でログイン UX を壊さない（既に失敗している）。
+      console.error("[admin.login.failed] audit write error", {
+        message: e instanceof Error ? e.message : String(e),
+      });
+    });
+
     return {
       ok: false,
       message:
         "メールアドレスまたはパスワードが正しくありません。\nもう一度ご確認ください。",
     };
   }
+
+  await logAdminAction({
+    adminId: data.user.id,
+    action: "admin.login.succeeded",
+    targetType: "admin",
+    targetId: data.user.id,
+    metadata: {
+      email: data.user.email ?? input.email,
+      ip,
+    },
+  }).catch((e) => {
+    // 監査ログ失敗時はログインは継続させる（UX 優先、後追いで検知）。
+    console.error("[admin.login.succeeded] audit write error", {
+      message: e instanceof Error ? e.message : String(e),
+    });
+  });
 
   // next は `/admin*` の相対パスだけ許可（Open Redirect 防止）。
   // 旧ダッシュボード `/admin` に戻そうとした場合は `/admin/clubs` に寄せる
@@ -42,4 +82,21 @@ export async function loginAction(input: {
   const target =
     !isSafeAdminPath || input.next === "/admin" ? "/admin/clubs" : input.next!;
   redirect(target);
+}
+
+/**
+ * クライアント IP を `x-forwarded-for` の先頭エントリから拾う。
+ * Vercel 環境では proxy によって設定される。取れない環境（ローカル dev 等）
+ * では "unknown" を入れる。
+ */
+async function resolveClientIp(): Promise<string> {
+  const h = await headers();
+  const xff = h.get("x-forwarded-for");
+  if (xff) {
+    const first = xff.split(",")[0]?.trim();
+    if (first) return first;
+  }
+  const real = h.get("x-real-ip");
+  if (real) return real;
+  return "unknown";
 }

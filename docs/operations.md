@@ -305,4 +305,65 @@ pnpm db:push
 - GitHub で Dependabot を有効化（Settings → Security → Dependabot alerts / security updates）
 - Vercel で Cron Jobs の実行履歴を週次で確認し、`audit_logs` に cleanup エントリが残っていること
 - 月次で `pnpm audit` を実行し脆弱性を検知
+- 月次で `admin.login.*` の監査ログを tail（下記 §10 参照）
 - 初回の super_admin 以外の管理者は `/admin/accounts` から招待する
+
+---
+
+## 10. 監査ログの tail 手順
+
+`audit_logs` は改ざん防止のため SELECT のみ許可（admin クライアント経由）。Supabase Studio の **SQL Editor** で下記を貼って実行する。個人情報は JSON の `metadata` に限定的に入るため、スクリーンショット共有時はマスク推奨。
+
+### 10-1. 直近 1 ヶ月の管理者ログイン（成功 / 失敗）
+```sql
+select
+  created_at,
+  action,
+  metadata->>'email'  as email,
+  metadata->>'ip'     as ip,
+  metadata->>'reason' as reason
+from public.audit_logs
+where action in ('admin.login.succeeded', 'admin.login.failed')
+  and created_at >= now() - interval '30 days'
+order by created_at desc
+limit 200;
+```
+
+### 10-2. 同一 email への連続失敗（brute force 疑い）
+```sql
+select
+  metadata->>'email' as email,
+  count(*)           as failures,
+  min(created_at)    as first_at,
+  max(created_at)    as last_at
+from public.audit_logs
+where action = 'admin.login.failed'
+  and created_at >= now() - interval '24 hours'
+group by metadata->>'email'
+having count(*) >= 5
+order by failures desc;
+```
+
+5 回以上失敗している email があれば、当該管理者に連絡して心当たり確認。必要なら Supabase Studio の **Authentication → Users** で該当ユーザーを一時的に Disable する。
+
+### 10-3. 館マスター / アカウント管理の変更履歴
+```sql
+select
+  created_at,
+  action,
+  target_id,
+  metadata
+from public.audit_logs
+where action like 'facility.%' or action like 'admin.%'
+order by created_at desc
+limit 100;
+```
+
+### 10-4. Cron retention cleanup の実行履歴
+```sql
+select created_at, action, metadata
+from public.audit_logs
+where action like 'retention.%'
+order by created_at desc
+limit 30;
+```
