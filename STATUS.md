@@ -5,7 +5,52 @@
 
 ---
 
-## 最終更新: 2026-04-24（本番デプロイ前整備一式: セキュリティ / 保守性 / デザイン / 受入テスト / マニュアル / README）
+## 最終更新: 2026-04-25（本番デプロイ + 表記整理 + ドキュメント整合性監査）
+
+### このチャンクで解消したもの
+1. **本番デプロイ完了**:
+   - GitHub remote (`kentakikuchi0423/ozushi-jidoukan-club-yoyaku`) 接続、main へ push
+   - Supabase 本番プロジェクト（`znclweldcukgaqzrrkcz`、東京リージョン）作成、14 本の migration 適用、初期 super_admin（display_name = 「システム管理者」）を bootstrap
+   - Vercel 連携、環境変数投入、`https://ozushi-jidoukan-club-yoyaku.vercel.app/` で稼働
+   - Supabase Auth の Site URL を本番固定、Redirect URLs に本番 + localhost 両方登録
+   - secret key と DB password を bootstrap 直後にローテーション完了
+2. **UI / UX の細かな調整** (`d9837c5` / `2e2327a` / `cf7c677` / `96798b0` / `af74f46`):
+   - プライマリボタン（予約する / クラブを新規登録）が WCAG AA を満たすよう primary を `#4f7668` に深色化、要素リセットを `@layer base` に収めて `text-white` を有効化（ADR-0017）
+   - クラブ一覧の説明を簡略化、予約フォームの「ご予約にあたってのお願い」改行整理
+   - 予約完了画面の「予約内容の確認・キャンセル用 URL」を `<a>` タグに変更（クリック可能に）
+   - 予約確認画面の `ClubSection` に対象年齢・概要・補足を追加
+   - キャンセル期限の UI 表示を「動的計算した日時」から「開催日の 2 営業日前 17 時」固定文言に変更（active form と past-deadline 分岐の両方）
+   - クラブ一覧フィルタに **複数日選択カレンダー**（`DateMultiPicker`）を追加。URL `?dates=YYYY-MM-DD,...`、JST 比較、外部依存なし
+3. **メールテンプレ大改修** (`cf7c677`):
+   - 利用者向けメール（confirmed / waitlisted / promoted / canceled）から「○○ 様」挨拶を撤去、`parentName` 撤去
+   - 「このメールは予約システムから自動送信しています。」をメール先頭に移動、フッタから削除
+   - HTML 版を構造化レンダラ（`EmailContent` / `Block`）で再設計、Outlook 互換のインラインスタイル + `<table>` レイアウト + 緑の CTA ボタン（ADR-0016）
+4. **ドキュメント整合性監査** (このチャンク):
+   - `docs/email-domain-decision.md` 新設（市担当者協議資料 197 行 + DNS 仕組み解説）
+   - 全 docs（README / requirements / architecture / decisions / open-questions / testing-strategy / security-review / operations / acceptance-tests / user-manual / admin-manual）を実装と突き合わせて整合性修正
+   - `decisions.md` に新 ADR 追加: 0016 メール multipart / 0017 @layer base / 0018 館マスター動的化 / 0019 club_programs / 0020 published_at
+   - `requirements.md` の保護者必須 → 任意、メール本文構成、施設コードの動的管理を反映
+   - `architecture.md` の DDL を `facilities.phone` / `deleted_at` / `code` 制約緩和で更新、admin 系メニュー追加、監査ログアクション拡充、メール multipart 化を反映
+   - `open-questions.md` の Q3（営業日定義）/ Q10（メール HTML）を Resolved に
+   - `user-manual.md` に日付フィルタ説明を追記、キャンセル期限の説明を「祝日・休日が考慮されています」から実態に即した文言に修正
+   - `acceptance-tests.md` A-6 の期待文言を新固定文言に更新
+   - `testing-strategy.md` のテストファイル名（`reservation-flow.spec.ts` 等）を実態に揃え、CI セクションを「未導入」に整理
+
+### テスト結果
+- `pnpm format` / `pnpm lint` / `pnpm typecheck`: all green
+- `pnpm exec vitest run --pool=forks src/components/clubs/filter-utils.test.ts`: 11 passed
+- `pnpm exec vitest run src/server/mail/templates`: 12 passed
+- 本番疎通: `/`、`/admin/login`、`/admin/clubs`、予約 → メール受信まで動作確認済
+
+### 次の一手
+- 試験導入対象が外部の保護者を含むため、**Resend ドメイン検証** が必要。市担当者と `docs/email-domain-decision.md` をもとに協議してドメイン方針（市既存サブドメイン / 市新規取得 / 事業者経由 / 暫定 Allowed Recipients）を決定する
+- 試験対象が 5 人以下なら Resend Allowed Recipients で当面しのげる
+- 本格運用前にテストデータ（テスト事業 / 予約テスト）を削除
+- `CRON_SECRET` を任意で設定し、retention cleanup を有効化
+
+---
+
+## 1 つ前: 2026-04-24（本番デプロイ前整備一式: セキュリティ / 保守性 / デザイン / 受入テスト / マニュアル / README）
 
 ### このチャンクで解消したもの
 1. **Sub-phase A — 館の管理機能コミット** (`9eca98b`)

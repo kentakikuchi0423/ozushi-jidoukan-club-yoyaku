@@ -2,10 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 
-import {
-  cancellationBlockedReason,
-  computeCancellationDeadline,
-} from "@/lib/reservations/cancellation-deadline";
+import { cancellationBlockedReason } from "@/lib/reservations/cancellation-deadline";
 import { fetchClubDetail } from "@/lib/clubs/query";
 import type { ClubListing } from "@/lib/clubs/types";
 import { isReservationNumber } from "@/lib/reservations/number";
@@ -81,9 +78,7 @@ function CancelSection({
   reservation: ReservationDetail;
   secureToken: string;
 }) {
-  const deadline = computeCancellationDeadline(reservation.club.startAt);
   const blocked = cancellationBlockedReason(reservation.club.startAt);
-  const deadlineLabel = `${formatJstDate(deadline)} ${formatJstTime(deadline)}`;
 
   if (blocked === "event-started") {
     return (
@@ -107,8 +102,8 @@ function CancelSection({
           予約のキャンセル
         </h2>
         <p className="rounded-md bg-zinc-100 p-3 text-sm text-[var(--color-foreground)]/90">
-          キャンセル期限（{deadlineLabel}
-          ）を過ぎているため、このページからはキャンセルできません。
+          キャンセル期限（開催日の 2 営業日前 17
+          時）を過ぎているため、このページからはキャンセルできません。
           <br />
           体調不良などでご参加が難しくなった場合は、各館へ直接ご連絡ください。
         </p>

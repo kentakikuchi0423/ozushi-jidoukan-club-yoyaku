@@ -63,7 +63,7 @@ values
 3 館すべてを持つ admin が super_admin として扱われる（ADR-0007 / 0014）。
 以降、アカウント追加は管理画面（`/admin/accounts`）から全館管理者が行う。
 
-### 3-5. Supabase Auth の Site URL / Redirect URL を設定
+### 3-4. Supabase Auth の Site URL / Redirect URL を設定
 
 **Supabase Studio → Authentication → URL Configuration** で 2 箇所を設定する。
 両者は役割が違うので混同しないこと。
@@ -102,7 +102,7 @@ http://localhost:3000/auth/callback
 ローカル `http://localhost:3000/auth/callback` を残しておくと、Studio から
 admin 招待をリハーサルするときに dev 環境でも動作確認できる。
 
-### 3-4. 権限の剥奪
+### 3-5. 権限の剥奪
 
 管理者を辞めた場合は以下で権限を外す。
 

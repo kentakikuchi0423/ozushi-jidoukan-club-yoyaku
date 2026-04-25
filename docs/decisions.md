@@ -167,3 +167,82 @@
   - force push 禁止、履歴書き換え禁止
   - Conventional Commits (`feat: ...`, `fix: ...`, `chore: ...`, `docs: ...`, `test: ...`)
 - **Consequences**: 初期構築までは `main` で進め、Phase 1 の実装フェーズから feature branch 運用に切替える
+
+## ADR-0016 利用者向けメールはテキスト + HTML の multipart で送る
+
+- **Status**: Accepted（2026-04-25）
+- **Context**:
+  - 当初は text-only で送っていたが、URL がメーラ次第ではクリック不可になり予約確認画面に遷移できないケースがあった。
+  - また Outlook 系・キャリアメール系での見栄えが乏しく、児童館予約という対象に対して信頼感に欠ける。
+- **Decision**:
+  - 利用者向け 4 テンプレ（confirmed / waitlisted / promoted / canceled）は **テキスト + HTML を併送**（multipart）。
+  - HTML は `src/server/mail/templates/shared.ts` の構造化レンダラ（`EmailContent` / `Block` 型）から機械生成し、テキスト版と同一の構造データから派生させる（差分ドリフト防止）。
+  - HTML はインラインスタイルで Outlook を含む主要メーラ互換性を確保。`<table>` レイアウト、CTA は緑のボタン + 同じ URL の文字列を併記、フォントは Hiragino Sans / Meiryo。
+  - 文面は冒頭に「このメールは予約システムから自動送信しています。」を固定で出し、フッターは全館の連絡先のみ（自動送信注記の重複を避ける）。
+  - 利用者向けメールに保護者氏名による挨拶（「○○ 様」）は含めない。汎用文面で十分なため。
+- **Consequences**:
+  - テンプレートは 1 度の構造データ宣言で両方のレンダラを通すため、保守性が高い。
+  - `RenderedEmail.html` は optional。管理者招待（admin-invite）は別系統で `textToHtml` 経由の簡易 HTML を提供。
+
+## ADR-0017 要素リセットは Tailwind の `@layer base` 内に書く
+
+- **Status**: Accepted（2026-04-25）
+- **Context**:
+  - 当初 `globals.css` に `a { color: inherit }` 等を **unlayered** で書いていたが、Tailwind v4 の `@layer utilities` よりも CSS カスケードで優先されてしまい、`<Link>`（=`<a>`）に付けた `text-white` が打ち消される現象が発生した。
+  - 結果、「予約する」「クラブを新規登録」等のプライマリ `<a>` ボタンが本文 foreground を inherit して低コントラスト（約 2.25:1）になり WCAG AA 違反に。
+- **Decision**:
+  - `globals.css` の要素セレクタリセット（html / body / h1-h4 / a / ::selection）を `@layer base { ... }` 内に収める。
+  - これにより Tailwind の `@layer utilities` が要素ルールより優先されるカスケード順となり、utility クラスが期待どおり効く。
+  - 同時に primary 色を AA 基準（4.5:1）以上を満たす `#4f7668` に深色化。
+- **Consequences**:
+  - 今後追加する要素レベルのスタイルも必ず `@layer base` 内に書く。
+  - 配色は CSS 変数（`--color-*`）を介して集中管理し、各コンポーネントは `var(--color-...)` を読むだけ。
+
+## ADR-0018 館マスターは DB で動的管理する（ハードコード廃止）
+
+- **Status**: Accepted（2026-04-24）
+- **Context**:
+  - v0 では `src/lib/facility.ts` に 3 館（ozu / kita / toku）と日本語名・予約番号 prefix がハードコードされていた。
+  - 新しい館の追加・名称変更・電話番号変更にコード修正と再デプロイが必要で、運用負担になる。
+  - 大洲市側でも将来的な施設追加・統合・名称変更が想定される。
+- **Decision**:
+  - `facilities` テーブルに `phone` 列と `deleted_at` を追加（migration 20260424000003）し、館マスターを完全に DB 管理化。
+  - `code` の制約は `text check (code ~ '^[a-z0-9_]+$')` に変更（小文字英数字とアンダースコアのみ）。
+  - super_admin だけが `/admin/facilities` から CRUD できる。新館を追加すると、その時点で全館権限を持っている既存 super_admin に新館権限を自動付与する（`findSuperAdminIdsToGrant` 純粋関数で判定）。
+  - `src/lib/facility.ts` には `FACILITY_CODE_REGEX` / `isFacilityCodeFormat` のフォーマット検証だけを残す。
+- **Consequences**:
+  - 新館の追加が画面操作だけで完結する。
+  - メールフッタの連絡先列挙は `fetchActiveFacilityContacts()` でランタイム取得する。
+  - 旧来の `code in ('ozu','kita','toku')` の DB 制約は撤廃済み。
+
+## ADR-0019 クラブと事業（program）は別テーブルにする
+
+- **Status**: Accepted（2026-04-24）
+- **Context**:
+  - 当初 `clubs` 1 テーブルに「クラブ名・対象年齢・概要・開催日時・定員」を全部持たせていた。
+  - 同じ事業（例: 「こども英会話初級」）を月に何度も開催するため、クラブを作るたびに同じ説明文を入力する負担があった。
+  - 検索・絞り込みも事業単位でやりたい要望があった。
+- **Decision**:
+  - 事業マスター `club_programs`（id / name / target_age / summary / deleted_at）を新設（migration 20260424000000）。
+  - `clubs` から `program_id uuid not null references club_programs(id) on delete restrict` で参照。
+  - クラブには「その回固有の補足」として `description` だけを残す（事業共通の概要は `programs.summary`）。
+  - 事業 CRUD は全 admin が利用可能（`/admin/programs`）。
+- **Consequences**:
+  - クラブ登録フォームでは事業選択 + 日時 + 定員 + 補足 だけになり、入力負担が減る。
+  - 利用者一覧では `club_programs` を JOIN して名称・対象年齢・概要を表示する（`get_public_club` / `list_public_clubs` RPC）。
+  - 事業を削除しようとして `clubs` から参照されていれば DB 制約で拒否される（事故防止）。
+
+## ADR-0020 クラブの公開状態は `published_at` で表現する
+
+- **Status**: Accepted（2026-04-24）
+- **Context**:
+  - クラブを作った直後すぐ利用者一覧に出ると、入力ミスのまま見えてしまうリスクがある。
+  - 一方で「下書き／公開」の boolean だと「いつ公開されたか」の情報が失われる。
+- **Decision**:
+  - `clubs.published_at timestamptz` を追加（migration 20260424000002）。`null` は下書き、タイムスタンプが入ると公開中。
+  - 管理画面の「公開する」ボタンが `published_at = now()` をセット（idempotent）。
+  - `list_public_clubs` / `get_public_club` RPC は `published_at is not null` を必須条件にする。
+  - 管理画面では未公開クラブも一覧に出し、バッジで「下書き」表示する。
+- **Consequences**:
+  - 公開操作が監査ログ `club.publish` に残る。
+  - 「いつから公開」の情報が DB に保持され、運用上のトレーサビリティが取れる。

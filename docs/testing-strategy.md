@@ -14,9 +14,8 @@
 
 | レイヤ | ツール | 対象 |
 | --- | --- | --- |
-| Unit | Vitest | 純粋関数、zod スキーマ、業務日計算、予約番号生成 |
-| Integration | Vitest + テスト用 Supabase or pg container | Route Handler / Server Action、RLS、トランザクション |
-| E2E | Playwright | 利用者予約フロー、管理者 CRUD、キャンセル/繰り上げ |
+| Unit | Vitest | 純粋関数、zod スキーマ、業務日計算、予約番号生成、メールテンプレ、フィルタ |
+| E2E | Playwright | 利用者予約フロー（`reservation-flow.spec.ts`）、管理者 CRUD（`admin-flow.spec.ts`）、権限越権（`permission-guard.spec.ts`）、デフォルト画面遷移（`default.spec.ts`） |
 
 ## 3. 最低限カバーする観点（Phase 3 完了時点）
 
@@ -50,28 +49,32 @@ pnpm test -- --watch
 # カバレッジ
 pnpm test -- --coverage
 
-# E2E（ローカル起動中の dev に対して実行するか、Playwright webServer 経由）
+# E2E（Playwright が build → start を起動してから実行）
 pnpm test:e2e
 
-# 特定 E2E
-pnpm test:e2e tests/e2e/user-booking.spec.ts
+# 特定 E2E（opt-in シナリオは環境変数で有効化する。例:）
+RUN_ADMIN_FLOW_E2E=1 pnpm test:e2e e2e/admin-flow.spec.ts
+RUN_PERMISSION_E2E=1 pnpm test:e2e e2e/permission-guard.spec.ts
+RUN_WAITLIST_E2E=1 pnpm test:e2e e2e/reservation-flow.spec.ts
 ```
 
-## 6. Playwright MCP 活用
+## 6. 受入テスト
 
-- 対話的 UI 確認は Playwright MCP を使う（コードとして回帰に残さない実験用）
-- 回帰テストにしたい挙動は Playwright test ファイルに起こす
-- スクリーンショットは `tests/e2e/__snapshots__/` に格納
+- 手動で確認するシナリオは [`docs/acceptance-tests.md`](./acceptance-tests.md) に
+  18 本（利用者 8 + 管理者 10）を整理してある。
+- 重要部分（待ちリスト → 繰り上がり、権限越権、館管理）は Playwright で自動化済み。
 
-## 7. CI
+## 7. CI（未導入、運用開始後に検討）
 
-- Phase 6 までに GitHub Actions で以下を回す
+- 当面はローカル / devcontainer での実行で運用する。
+- 自動化候補（GitHub Actions などで導入する場合）:
   - `pnpm install --frozen-lockfile`
   - `pnpm lint`
   - `pnpm typecheck`
   - `pnpm test`
   - `pnpm test:e2e`（Playwright の browser cache をキャッシュ）
-- 当面はローカル実行で十分。リモート設定後に CI 導入
+- 導入のトリガーは、複数人で開発する状況になったとき / リグレッションが検知漏れ
+  したときの 2 つ。
 
 ## 8. 失敗時の運用
 

@@ -14,12 +14,12 @@
 | パッケージマネージャ | pnpm 10 | lockfile の厳格さ・速度（ADR-0003） |
 | フレームワーク | Next.js 16.2 (App Router) | RSC / Server Actions / Route Handlers（ADR-0001） |
 | 言語 | TypeScript 5 (strict) | |
-| UI | Tailwind CSS v4 | 保守しやすさと低コスト。shadcn/ui は未導入（v1 では不要） |
+| UI | Tailwind CSS v4 + 自前 UI プリミティブ（`src/components/ui/`） | 配色は CSS 変数（`@theme`）で集中管理、要素リセットは `@layer base` 内（ADR-0017） |
 | DB / Auth | Supabase (PostgreSQL / Auth / RLS) | 低コスト、RLS、Auth 同梱（ADR-0002, 0014） |
 | Query | Supabase JS SDK + SQL migration | RPC と SECURITY DEFINER 関数で特権処理（ADR-0004, 0005） |
-| 日付 | `date-fns-tz` + `@holiday-jp/holiday_jp` | JST 業務日計算（ADR-0010） |
+| 日付 | `date-fns-tz` + `@holiday-jp/holiday_jp` | JST 業務日計算（ADR-0010）。UI 表示は固定文言、サーバ側のキャンセル可否判定でのみ営業日計算を使う |
 | バリデーション | zod 4 | クライアント／サーバー二重検証 |
-| メール | Resend 6 | 4 テンプレート（confirmed / waitlisted / promoted / canceled） |
+| メール | Resend 6 | 5 テンプレート（confirmed / waitlisted / promoted / canceled / admin-invite）。利用者向け 4 本は text + HTML を multipart で送信（ADR-0016） |
 | ホスティング | Vercel | Next.js 親和性 + Cron |
 | テスト | Vitest 4 + Playwright 1.59 | ユニット + E2E（ADR-0009） |
 | 開発環境 | VS Code devcontainer | 再現性 |
@@ -44,31 +44,37 @@
 │   │   ├── admin/
 │   │   │   ├── page.tsx                   # ダッシュボード
 │   │   │   ├── actions.ts                 # logoutAction
-│   │   │   ├── login/                     # ログインフォーム + Server Action
-│   │   │   ├── clubs/                     # CRUD（list / new / [id]/edit）
+│   │   │   ├── login/                     # ログインフォーム + Server Action（監査ログ付き）
+│   │   │   ├── clubs/                     # CRUD（list / new / [id]/edit / 公開トグル / [id]/reservations）
+│   │   │   ├── programs/                  # 事業マスター CRUD（全 admin）
+│   │   │   ├── facilities/                # 館の CRUD（super_admin のみ、ADR-0018）
 │   │   │   ├── password/                  # パスワード変更
 │   │   │   └── accounts/                  # super_admin のみ: 招待
 │   │   ├── api/cron/
 │   │   │   └── retention-cleanup/route.ts # Vercel Cron の入口
 │   │   └── middleware.ts                  # session refresh + /admin ガード + CSP nonce
+│   ├── components/
+│   │   ├── ui/                            # Button / Card / Field / Input / Badge / FormMessage / Select / Textarea
+│   │   └── clubs/                         # ClubCard / ClubFilterBar / DateMultiPicker / PaginatedClubList
 │   ├── lib/                               # UI 非依存（client / server 共用）
 │   │   ├── clubs/                         # ClubListing 型 / query / input-schema
-│   │   ├── facility.ts                    # 3 館コード ↔ ID マップ
-│   │   ├── format.ts                      # JST 日時フォーマッタ + datetime-local 変換
+│   │   ├── facility.ts                    # 館コードのフォーマット検証のみ（マスターは DB で動的、ADR-0018）
+│   │   ├── format.ts                      # JST 日時フォーマッタ + datetime-local / YYYY-MM-DD 変換
 │   │   ├── reservations/                  # 予約番号 / status / 入力 schema / キャンセル締切
 │   │   ├── env.ts                         # NEXT_PUBLIC_ 環境変数
 │   │   └── supabase/                      # browser / server クライアント（publishable）
 │   └── server/                            # server-only（secret key 参照）
-│       ├── auth/                          # session / guards / permissions / profile / admin-list
+│       ├── auth/                          # session / guards / permissions / profile / admin-list / super-admin
 │       ├── audit/log.ts                   # logAdminAction
 │       ├── clubs/admin-detail.ts          # admin 向け単一取得
 │       ├── env.ts                         # SUPABASE_SECRET_KEY / RESEND_* / CRON_SECRET
-│       ├── mail/                          # send + 4 templates + notify
+│       ├── facilities/                    # fetchFacilities / fetchActiveFacilityContacts
+│       ├── mail/                          # send + 5 templates（confirmed / waitlisted / promoted / canceled / admin-invite） + notify
 │       ├── reservations/                  # create / cancel / lookup / secure-token
 │       └── supabase/admin.ts              # secret key クライアント（RLS バイパス）
 ├── supabase/
 │   ├── config.toml
-│   ├── migrations/                        # 5 本（schema / rpcs / retention / listing / detail / fix）
+│   ├── migrations/                        # 14 本（initial / rpcs / retention / listing / detail / lookup / fixes / multi_parent_child / fk_cleanup / optional_parents / club_programs / get_my_reservation_program / clubs_published_at / facility_phone_and_dynamic）
 │   └── seed.sql                           # placeholder（PII 禁止方針）
 ├── scripts/db-push.mjs                    # `pnpm db:push` ラッパ
 ├── e2e/                                   # Playwright: smoke / permission-guard / reservation-flow / admin-flow
@@ -92,10 +98,13 @@ reservation_number_sequences (facility_code PK)
 ### 3.2 テーブル（実装済み DDL 抜粋、詳細は `supabase/migrations/20260421000000_initial_schema.sql`）
 
 ```sql
+-- 館（migration 20260424000003 で phone / deleted_at を追加。マスターは動的、ADR-0018）
 create table public.facilities (
   id smallint primary key,
-  code text not null unique check (code in ('ozu','kita','toku')),
-  name text not null
+  code text not null unique check (code ~ '^[a-z0-9_]+$' and length(code) between 1 and 32),
+  name text not null check (length(name) between 1 and 100),
+  phone text not null check (length(phone) between 1 and 30),
+  deleted_at timestamptz
 );
 
 -- 管理者は auth.users の拡張プロフィール（ADR-0014）
@@ -222,7 +231,7 @@ create table public.audit_logs (
 - **reservation_number_sequences**: policy 無し → secret key のみ
 - **audit_logs**: 認証済みユーザは自分の監査ログだけ SELECT。INSERT / UPDATE / DELETE は secret key 経由のみ
 
-RLS に頼り切らず、Server Action / Route Handler 側でも `requireFacilityPermission` / `requireSuperAdmin` で二重にチェックする。
+RLS に頼り切らず、Server Action / Route Handler 側でも `requireAdmin` / `requireFacilityPermissionOrThrow` / `requireSuperAdmin` で二重にチェックする。
 
 ### 3.4 SECURITY DEFINER 関数（実装済み）
 
@@ -289,26 +298,43 @@ Client: /reservations?r=...&t=... の「キャンセルする」
 - Supabase Auth の email/password で認証（ADR-0014）。ID = メールアドレス
 - `@supabase/ssr` の cookie ベースセッション。middleware で毎リクエスト refresh
 - 館権限は `admin_facilities` で管理（ADR-0007）
-- Server Action / RSC の冒頭で `requireAdmin` / `requireFacilityPermission` / `requireSuperAdmin` を呼ぶ
+- Server Action / RSC の冒頭で `requireAdmin` / `requireFacilityPermissionOrThrow` / `requireSuperAdmin` を呼ぶ
 - `/admin/*` は middleware が未ログイン時に `/admin/login?next=...` へリダイレクト
 
 ### 5.3 監査ログに残す操作（実装済み）
-- `club.create` / `club.update` / `club.delete`
-- `admin.create` / `admin.password_change`
-- `retention.cleanup_clubs` / `retention.cleanup_audit_logs`
+- クラブ: `club.create` / `club.update` / `club.delete` / `club.publish`
+- 事業マスター: `program.create` / `program.update` / `program.delete`
+- 館: `facility.create` / `facility.update` / `facility.delete`
+- アカウント: `admin.create` / `admin.password_change` / `admin.login.succeeded` / `admin.login.failed`
+- リテンション: `retention.cleanup_clubs` / `retention.cleanup_audit_logs`
 
-PII（氏名・電話・メール）は原則 metadata に含めない。`admin.create` は招待時のメールと館コードだけ残す（identification 用）。
+PII（氏名・電話・メール）は原則 metadata に含めない。`admin.create` は招待時のメール
+と館コードだけ残す（identification 用）。`admin.login.failed` は入力 email と
+Supabase エラーコードを残す（パスワード自体はログに出さない）。
 
 ## 6. メール（Resend）
 
 | タグ | テンプレート | 送信先 | 内容 |
 | --- | --- | --- | --- |
-| `reservation.confirmed` | `confirmed.ts` | 申込者 | 予約番号、日時、キャンセル期限、確認 URL |
-| `reservation.waitlisted` | `waitlisted.ts` | 申込者 | 予約番号、日時、順位、確認 URL |
+| `reservation.confirmed` | `confirmed.ts` | 申込者 | 予約番号、日時、確認・キャンセル URL、キャンセル期限の説明 |
+| `reservation.waitlisted` | `waitlisted.ts` | 申込者 | 予約番号、日時、順位、確認・取り消し URL |
 | `reservation.promoted` | `promoted.ts` | 繰り上がった人 | 繰り上がり通知、日時、確認 URL |
 | `reservation.canceled` | `canceled.ts` | キャンセル実行者 | キャンセル受領、日時（URL は含めない） |
+| `admin.invite` | `admin-invite.ts` | 新規 admin | 担当館の一覧、初回ログイン用ワンタイムリンク |
 
-すべて text-only。`src/server/mail/send.ts` は `RESEND_API_KEY` / `RESEND_FROM_ADDRESS` が未設定なら `console.warn` で tag のみ記録して no-op する（dev / CI 用）。ログには宛先・件名・本文を出さない（PII 保護）。
+利用者向け 4 本（confirmed / waitlisted / promoted / canceled）は **テキスト + HTML
+の multipart**（ADR-0016）。`src/server/mail/templates/shared.ts` の構造化レンダラ
+（`EmailContent` / `Block`）から両方を機械生成し差分を出さない。HTML 版は中央
+寄せのカード + 緑の CTA ボタンで URL をクリッカブルに表示する。先頭に「このメール
+は予約システムから自動送信しています。」の固定注記、フッターに全館の連絡先
+（`facilities.phone` を fetchActiveFacilityContacts で取得）を載せる。
+
+管理者招待メール（admin-invite）は別系統のテキスト構造のため `textToHtml` 経由で
+HTML 化する。
+
+`src/server/mail/send.ts` は `RESEND_API_KEY` / `RESEND_FROM_ADDRESS` が未設定なら
+`console.warn` で tag のみ記録して no-op する（dev / CI 用）。ログには宛先・件名
+・本文を出さない（PII 保護）。
 
 ## 7. 環境変数（実装済み、`.env.example` と同期）
 
@@ -328,9 +354,12 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 RESEND_API_KEY=
 RESEND_FROM_ADDRESS=
 
-# 初回 super_admin bootstrap 用（seed 後削除）
+# E2E テスト（任意、Playwright opt-in シナリオで使う。アプリ本体は参照しない）
 ADMIN_BOOTSTRAP_EMAIL=
 ADMIN_BOOTSTRAP_PASSWORD=
+ADMIN_SINGLE_FACILITY_EMAIL=
+ADMIN_SINGLE_FACILITY_PASSWORD=
+E2E_WAITLIST_CLUB_ID=
 
 # Vercel Cron（optional、未設定なら /api/cron/* が 503）
 CRON_SECRET=
@@ -354,5 +383,5 @@ CRON_SECRET=
 - Vercel に GitHub 連携でデプロイ
 - Environment Variables に上記 env を設定（`CRON_SECRET` を含む）
 - Cron Jobs で `/api/cron/retention-cleanup` をスケジュール確認
-- 初回 super_admin は Supabase Studio で auth.users + `admins` + `admin_facilities` を手動セット（[docs/operations.md §3](./operations.md)）
+- 初回 super_admin は Supabase Studio で auth.users + `admins` + `admin_facilities` を手動セット（[docs/operations.md §3](./operations.md#3-初期-super_admin-の-bootstrap)）
 - Resend の送信元ドメインを本番移行前に検証する（未検証の間は `onboarding@resend.dev` で Resend 所有アドレス宛のみ送達）

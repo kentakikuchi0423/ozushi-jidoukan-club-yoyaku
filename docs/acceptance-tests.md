@@ -114,7 +114,7 @@ RUN_PERMISSION_E2E=1 pnpm test:e2e e2e/permission-guard.spec.ts
 
 **手順**
 1. 確認 URL を開き、予約内容が表示されること
-2. 「予約のキャンセル」節で、キャンセルボタンが出ず「キャンセル期限（...）を過ぎているため、このページからはキャンセルできません。」のメッセージが出ること
+2. 「予約のキャンセル」節で、キャンセルボタンが出ず「キャンセル期限（開催日の 2 営業日前 17 時）を過ぎているため、このページからはキャンセルできません。」のメッセージが出ること
 
 **期待結果**: UI でブロックされる。Server Action 側でも `cancelReservationAction` が `deadline-past` を返す（二重防御）。
 
@@ -219,7 +219,7 @@ RUN_PERMISSION_E2E=1 pnpm test:e2e e2e/permission-guard.spec.ts
 
 **期待結果**: 許可館以外のクラブは `fetchClubForAdmin` で null を返し、`notFound()`。
 
-**NG 時**: 404 でなく 500 / 200 が出る場合は `requireFacilityPermission` もしくは `fetchClubForAdmin` の条件を要確認。
+**NG 時**: 404 でなく 500 / 200 が出る場合は `requireFacilityPermissionOrThrow` もしくは `fetchClubForAdmin` の条件を要確認。
 
 ---
 
