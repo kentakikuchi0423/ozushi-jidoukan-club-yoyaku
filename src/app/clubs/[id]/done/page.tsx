@@ -69,9 +69,12 @@ export default async function ReservationDonePage({ searchParams }: Props) {
           <h2 className="text-sm font-semibold text-[var(--color-foreground)]">
             予約内容の確認・キャンセル用 URL
           </h2>
-          <p className="rounded-xl bg-[var(--color-surface-muted)] px-3 py-2 font-mono text-xs break-all">
+          <a
+            href={confirmUrl}
+            className="block rounded-xl bg-[var(--color-surface-muted)] px-3 py-2 font-mono text-xs break-all text-[var(--color-primary)] underline underline-offset-4 hover:bg-[var(--color-surface-hover)] focus-visible:ring-2 focus-visible:ring-[var(--color-focus)] focus-visible:ring-offset-2 focus-visible:outline-none"
+          >
             {confirmUrl}
-          </p>
+          </a>
           <p className="text-xs leading-5 text-[var(--color-muted)]">
             この URL
             は、ご本人がご予約内容を確認・キャンセルするためのものです。
