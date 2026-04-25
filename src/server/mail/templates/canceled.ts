@@ -3,6 +3,7 @@ import {
   formatDateTimeRange,
   renderFooter,
   type RenderedEmail,
+  textToHtml,
 } from "./shared";
 
 export interface CanceledEmailContext {
@@ -18,9 +19,7 @@ export function renderCanceledEmail(
   ctx: CanceledEmailContext,
   facilities: ReadonlyArray<FacilityContact>,
 ): RenderedEmail {
-  return {
-    subject: `【大洲市児童館クラブ予約】キャンセルを承りました（${ctx.reservationNumber}）`,
-    text: `${ctx.parentName} 様
+  const text = `${ctx.parentName} 様
 
 以下のご予約について、キャンセルを承りました。
 
@@ -31,6 +30,10 @@ export function renderCanceledEmail(
 ────────────────────
 
 またのご利用を心よりお待ちしております。
-${renderFooter(facilities)}`,
+${renderFooter(facilities)}`;
+  return {
+    subject: `【大洲市児童館クラブ予約】キャンセルを承りました（${ctx.reservationNumber}）`,
+    text,
+    html: textToHtml(text),
   };
 }

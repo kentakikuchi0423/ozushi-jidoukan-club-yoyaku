@@ -12,14 +12,9 @@ type Stage = "idle" | "confirming" | "done";
 interface Props {
   reservationNumber: string;
   secureToken: string;
-  deadlineLabel: string;
 }
 
-export function CancelForm({
-  reservationNumber,
-  secureToken,
-  deadlineLabel,
-}: Props) {
+export function CancelForm({ reservationNumber, secureToken }: Props) {
   const [stage, setStage] = useState<Stage>("idle");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -65,7 +60,8 @@ export function CancelForm({
         予約のキャンセル
       </h2>
       <p className="text-xs leading-5 text-[var(--color-muted)]">
-        キャンセルは <strong>{deadlineLabel}</strong> までお手続きいただけます。
+        キャンセルは <strong>開催日の 2 営業日前 17 時</strong>{" "}
+        までお手続きいただけます。
         <br />
         それ以降のキャンセルや無断欠席は他の利用者への影響が大きいため原則お控えください。
       </p>

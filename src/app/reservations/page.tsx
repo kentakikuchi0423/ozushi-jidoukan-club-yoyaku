@@ -6,6 +6,8 @@ import {
   cancellationBlockedReason,
   computeCancellationDeadline,
 } from "@/lib/reservations/cancellation-deadline";
+import { fetchClubDetail } from "@/lib/clubs/query";
+import type { ClubListing } from "@/lib/clubs/types";
 import { isReservationNumber } from "@/lib/reservations/number";
 import type { ReservationStatus } from "@/lib/reservations/status";
 import { formatJstDate, formatJstTime } from "@/lib/format";
@@ -36,6 +38,11 @@ export default async function ReservationLookupPage({ searchParams }: Props) {
   const reservation = await fetchMyReservation(r, t);
   if (!reservation) notFound();
 
+  // 予約の club_id から、対象年齢・概要・説明などの追加情報を取得する。
+  // 公開停止やリテンション切れで取れない場合は null になり、最低限の情報
+  // （ReservationDetail.club）だけで表示する。
+  const clubExtra = await fetchClubDetail(reservation.club.id).catch(() => null);
+
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8 sm:px-6">
       <nav className="mb-4 text-sm">
@@ -57,7 +64,7 @@ export default async function ReservationLookupPage({ searchParams }: Props) {
       </header>
 
       <StatusSection reservation={reservation} />
-      <ClubSection reservation={reservation} />
+      <ClubSection reservation={reservation} clubExtra={clubExtra} />
       <ApplicantSection reservation={reservation} />
 
       {reservation.status !== "canceled" && (
@@ -113,7 +120,6 @@ function CancelSection({
     <CancelForm
       reservationNumber={reservation.reservationNumber}
       secureToken={secureToken}
-      deadlineLabel={deadlineLabel}
     />
   );
 }
@@ -188,10 +194,16 @@ function describeStatus(reservation: ReservationDetail): {
   }
 }
 
-function ClubSection({ reservation }: { reservation: ReservationDetail }) {
+function ClubSection({
+  reservation,
+  clubExtra,
+}: {
+  reservation: ReservationDetail;
+  clubExtra: ClubListing | null;
+}) {
   const { club } = reservation;
   return (
-    <section className="mt-6 space-y-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-soft)] sm:p-6">
+    <section className="mt-6 space-y-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-soft)] sm:p-6">
       <h2 className="text-sm font-semibold text-[var(--color-foreground)]">
         クラブ
       </h2>
@@ -207,7 +219,27 @@ function ClubSection({ reservation }: { reservation: ReservationDetail }) {
             {formatJstTime(club.startAt)}〜{formatJstTime(club.endAt)}
           </span>
         </dd>
+        {clubExtra?.targetAge && (
+          <>
+            <dt className="text-[var(--color-muted)]">対象年齢</dt>
+            <dd>{clubExtra.targetAge}</dd>
+          </>
+        )}
+        {clubExtra?.summary && (
+          <>
+            <dt className="text-[var(--color-muted)]">概要</dt>
+            <dd className="whitespace-pre-wrap">{clubExtra.summary}</dd>
+          </>
+        )}
       </dl>
+      {clubExtra?.description && (
+        <div className="space-y-1 border-t border-[var(--color-border)] pt-3">
+          <p className="text-xs text-[var(--color-muted)]">補足</p>
+          <p className="text-sm leading-7 whitespace-pre-wrap text-[var(--color-foreground)]/90">
+            {clubExtra.description}
+          </p>
+        </div>
+      )}
     </section>
   );
 }

@@ -554,9 +554,7 @@ function PreviewStep({
         <h3 className="mb-2 text-sm font-bold">ご予約にあたってのお願い</h3>
         <ul className="list-disc space-y-1 pl-5">
           <li>
-            ご予約は先着順です。
-            <br />
-            受付結果はご登録のメールアドレス宛にお送りします。
+            ご予約は先着順です。受付結果はご登録のメールアドレス宛にお送りします。
           </li>
           <li>
             キャンセルは開催日の 2 営業日前 17 時までに手続きをお願いします。

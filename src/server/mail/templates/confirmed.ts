@@ -5,6 +5,7 @@ import {
   renderFooter,
   type ReservationEmailContext,
   type RenderedEmail,
+  textToHtml,
 } from "./shared";
 
 export function renderConfirmedEmail(
@@ -12,9 +13,7 @@ export function renderConfirmedEmail(
   facilities: ReadonlyArray<FacilityContact>,
 ): RenderedEmail {
   const url = buildConfirmUrl(ctx.reservationNumber, ctx.secureToken);
-  return {
-    subject: `【大洲市児童館クラブ予約】ご予約を承りました（${ctx.reservationNumber}）`,
-    text: `${ctx.parentName} 様
+  const text = `${ctx.parentName} 様
 
 この度は「${ctx.facilityName}」のクラブ予約にお申込みいただき、ありがとうございました。
 以下の内容でご予約を承りました。
@@ -33,6 +32,10 @@ ${url}
 キャンセルは開催日の 2 営業日前 17 時までにお願いします。
 それ以降のキャンセルおよび無断欠席は、他の利用者への影響が大きいため原則ご遠慮ください。
 キャンセルが続く場合は、今後のご利用をお断りすることがあります。
-${renderFooter(facilities)}`,
+${renderFooter(facilities)}`;
+  return {
+    subject: `【大洲市児童館クラブ予約】ご予約を承りました（${ctx.reservationNumber}）`,
+    text,
+    html: textToHtml(text),
   };
 }

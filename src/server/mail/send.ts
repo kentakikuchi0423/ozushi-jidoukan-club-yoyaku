@@ -27,6 +27,8 @@ export interface SendEmailArgs {
   readonly to: string;
   readonly subject: string;
   readonly text: string;
+  /** 任意。指定すると multipart で text と一緒に送られる。 */
+  readonly html?: string;
 }
 
 export async function sendEmail(args: SendEmailArgs): Promise<void> {
@@ -44,6 +46,7 @@ export async function sendEmail(args: SendEmailArgs): Promise<void> {
       to: args.to,
       subject: args.subject,
       text: args.text,
+      ...(args.html ? { html: args.html } : {}),
     });
     if (error) {
       console.error("[mail] send failed", {

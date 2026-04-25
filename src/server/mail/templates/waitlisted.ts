@@ -5,6 +5,7 @@ import {
   renderFooter,
   type ReservationEmailContext,
   type RenderedEmail,
+  textToHtml,
 } from "./shared";
 
 export interface WaitlistedEmailContext extends ReservationEmailContext {
@@ -16,9 +17,7 @@ export function renderWaitlistedEmail(
   facilities: ReadonlyArray<FacilityContact>,
 ): RenderedEmail {
   const url = buildConfirmUrl(ctx.reservationNumber, ctx.secureToken);
-  return {
-    subject: `【大洲市児童館クラブ予約】キャンセル待ちリストに追加しました（${ctx.reservationNumber}）`,
-    text: `${ctx.parentName} 様
+  const text = `${ctx.parentName} 様
 
 この度は「${ctx.facilityName}」のクラブ予約にお申込みいただき、ありがとうございました。
 お申込みいただいたクラブは定員に達していたため、キャンセル待ちとして承りました。
@@ -36,6 +35,10 @@ export function renderWaitlistedEmail(
 ■ お申込み内容の確認・取り消し
 以下の URL からお手続きいただけます。このメールは大切に保管してください。
 ${url}
-${renderFooter(facilities)}`,
+${renderFooter(facilities)}`;
+  return {
+    subject: `【大洲市児童館クラブ予約】キャンセル待ちリストに追加しました（${ctx.reservationNumber}）`,
+    text,
+    html: textToHtml(text),
   };
 }

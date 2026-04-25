@@ -2,6 +2,7 @@ import {
   type FacilityContact,
   renderFooter,
   type RenderedEmail,
+  textToHtml,
 } from "./shared";
 
 export interface AdminInviteContext {
@@ -32,9 +33,7 @@ export function renderAdminInviteEmail(
       ? "（館の割り当ては後ほど共有されます）"
       : ctx.facilityNames.join(" / ");
 
-  return {
-    subject: "【大洲市児童館クラブ予約】管理者アカウントが発行されました",
-    text: `${greeting}
+  const text = `${greeting}
 
 大洲市児童館クラブ予約システムの管理者アカウントが発行されました。
 
@@ -51,6 +50,10 @@ ${ctx.actionLink}
 このリンクは一定時間で無効になります。
 期限切れの場合は、発行者にもう一度お知らせください。
 
-ご不明な点があれば、招待を送った全館管理者までお問い合わせください。${renderFooter(facilities)}`,
+ご不明な点があれば、招待を送った全館管理者までお問い合わせください。${renderFooter(facilities)}`;
+  return {
+    subject: "【大洲市児童館クラブ予約】管理者アカウントが発行されました",
+    text,
+    html: textToHtml(text),
   };
 }

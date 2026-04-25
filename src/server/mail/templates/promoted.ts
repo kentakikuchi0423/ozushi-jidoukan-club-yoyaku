@@ -5,6 +5,7 @@ import {
   renderFooter,
   type ReservationEmailContext,
   type RenderedEmail,
+  textToHtml,
 } from "./shared";
 
 export function renderPromotedEmail(
@@ -12,9 +13,7 @@ export function renderPromotedEmail(
   facilities: ReadonlyArray<FacilityContact>,
 ): RenderedEmail {
   const url = buildConfirmUrl(ctx.reservationNumber, ctx.secureToken);
-  return {
-    subject: `【大洲市児童館クラブ予約】キャンセル待ちから繰り上がりご予約が確定しました（${ctx.reservationNumber}）`,
-    text: `${ctx.parentName} 様
+  const text = `${ctx.parentName} 様
 
 お待たせいたしました。お申込みいただいていた以下のクラブについて、
 キャンセルが発生したためキャンセル待ちから繰り上がり、ご予約が確定しました。
@@ -31,6 +30,10 @@ ${url}
 
 ご都合が合わなくなった場合は、他の方への影響を最小限にするため
 お早めにキャンセルのお手続きをお願いします。
-${renderFooter(facilities)}`,
+${renderFooter(facilities)}`;
+  return {
+    subject: `【大洲市児童館クラブ予約】キャンセル待ちから繰り上がりご予約が確定しました（${ctx.reservationNumber}）`,
+    text,
+    html: textToHtml(text),
   };
 }

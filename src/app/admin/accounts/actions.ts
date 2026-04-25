@@ -266,6 +266,7 @@ export async function addAdminAction(
     to: input.email,
     subject: email.subject,
     text: email.text,
+    html: email.html,
   });
 
   // 5) 監査ログ

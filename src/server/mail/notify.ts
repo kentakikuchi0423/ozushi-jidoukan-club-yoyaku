@@ -65,6 +65,7 @@ export async function notifyReservationCreated(
       to: ctx.email,
       subject: msg.subject,
       text: msg.text,
+      html: msg.html,
     });
     return;
   }
@@ -88,6 +89,7 @@ export async function notifyReservationCreated(
     to: ctx.email,
     subject: msg.subject,
     text: msg.text,
+    html: msg.html,
   });
 }
 
@@ -121,6 +123,7 @@ export async function notifyReservationCanceled(
     to: ctx.email,
     subject: msg.subject,
     text: msg.text,
+    html: msg.html,
   });
 }
 
@@ -201,5 +204,6 @@ export async function notifyReservationPromoted(
     to: data.email,
     subject: msg.subject,
     text: msg.text,
+    html: msg.html,
   });
 }

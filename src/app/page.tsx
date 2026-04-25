@@ -36,10 +36,6 @@ export default async function HomePage({ searchParams }: Props) {
 
   const filtered = applyClubFilters(allClubs, facilityFilter, statusFilter);
   const hasFilter = Boolean(facilityFilter || statusFilter);
-  const facilityNamesLine =
-    activeFacilities.length > 0
-      ? activeFacilities.map((f) => f.name).join("・")
-      : "市内の児童館・児童センター";
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10 sm:px-6">
@@ -60,13 +56,9 @@ export default async function HomePage({ searchParams }: Props) {
           クラブを探して予約する
         </h1>
         <p className="text-sm leading-7 text-[var(--color-foreground)]/80">
-          {facilityNamesLine}のクラブをまとめて表示しています。
+          「予約する」からクラブを申し込みいただけます。
           <br />
-          気になるクラブの「予約する」から、お申し込みの手続きに進めます。
-          <br />
-          クラブ開催後は、準備が整い次第、活動を記録した写真も閲覧いただけます。
-          <br />
-          なお、一定期間が過ぎたクラブは掲載を終了いたしますので、あらかじめご了承ください。
+          撮影したお写真は準備後に公開し、一定期間後に掲載を終了します。
         </p>
       </header>
 
