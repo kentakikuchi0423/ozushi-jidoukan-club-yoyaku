@@ -51,6 +51,16 @@ export function datetimeLocalJstToUtcIso(localValue: string): string {
 }
 
 /**
+ * 任意の日付値を「Asia/Tokyo の YYYY-MM-DD」文字列に変換する。
+ * 日付フィルタやカレンダー UI の比較キーに使う。
+ */
+export function formatJstYmd(value: Date | string | number): string {
+  const zoned = toZonedTime(toDate(value), TIMEZONE);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${zoned.getFullYear()}-${pad(zoned.getMonth() + 1)}-${pad(zoned.getDate())}`;
+}
+
+/**
  * UTC ISO 文字列を Asia/Tokyo の datetime-local 形式 `YYYY-MM-DDTHH:MM` に変換する。
  * 編集フォームの初期値として `<input type="datetime-local">` に流し込む用途。
  */

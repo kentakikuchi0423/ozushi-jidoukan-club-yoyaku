@@ -5,6 +5,7 @@ import { fetchListableClubs } from "@/lib/clubs/query";
 import { ClubFilterBar } from "@/components/clubs/filter-bar";
 import {
   applyClubFilters,
+  parseDateFilter,
   parseFacilityFilter,
   parseStatusFilter,
 } from "@/components/clubs/filter-utils";
@@ -21,11 +22,19 @@ import { fetchFacilities } from "@/server/facilities/list";
 export const dynamic = "force-dynamic";
 
 interface Props {
-  searchParams: Promise<{ facility?: string; status?: string }>;
+  searchParams: Promise<{
+    facility?: string;
+    status?: string;
+    dates?: string;
+  }>;
 }
 
 export default async function HomePage({ searchParams }: Props) {
-  const { facility: facilityParam, status: statusParam } = await searchParams;
+  const {
+    facility: facilityParam,
+    status: statusParam,
+    dates: datesParam,
+  } = await searchParams;
   const [allClubs, activeFacilities] = await Promise.all([
     fetchListableClubs(),
     fetchFacilities({ includeDeleted: false }),
@@ -33,9 +42,17 @@ export default async function HomePage({ searchParams }: Props) {
   const facilityCodes = activeFacilities.map((f) => f.code);
   const facilityFilter = parseFacilityFilter(facilityParam, facilityCodes);
   const statusFilter = parseStatusFilter(statusParam);
+  const dateFilter = parseDateFilter(datesParam);
 
-  const filtered = applyClubFilters(allClubs, facilityFilter, statusFilter);
-  const hasFilter = Boolean(facilityFilter || statusFilter);
+  const filtered = applyClubFilters(
+    allClubs,
+    facilityFilter,
+    statusFilter,
+    dateFilter,
+  );
+  const hasFilter = Boolean(
+    facilityFilter || statusFilter || dateFilter.length > 0,
+  );
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10 sm:px-6">
@@ -69,6 +86,7 @@ export default async function HomePage({ searchParams }: Props) {
         }))}
         initialFacility={facilityFilter}
         initialStatus={statusFilter}
+        initialDates={dateFilter}
         basePath="/"
       />
 

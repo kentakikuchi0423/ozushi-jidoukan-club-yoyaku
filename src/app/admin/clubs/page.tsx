@@ -5,6 +5,7 @@ import type { Metadata } from "next";
 import { ClubFilterBar } from "@/components/clubs/filter-bar";
 import {
   applyClubFilters,
+  parseDateFilter,
   parseFacilityFilter,
   parseStatusFilter,
 } from "@/components/clubs/filter-utils";
@@ -28,7 +29,11 @@ export const metadata: Metadata = {
 };
 
 interface Props {
-  searchParams: Promise<{ facility?: string; status?: string }>;
+  searchParams: Promise<{
+    facility?: string;
+    status?: string;
+    dates?: string;
+  }>;
 }
 
 export default async function AdminClubsListPage({ searchParams }: Props) {
@@ -53,18 +58,30 @@ export default async function AdminClubsListPage({ searchParams }: Props) {
       ? ctx.facilities.map((code) => nameByCode.get(code) ?? code).join(" / ")
       : "割り当てられた館がありません";
 
-  const { facility: facilityParam, status: statusParam } = await searchParams;
+  const {
+    facility: facilityParam,
+    status: statusParam,
+    dates: datesParam,
+  } = await searchParams;
   const facilityFilter = parseFacilityFilter(facilityParam, ctx.facilities);
   const statusFilter = parseStatusFilter(statusParam);
+  const dateFilter = parseDateFilter(datesParam);
 
   // 管理画面では未公開クラブも含めて一覧表示する。
   const allClubs = await fetchAdminListableClubs();
   const mine = allClubs.filter((club) =>
     ctx.facilities.includes(club.facilityCode),
   );
-  const filtered = applyClubFilters(mine, facilityFilter, statusFilter);
+  const filtered = applyClubFilters(
+    mine,
+    facilityFilter,
+    statusFilter,
+    dateFilter,
+  );
   const hasAnyClubs = mine.length > 0;
-  const hasFilter = Boolean(facilityFilter || statusFilter);
+  const hasFilter = Boolean(
+    facilityFilter || statusFilter || dateFilter.length > 0,
+  );
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8 sm:px-6">
@@ -105,6 +122,7 @@ export default async function AdminClubsListPage({ searchParams }: Props) {
             }))}
             initialFacility={facilityFilter}
             initialStatus={statusFilter}
+            initialDates={dateFilter}
             basePath="/admin/clubs"
           />
 

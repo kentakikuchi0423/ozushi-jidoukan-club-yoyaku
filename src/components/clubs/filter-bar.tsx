@@ -5,9 +5,10 @@ import { useCallback, useTransition } from "react";
 
 import type { FacilityCode } from "@/lib/facility";
 import type { ClubAvailability } from "@/lib/clubs/types";
+import { DateMultiPicker } from "./date-multi-picker";
 
 // 公開ページ `/` と管理画面 `/admin/clubs` で共有するフィルタバー。
-// URL の検索パラメータ `?facility=...&status=...` を駆動する。
+// URL の検索パラメータ `?facility=...&status=...&dates=...` を駆動する。
 
 const STATUS_LABEL: Record<ClubAvailability, string> = {
   available: "空きあり",
@@ -25,6 +26,8 @@ interface Props {
   readonly facilities: ReadonlyArray<FilterFacility>;
   readonly initialFacility: FacilityCode | "";
   readonly initialStatus: ClubAvailability | "";
+  /** 選択中の日付（YYYY-MM-DD の配列、ソート済み）。 */
+  readonly initialDates: ReadonlyArray<string>;
   /** URL 置換時のベースパス（`/` または `/admin/clubs`）。 */
   readonly basePath: string;
 }
@@ -33,6 +36,7 @@ export function ClubFilterBar({
   facilities,
   initialFacility,
   initialStatus,
+  initialDates,
   basePath,
 }: Props) {
   const router = useRouter();
@@ -40,7 +44,7 @@ export function ClubFilterBar({
   const [pending, startTransition] = useTransition();
 
   const update = useCallback(
-    (key: "facility" | "status", value: string) => {
+    (key: "facility" | "status" | "dates", value: string) => {
       const next = new URLSearchParams(params?.toString() ?? "");
       if (value) next.set(key, value);
       else next.delete(key);
@@ -54,13 +58,22 @@ export function ClubFilterBar({
     [params, router, basePath],
   );
 
+  const handleDatesChange = useCallback(
+    (dates: ReadonlyArray<string>) => {
+      update("dates", dates.join(","));
+    },
+    [update],
+  );
+
   const clearAll = useCallback(() => {
     startTransition(() => {
       router.replace(basePath, { scroll: false });
     });
   }, [router, basePath]);
 
-  const hasFilter = Boolean(initialFacility || initialStatus);
+  const hasFilter = Boolean(
+    initialFacility || initialStatus || initialDates.length > 0,
+  );
 
   return (
     <section
@@ -113,6 +126,17 @@ export function ClubFilterBar({
             </option>
           ))}
         </select>
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <span className="text-xs font-medium text-[var(--color-muted)]">
+          日付
+        </span>
+        <DateMultiPicker
+          value={initialDates}
+          onChange={handleDatesChange}
+          disabled={pending}
+        />
       </div>
 
       {hasFilter && (
