@@ -26,7 +26,7 @@
    - 「このメールは予約システムから自動送信しています。」をメール先頭に移動、フッタから削除
    - HTML 版を構造化レンダラ（`EmailContent` / `Block`）で再設計、Outlook 互換のインラインスタイル + `<table>` レイアウト + 緑の CTA ボタン（ADR-0016）
 4. **ドキュメント整合性監査** (このチャンク):
-   - `docs/email-domain-decision.md` 新設（市担当者協議資料 197 行 + DNS 仕組み解説）
+   - `docs/city-consultation.md` 新設（市担当者協議資料 197 行 + DNS 仕組み解説）
    - 全 docs（README / requirements / architecture / decisions / open-questions / testing-strategy / security-review / operations / acceptance-tests / user-manual / admin-manual）を実装と突き合わせて整合性修正
    - `decisions.md` に新 ADR 追加: 0016 メール multipart / 0017 @layer base / 0018 館マスター動的化 / 0019 club_programs / 0020 published_at
    - `requirements.md` の保護者必須 → 任意、メール本文構成、施設コードの動的管理を反映
@@ -43,7 +43,7 @@
 - 本番疎通: `/`、`/admin/login`、`/admin/clubs`、予約 → メール受信まで動作確認済
 
 ### 次の一手
-- 試験導入対象が外部の保護者を含むため、**Resend ドメイン検証** が必要。市担当者と `docs/email-domain-decision.md` をもとに協議してドメイン方針（市既存サブドメイン / 市新規取得 / 事業者経由 / 暫定 Allowed Recipients）を決定する
+- 試験導入対象が外部の保護者を含むため、**Resend ドメイン検証** が必要。市担当者と `docs/city-consultation.md` をもとに協議してドメイン方針（市既存サブドメイン / 市新規取得 / 事業者経由 / 暫定 Allowed Recipients）を決定する
 - 試験対象が 5 人以下なら Resend Allowed Recipients で当面しのげる
 - 本格運用前にテストデータ（テスト事業 / 予約テスト）を削除
 - `CRON_SECRET` を任意で設定し、retention cleanup を有効化
