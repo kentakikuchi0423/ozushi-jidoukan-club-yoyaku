@@ -26,9 +26,9 @@ describe("reservation email templates", () => {
     it("starts with the auto-send notice and contains the reservation number + URL", () => {
       const out = renderConfirmedEmail(baseCtx, baseFacilities);
       expect(out.subject).toContain("ozu_123456");
-      expect(out.text.startsWith("このメールは予約システムから自動送信して")).toBe(
-        true,
-      );
+      expect(
+        out.text.startsWith("このメールは予約システムから自動送信して"),
+      ).toBe(true);
       expect(out.text).toContain(baseCtx.facilityName);
       expect(out.text).toContain(baseCtx.clubName);
       expect(out.text).toContain("ozu_123456");

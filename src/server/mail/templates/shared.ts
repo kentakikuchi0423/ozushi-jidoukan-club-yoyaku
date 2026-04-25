@@ -126,7 +126,10 @@ export function renderUserEmailText(
 
   out.push(renderTextFooter(facilities));
   // 末尾に空行が積み上がるのを 1 行にまとめる
-  return out.join("\n").replace(/\n{3,}/g, "\n\n").replace(/\n+$/, "\n");
+  return out
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .replace(/\n+$/, "\n");
 }
 
 /** HTML 版本文のレンダリング。インラインスタイルで Outlook も含めて崩れにくく。 */
@@ -302,7 +305,7 @@ export function textToHtml(text: string): string {
     (url) => `<a href="${url}">${url}</a>`,
   );
   return [
-    '<div style="font-family:\'Hiragino Sans\',\'Meiryo\',sans-serif;line-height:1.7;color:#3b3a36;white-space:pre-wrap;word-break:break-word;">',
+    "<div style=\"font-family:'Hiragino Sans','Meiryo',sans-serif;line-height:1.7;color:#3b3a36;white-space:pre-wrap;word-break:break-word;\">",
     linked,
     "</div>",
   ].join("");

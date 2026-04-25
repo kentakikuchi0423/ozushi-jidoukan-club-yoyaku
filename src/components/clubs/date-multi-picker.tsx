@@ -162,7 +162,9 @@ export function DateMultiPicker({ value, onChange, disabled = false }: Props) {
             {WEEKDAYS.map((w, i) => (
               <span
                 key={w}
-                className={i === 0 || i === 6 ? "text-[var(--color-accent)]" : ""}
+                className={
+                  i === 0 || i === 6 ? "text-[var(--color-accent)]" : ""
+                }
               >
                 {w}
               </span>

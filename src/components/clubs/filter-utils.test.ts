@@ -67,9 +67,9 @@ describe("parseDateFilter", () => {
   });
 
   it("rejects malformed tokens silently", () => {
-    expect(parseDateFilter("not-a-date,2026-05-01,2026-13-01,2026-02-30")).toEqual([
-      "2026-05-01",
-    ]);
+    expect(
+      parseDateFilter("not-a-date,2026-05-01,2026-13-01,2026-02-30"),
+    ).toEqual(["2026-05-01"]);
   });
 });
 

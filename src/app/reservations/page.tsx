@@ -38,7 +38,9 @@ export default async function ReservationLookupPage({ searchParams }: Props) {
   // 予約の club_id から、対象年齢・概要・説明などの追加情報を取得する。
   // 公開停止やリテンション切れで取れない場合は null になり、最低限の情報
   // （ReservationDetail.club）だけで表示する。
-  const clubExtra = await fetchClubDetail(reservation.club.id).catch(() => null);
+  const clubExtra = await fetchClubDetail(reservation.club.id).catch(
+    () => null,
+  );
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8 sm:px-6">
