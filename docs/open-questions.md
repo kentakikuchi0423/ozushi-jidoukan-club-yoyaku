@@ -74,6 +74,58 @@
 - 推奨: **private でスタート → Phase 6 で public 切替**。secret 混入リスクを下げる
 - public 化前に `git log` 全 commit を diff レビュー
 
+## Q14. 予約番号 6 桁の上限（999999）到達時の方針 [Low]
+
+- 現状: `reservation_number_sequences` の CHECK は `100000..1000000`、実払い出しは
+  `100000..999999` の 900,000 番／館。アプリ側パーサも 6 桁固定
+  （`RESERVATION_NUMBER_REGEX = /^…_(\d{6})$/`）。上限到達時は次回 RPC が
+  CHECK 違反で落ち、利用者には 500 が返る（graceful fallback なし）
+- スケール感: 1日 10 予約・年中無休でも約 246 年、1日 50 予約でも約 49 年で、
+  **現実的に到達しない**
+- 番号の再利用: CLAUDE.md 固定要件で「予約番号は全体ユニーク・再利用しない」と
+  決めているため、1 年経過後の retention cleanup で空いた番号も**再利用しない**。
+  古い確認メールに残る番号と再利用後の番号が衝突して UX が混乱するため
+- 推奨: **平時は何もしない**。上限到達が見えてきた時点（実質起きない想定）で、
+  下記手順で 7 桁に拡張する。旧 6 桁番号はそのまま有効
+
+### 上限到達時の対応手順（参考）
+
+検知: 利用者からの「予約できない」報告 + サーバログの CHECK 違反エラー
+（`reservation_number_sequences_next_value_check`）。1 館でも到達すれば
+その館の予約 RPC が落ちる。
+
+対応は新規 migration 1 本 + アプリ側 3 ファイルの改修で済む。
+
+1. **migration 追加**: `next_value` の上限と `reservations.reservation_number`
+   の CHECK を緩める
+   ```sql
+   alter table public.reservation_number_sequences
+     drop constraint reservation_number_sequences_next_value_check;
+   alter table public.reservation_number_sequences
+     add constraint reservation_number_sequences_next_value_check
+       check (next_value between 100000 and 10000000);
+
+   alter table public.reservations
+     drop constraint reservations_reservation_number_check;
+   alter table public.reservations
+     add constraint reservations_reservation_number_check
+       check (reservation_number ~ '^[a-z][a-z0-9]+_[0-9]{6,7}$');
+   ```
+2. **`create_reservation` RPC の `lpad` 桁数調整**: 旧 6 桁番号と新 7 桁番号を
+   両立させたい場合は `lpad` をやめて `to_char(v_allocated_seq, 'FM999999999')`
+   等の可変桁に変更（または「上限到達後は 7 固定」で `lpad(..., 7, '0')` でも可）
+3. **`src/lib/reservations/number.ts`**:
+   - `RESERVATION_NUMBER_SEQUENCE_MAX = 9_999_999`
+   - `RESERVATION_NUMBER_REGEX = /^([a-z][a-z0-9]{1,9})_(\d{6,7})$/`
+   - `buildReservationNumber` の桁判定（必要なら `lpad` 相当を調整）
+4. **テスト更新**: `number.test.ts` に 7 桁ケースを追加
+5. **デプロイ**: 通常の Vercel デプロイで反映。DB migration は Supabase CLI
+
+注意点:
+- 1 館だけ先に到達しても他館には影響しない（sequence は館別）
+- 旧 6 桁番号は永続的に有効。利用者の手元の確認メールは引き続き機能する
+- secure_token の長さは変更しないので URL の互換性は保たれる
+
 ---
 
 ## 決定済み（decisions.md に移動済み）
