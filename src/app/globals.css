@@ -16,9 +16,13 @@
   --color-muted: #7a7770;
   --color-border: #e6e1d7;
 
-  /* アクセント: 若草（primary） */
-  --color-primary: #6b8e7f;
-  --color-primary-hover: #5d7d70;
+  /* アクセント: 若草（primary）
+   * ボタン背景 + 白文字で使うことが多いため、WCAG AA（4.5:1 以上）を満たす
+   * 深めの若草を採用している。背景に敷く柔らかいトーンは primary-soft を使う。
+   * primary vs #fff ≈ 4.8:1 / primary-hover vs #fff ≈ 6.5:1。
+   */
+  --color-primary: #4f7668;
+  --color-primary-hover: #3f6254;
   --color-primary-soft: #e8efe9;
 
   /* アクセント: 桜（accent、アスタリスクや必須印に使う落ち着いた紅） */
@@ -62,43 +66,50 @@
   --font-sans: var(--font-noto-sans-jp);
 }
 
-html {
-  color-scheme: light;
-}
+/*
+ * 要素リセットは必ず @layer base に入れること。
+ * unlayered で書くと Tailwind の @layer utilities より優先され、
+ * `text-white` などの utility クラスが効かなくなる（特に <a> で顕在化）。
+ */
+@layer base {
+  html {
+    color-scheme: light;
+  }
 
-body {
-  background: var(--color-background);
-  color: var(--color-foreground);
-  font-family:
-    var(--font-sans),
-    system-ui,
-    -apple-system,
-    "Segoe UI",
-    "Hiragino Kaku Gothic ProN",
-    "Hiragino Sans",
-    Meiryo,
-    sans-serif;
-  line-height: 1.7; /* 詰め込み感を避ける */
-  letter-spacing: 0.01em;
-}
+  body {
+    background: var(--color-background);
+    color: var(--color-foreground);
+    font-family:
+      var(--font-sans),
+      system-ui,
+      -apple-system,
+      "Segoe UI",
+      "Hiragino Kaku Gothic ProN",
+      "Hiragino Sans",
+      Meiryo,
+      sans-serif;
+    line-height: 1.7; /* 詰め込み感を避ける */
+    letter-spacing: 0.01em;
+  }
 
-/* 見出しは weight 600 どまりで、強すぎない印象に。Noto Sans JP 前提。 */
-h1,
-h2,
-h3,
-h4 {
-  font-weight: 600;
-  letter-spacing: 0.02em;
-}
+  /* 見出しは weight 600 どまりで、強すぎない印象に。Noto Sans JP 前提。 */
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
 
-/* リンクのデフォルト装飾。テーマ色に寄せる。 */
-a {
-  color: inherit;
-  text-underline-offset: 4px;
-}
+  /* リンクのデフォルト装飾。テーマ色に寄せる。 */
+  a {
+    color: inherit;
+    text-underline-offset: 4px;
+  }
 
-/* 選択色も揃える */
-::selection {
-  background: var(--color-primary-soft);
-  color: var(--color-foreground);
+  /* 選択色も揃える */
+  ::selection {
+    background: var(--color-primary-soft);
+    color: var(--color-foreground);
+  }
 }
