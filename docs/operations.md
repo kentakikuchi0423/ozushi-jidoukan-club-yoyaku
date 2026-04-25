@@ -63,13 +63,44 @@ values
 3 館すべてを持つ admin が super_admin として扱われる（ADR-0007 / 0014）。
 以降、アカウント追加は管理画面（`/admin/accounts`）から全館管理者が行う。
 
-### 3-5. Supabase Auth の Redirect URL に `/auth/callback` を登録
+### 3-5. Supabase Auth の Site URL / Redirect URL を設定
+
+**Supabase Studio → Authentication → URL Configuration** で 2 箇所を設定する。
+両者は役割が違うので混同しないこと。
+
+#### Site URL（本番 URL を 1 つだけ）
+
+招待メール・パスワードリセットメール本文の `{{ .SiteURL }}` テンプレ変数に
+使われる「デフォルトの戻り先」。**本番の URL** を入れる。
+
+```
+https://<本番ドメイン>
+```
+
+例: `https://ozushi-jidoukan-club-yoyaku.vercel.app`
+
+ここを `http://localhost:3000` のままにすると、本番で招待を出した瞬間に
+メール本文中のリンクが localhost を指してしまい、招待された人がリンクを
+踏んでも動かない。**Site URL は必ず本番にする。**
+
+ローカル開発時は `redirect_to` パラメータでこの値が上書きされるため、
+本番に固定しても dev 動作は壊れない。
+
+#### Redirect URLs（本番 + localhost を両方）
+
+OAuth / 招待リンク等で許可するリダイレクト先のホワイトリスト。
+**本番 + ローカル開発の両方** を登録する:
+
+```
+https://<本番ドメイン>/auth/callback
+http://localhost:3000/auth/callback
+```
 
 新規アカウント招待時、`generateLink(type='signup')` が発行する確認リンクが
 `https://<site>/auth/callback?code=...&next=/admin/clubs` に帰ってくるため、
-このパスを **Supabase Studio → Authentication → URL Configuration → Redirect URLs** に
-追加しておく（ローカル開発なら `http://localhost:3000/auth/callback` も追加）。
-登録していないとリンククリック時に「redirect_to not allowed」エラーになる。
+このパスがホワイトリストに無いと「redirect_to not allowed」エラーで弾かれる。
+ローカル `http://localhost:3000/auth/callback` を残しておくと、Studio から
+admin 招待をリハーサルするときに dev 環境でも動作確認できる。
 
 ### 3-4. 権限の剥奪
 
