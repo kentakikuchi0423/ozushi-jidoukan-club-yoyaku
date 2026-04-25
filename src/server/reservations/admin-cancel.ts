@@ -46,7 +46,17 @@ export async function adminCancelReservation(
 
   if (error) {
     if (error.code === "P0002") throw new AdminReservationNotFoundError();
-    throw new Error(`admin_cancel_reservation RPC failed: ${error.message}`);
+    // PostgREST のエラー詳細（code / hint / details）も Vercel ログから追えるよう
+    // 出力する。本番で「関数が見つかりません」(PGRST202) を切り分けるのに役立つ。
+    console.error("[admin.reservation.cancel] supabase rpc error", {
+      code: error.code,
+      message: error.message,
+      hint: error.hint,
+      details: error.details,
+    });
+    throw new Error(
+      `admin_cancel_reservation RPC failed: ${error.code ?? "?"} ${error.message}`,
+    );
   }
 
   const row = Array.isArray(data)
