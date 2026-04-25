@@ -5,7 +5,35 @@
 
 ---
 
-## 最終更新: 2026-04-25（本番デプロイ + 表記整理 + ドキュメント整合性監査）
+## 最終更新: 2026-04-26（管理者キャンセル導線 + Q14 上限到達時方針）
+
+### このチャンクで解消したもの
+1. **管理者キャンセル導線**（ADR-0021）:
+   - migration `20260425000000_admin_cancel_reservation.sql`：`admin_cancel_reservation(p_reservation_id uuid)` RPC を追加（SECURITY DEFINER、`grant execute` は service_role のみ）
+   - `src/server/reservations/admin-cancel.ts`：admin client 経由の RPC 呼び出しラッパ
+   - `src/server/reservations/admin-detail.ts`：予約 1 件 + クラブ + 館 + プログラム + 保護者 / 子どもを 1 クエリで取得
+   - `src/app/admin/reservations/[id]/cancel/page.tsx`：確認画面。予約内容と「キャンセル通知メール送信」「waitlist 繰り上げ」「取り消し不可」を明示
+   - `src/app/admin/reservations/[id]/cancel/actions.ts`：Server Action。再度の権限チェック → RPC → メール送信（既存の `notifyReservationCanceled` / `notifyReservationPromoted` を再利用） → 監査ログ → redirect
+   - 予約者一覧（`/admin/clubs/[id]/reservations`）の active な予約に「キャンセルする」リンクを追加。成功時は `?canceled=1` で success FormMessage 表示
+   - 締切（2 営業日前 17 時）チェックは admin 経路では行わない（強制キャンセル想定）
+2. **予約番号 6 桁上限到達時の方針**（Q14）:
+   - `docs/open-questions.md` に Q14 を新設。CLAUDE.md 固定要件「番号再利用しない」を維持
+   - 平時は何もしない（実質 246 年到達不可）。到達時の対応手順（migration SQL ひな形 + アプリ側 3 ファイル改修 + 注意点）を明記
+3. **docs**:
+   - `docs/decisions.md` に **ADR-0021** 追加
+   - `docs/open-questions.md` の **Q5** を Resolved（管理者キャンセル実装済み）
+
+### ⚠ デプロイ前にやること
+- 本番 Supabase に `20260425000000_admin_cancel_reservation.sql` を `pnpm db:push` で適用する
+- 適用後、本番で「予約者一覧 → キャンセルする → 確認 → 確定」を 1 件試してメール送信まで疎通確認
+
+### テスト結果
+- `pnpm format` / `pnpm lint` / `pnpm typecheck` / `pnpm build`: all green
+- `pnpm test`: 25 passed（Vitest worker teardown の flake は既知のもので、テスト自体は全 PASS）
+
+---
+
+## 1 つ前: 2026-04-25（本番デプロイ + 表記整理 + ドキュメント整合性監査）
 
 ### このチャンクで解消したもの
 1. **本番デプロイ完了**:

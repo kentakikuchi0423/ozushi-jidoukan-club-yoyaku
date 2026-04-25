@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
 
+import { FormMessage } from "@/components/ui";
 import { formatJstDate, formatJstTime } from "@/lib/format";
 import {
   AuthenticationRequiredError,
@@ -24,6 +25,7 @@ export const metadata: Metadata = {
 
 interface Props {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ canceled?: string }>;
 }
 
 const STATUS_LABEL: Record<AdminReservationListItem["status"], string> = {
@@ -38,8 +40,12 @@ const STATUS_CLASS: Record<AdminReservationListItem["status"], string> = {
   canceled: "bg-[var(--color-surface-muted)] text-[var(--color-muted)]",
 };
 
-export default async function AdminClubReservationsPage({ params }: Props) {
+export default async function AdminClubReservationsPage({
+  params,
+  searchParams,
+}: Props) {
   const { id } = await params;
+  const { canceled } = await searchParams;
 
   let ctx;
   try {
@@ -106,6 +112,14 @@ export default async function AdminClubReservationsPage({ params }: Props) {
           キャンセル済み {canceledCount} 名
         </p>
       </header>
+
+      {canceled === "1" && (
+        <div className="mb-4">
+          <FormMessage tone="success">
+            予約をキャンセルしました。利用者へキャンセル通知メールを送信しました。
+          </FormMessage>
+        </div>
+      )}
 
       {reservations.length === 0 ? (
         <div
@@ -188,6 +202,17 @@ function ReservationCard({
           </>
         )}
       </dl>
+
+      {!isCanceled && (
+        <div className="mt-1 flex justify-end">
+          <Link
+            href={`/admin/reservations/${r.id}/cancel`}
+            className="inline-flex items-center justify-center rounded-xl border border-[var(--color-danger-border)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--color-danger)] transition-colors hover:bg-[var(--color-danger-soft)] focus-visible:ring-2 focus-visible:ring-[var(--color-focus)] focus-visible:ring-offset-2 focus-visible:outline-none"
+          >
+            キャンセルする
+          </Link>
+        </div>
+      )}
     </article>
   );
 }

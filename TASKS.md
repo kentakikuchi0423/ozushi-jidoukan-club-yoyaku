@@ -13,8 +13,8 @@
 | 1 | 開発基盤 | 100% |
 | 2 | DB / 認証 / 権限 | 95% |
 | 3 | 利用者画面 | 95% |
-| 4 | 管理画面 | 90% |
-| 5 | 予約待ち / 繰り上げ / 期限管理 | 80% |
+| 4 | 管理画面 | 92% |
+| 5 | 予約待ち / 繰り上げ / 期限管理 | 85% |
 | 6 | テスト / セキュリティ / 仕上げ | 95% |
 
 ---
@@ -124,6 +124,7 @@
 - [x] super_admin のみ アカウント追加画面 `/admin/accounts`（invite + admins/admin_facilities INSERT + 監査ログ、管理者一覧表示）
 - [x] 館マスター管理画面 `/admin/facilities`（super_admin 限定、CRUD + soft delete + 既存 super_admin へ新館権限を自動付与、監査ログ）
 - [x] 写真リンクの外部 URL validation（`clubInputSchema` で http(s) 限定）
+- [x] 管理者キャンセル導線（予約者一覧 → 確認画面 → RPC 実行 → 通知メール + 監査ログ、ADR-0021）
 - [ ] モバイル対応の仕上げ（Phase 6 の UI ポリッシュで実施）
 - [ ] 管理者 E2E テスト（Phase 6、クラブ CRUD + 館 CRUD は追加済み）
 
@@ -135,8 +136,9 @@
 
 - [x] 定員超過時の waitlist 入り（`create_reservation` RPC）
 - [x] キャンセル時の自動繰り上げ（`cancel_reservation` RPC、`clubs FOR UPDATE` 保護下）
+- [x] 管理者キャンセル時の自動繰り上げ（`admin_cancel_reservation` RPC、同パターン）
 - [x] 繰り上げ通知メール（`notifyReservationPromoted`、admin client で相手 token 取得）
-- [x] キャンセル期限（2営業日前17時）のチェック（UI + Server Action）
+- [x] キャンセル期限（2営業日前17時）のチェック（UI + Server Action、admin 経路は強制キャンセル可）
 - [x] retention cleanup SQL 関数（`cleanup_expired_clubs` / `cleanup_old_audit_logs`）
 - [x] retention cron の Route Handler + `vercel.json`（`Bearer CRON_SECRET` 認証、`audit_logs` 記録）
 - [ ] 状態遷移 integration test（Phase 6）

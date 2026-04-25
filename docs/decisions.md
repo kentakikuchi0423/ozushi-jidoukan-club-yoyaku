@@ -246,3 +246,22 @@
 - **Consequences**:
   - 公開操作が監査ログ `club.publish` に残る。
   - 「いつから公開」の情報が DB に保持され、運用上のトレーサビリティが取れる。
+
+## ADR-0021 管理者キャンセル導線は専用 RPC + 確認画面で実装する
+
+- **Status**: Accepted（2026-04-26）
+- **Context**:
+  - Q5 で「Phase 4 では作らない」としていたが、運用上「電話問い合わせ → 管理者がキャンセル」のフローが頻発する想定が立った。
+  - 既存の `cancel_reservation` RPC は `(reservation_number + secure_token)` を要求する利用者向け関数で、admin は token を持たないためそのままでは流用できない。
+- **Decision**:
+  - 新 RPC `admin_cancel_reservation(p_reservation_id uuid)` を追加（migration 20260425000000）。
+    - SECURITY DEFINER、`grant execute` は `service_role` のみ（Server Action 経由でのみ呼べる）。
+    - 認可は Server Action 側（`requireFacilityPermission`）で対象館の権限を確認してから呼ぶ。
+    - キャンセル + waitlist 先頭の繰り上げを 1 トランザクションで実施。idempotent（再呼び出しは canceled=false の no-op）。
+  - UI は予約者一覧（`/admin/clubs/[id]/reservations`）の active な予約に「キャンセルする」ボタンを置き、押下で確認画面（`/admin/reservations/[id]/cancel`）へ遷移。確認画面で「キャンセルメール送信」「waitlist 繰り上げ通知」「取り消し不可」を明示してから submit させる。
+  - メールテンプレートは利用者キャンセルと同じ `canceled` / `promoted` を流用（受信者目線では予約が消えた事実は同じで、文面を分ける必要がない）。
+  - 監査ログは `reservation.admin_cancel`、metadata に `previousStatus` / `promoted` / `idempotentNoop` を残す（個人情報は含めない）。
+  - 締切（2 営業日前 17 時）の判定は admin 経路では行わない。締切後の運用は管理者キャンセルが主動線。
+- **Consequences**:
+  - 締切後でも管理者は強制キャンセルできるため、無連絡欠席や日程変更に対応可能。
+  - 利用者が受け取るメールは「セルフキャンセル時」と区別がつかない。違いを示したい場合は `notifyReservationCanceled` に `by` フラグを足してテンプレ分岐できる（v1 では分岐しない）。
