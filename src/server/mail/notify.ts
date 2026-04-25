@@ -14,8 +14,8 @@ import { sendEmail } from "./send";
 // メール送信失敗で崩さない方針）。呼び出し側は `void notify(...)` で
 // fire-and-forget できる。
 //
-// メールの冒頭の「○○ 様」は、保護者の 1 人目の氏名を使う。複数人いる場合も
-// 代表者として 1 人目に送るのが無難（DB 的にも position=0 = 最初に登録した人）。
+// 予約者向けメール本文には保護者氏名は含まれない（自動送信メールであり、
+// 受信者は宛先メールアドレスから自身宛てだと判断できるため、汎用文面で十分）。
 
 async function fetchFooterFacilities(): Promise<
   ReadonlyArray<FacilityContact>
@@ -35,7 +35,6 @@ export interface CreatedContext {
   readonly secureToken: string;
   readonly status: "confirmed" | "waitlisted";
   readonly waitlistPosition: number | null;
-  readonly parentName: string;
   readonly email: string;
   readonly facilityName: string;
   readonly clubName: string;
@@ -52,7 +51,6 @@ export async function notifyReservationCreated(
       {
         reservationNumber: ctx.reservationNumber,
         secureToken: ctx.secureToken,
-        parentName: ctx.parentName,
         facilityName: ctx.facilityName,
         clubName: ctx.clubName,
         clubStartAt: ctx.clubStartAt,
@@ -75,7 +73,6 @@ export async function notifyReservationCreated(
     {
       reservationNumber: ctx.reservationNumber,
       secureToken: ctx.secureToken,
-      parentName: ctx.parentName,
       facilityName: ctx.facilityName,
       clubName: ctx.clubName,
       clubStartAt: ctx.clubStartAt,
@@ -95,7 +92,6 @@ export async function notifyReservationCreated(
 
 export interface CanceledContext {
   readonly reservationNumber: string;
-  readonly parentName: string;
   readonly email: string;
   readonly facilityName: string;
   readonly clubName: string;
@@ -110,7 +106,6 @@ export async function notifyReservationCanceled(
   const msg = renderCanceledEmail(
     {
       reservationNumber: ctx.reservationNumber,
-      parentName: ctx.parentName,
       facilityName: ctx.facilityName,
       clubName: ctx.clubName,
       clubStartAt: ctx.clubStartAt,
@@ -141,13 +136,11 @@ interface PromotedLookupRow {
       name: string;
     };
   };
-  parents: Array<{ name: string }> | null;
 }
 
 /**
  * 繰り上げ対象の予約番号を受け取り、admin クライアント経由で送信に必要な情報を
  * 取得してメールを送る。secure_token は他人に返せないため server-side のみで扱う。
- * 保護者の 1 人目を「○○ 様」の宛先として使う。
  */
 export async function notifyReservationPromoted(
   promotedReservationNumber: string,
@@ -164,14 +157,9 @@ export async function notifyReservationPromoted(
          end_at,
          facility:facilities!inner(name),
          program:club_programs!inner(name)
-       ),
-       parents:reservation_parents(name, position)`,
+       )`,
     )
     .eq("reservation_number", promotedReservationNumber)
-    .order("position", {
-      referencedTable: "reservation_parents",
-      ascending: true,
-    })
     .maybeSingle<PromotedLookupRow>();
 
   if (error || !data) {
@@ -182,15 +170,11 @@ export async function notifyReservationPromoted(
     return;
   }
 
-  const primaryParentName =
-    data.parents && data.parents.length > 0 ? data.parents[0].name : "ご予約者";
-
   const facilities = await fetchFooterFacilities();
   const msg = renderPromotedEmail(
     {
       reservationNumber: data.reservation_number,
       secureToken: data.secure_token,
-      parentName: primaryParentName,
       facilityName: data.club.facility.name,
       clubName: data.club.program.name,
       clubStartAt: data.club.start_at,

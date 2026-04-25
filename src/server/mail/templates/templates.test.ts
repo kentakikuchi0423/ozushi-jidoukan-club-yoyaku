@@ -7,7 +7,6 @@ import type { FacilityContact } from "./shared";
 import { renderWaitlistedEmail } from "./waitlisted";
 
 const baseCtx = {
-  parentName: "田中 太郎",
   facilityName: "大洲児童館",
   clubName: "こども英会話（初級）",
   clubStartAt: "2026-05-10T01:00:00Z", // JST 10:00
@@ -24,14 +23,21 @@ const baseFacilities: ReadonlyArray<FacilityContact> = [
 
 describe("reservation email templates", () => {
   describe("renderConfirmedEmail", () => {
-    it("includes the reservation number in subject and body, plus the confirmation URL", () => {
+    it("starts with the auto-send notice and contains the reservation number + URL", () => {
       const out = renderConfirmedEmail(baseCtx, baseFacilities);
       expect(out.subject).toContain("ozu_123456");
-      expect(out.text).toContain(baseCtx.parentName);
+      expect(out.text.startsWith("このメールは予約システムから自動送信して")).toBe(
+        true,
+      );
       expect(out.text).toContain(baseCtx.facilityName);
       expect(out.text).toContain(baseCtx.clubName);
       expect(out.text).toContain("ozu_123456");
       expect(out.text).toMatch(/\/reservations\?r=ozu_123456&t=/);
+    });
+
+    it("does not contain a personalized greeting like '○○ 様'", () => {
+      const out = renderConfirmedEmail(baseCtx, baseFacilities);
+      expect(out.text).not.toMatch(/様\s*$/m);
     });
 
     it("does not leak the secure_token in the subject", () => {
@@ -46,10 +52,23 @@ describe("reservation email templates", () => {
         expect(out.text).toContain(f.phone);
       }
     });
+
+    it("emits an HTML version that links the URL with an anchor tag", () => {
+      const out = renderConfirmedEmail(baseCtx, baseFacilities);
+      expect(out.html).toBeDefined();
+      expect(out.html).toContain("<a ");
+      expect(out.html).toMatch(/href="[^"]*\/reservations\?r=ozu_123456/);
+    });
+
+    it("does not include the auto-send notice in the footer (it's at the top instead)", () => {
+      const out = renderConfirmedEmail(baseCtx, baseFacilities);
+      const occurrences = out.text.split("自動送信").length - 1;
+      expect(occurrences).toBe(1);
+    });
   });
 
   describe("renderWaitlistedEmail", () => {
-    it("shows the waitlist position", () => {
+    it("shows the waitlist position in the subject and body", () => {
       const out = renderWaitlistedEmail(
         { ...baseCtx, waitlistPosition: 3 },
         baseFacilities,
@@ -72,7 +91,6 @@ describe("reservation email templates", () => {
     it("acknowledges the cancellation and does not include a URL", () => {
       const out = renderCanceledEmail(
         {
-          parentName: baseCtx.parentName,
           facilityName: baseCtx.facilityName,
           clubName: baseCtx.clubName,
           clubStartAt: baseCtx.clubStartAt,

@@ -89,7 +89,6 @@ export async function createReservationAction(
           secureToken: result.secureToken,
           status: result.status,
           waitlistPosition: result.waitlistPosition,
-          parentName: parsed.data.parents[0]?.name ?? "ご予約者",
           email: parsed.data.email,
           facilityName: club.facilityName,
           clubName: club.name,
