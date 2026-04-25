@@ -47,7 +47,7 @@ Supabase Studio → SQL Editor で以下を実行（`<UUID>` は上記 id）:
 
 ```sql
 insert into public.admins (id, display_name)
-values ('<UUID>', '大洲市役所 担当');
+values ('<UUID>', 'システム管理者');
 ```
 
 ### 3-3. `admin_facilities` に全 3 館の権限を付与（= super_admin）
