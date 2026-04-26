@@ -5,9 +5,14 @@
 
 ---
 
-## 最終更新: 2026-04-26（待ちリスト再採番）
+## 最終更新: 2026-04-26（待ちリスト再採番 + super_admin 警告画面のバックリンク）
 
 ### このチャンクで解消したもの
+0. **super_admin 専用ページの権限なし時に「クラブ一覧に戻る」リンクを表示**:
+   - `/admin/facilities`、`/admin/accounts`、`/admin/facilities/new`、`/admin/facilities/[id]/edit` の `SuperAdminRequiredError` 分岐に nav リンクを追加
+   - 後者 2 ページは amber-50 直書きから他ページと同じ `FormMessage tone="warning"` に統一
+   - `e2e/permission-guard.spec.ts` にバックリンクの可視性 / `href` 検証を追加
+   - `docs/acceptance-tests.md` B-11、`docs/admin-manual.md` §3-1 を反映
 1. **キャンセル時に待ちリストの順位を詰め直す**（ADR-0022）:
    - 既存挙動の不具合: 待ちリスト `{1, 2, 3}` の 2 番目がキャンセル → 残りは `{1, 3}` のままで「3 番目」と表示され続けていた。先頭が繰り上がりで抜けた場合も同様に後続が詰まらなかった
    - migration `20260426000000_renumber_waitlist_on_cancel.sql`:
@@ -26,8 +31,8 @@
    - `docs/acceptance-tests.md`: A-3 を「3 人目の利用者が C として繰り上がる」シナリオに拡張、B-10 に再採番の確認項目を追加
 
 ### ⚠ 次の一手
-- `git push origin main`（ローカルは origin/main から **1 コミット先行**）
-- デプロイ後、本番でも B-10 の手動シナリオ（待ちリスト 2 件以上を作って 1 番目をキャンセル → 後ろが詰まる）を 1 周し動作再確認
+- 本番デプロイ後、B-10（待ちリスト再採番）と B-11（super_admin 警告のバックリンク）を本番 URL で軽く目視確認
+- 残作業として、本番 DB のテストデータ（`ozu_100013` / `ozu_100014` を含む `playwright-test@example.invalid` 複数件）は retention cleanup（1 年）で自動消去される
 
 ### テスト結果
 - `pnpm format` / `pnpm lint` / `pnpm typecheck`: all green
