@@ -14,7 +14,7 @@
 | 2 | DB / 認証 / 権限 | 95% |
 | 3 | 利用者画面 | 95% |
 | 4 | 管理画面 | 92% |
-| 5 | 予約待ち / 繰り上げ / 期限管理 | 85% |
+| 5 | 予約待ち / 繰り上げ / 期限管理 | 88% |
 | 6 | テスト / セキュリティ / 仕上げ | 95% |
 
 ---
@@ -137,6 +137,7 @@
 - [x] 定員超過時の waitlist 入り（`create_reservation` RPC）
 - [x] キャンセル時の自動繰り上げ（`cancel_reservation` RPC、`clubs FOR UPDATE` 保護下）
 - [x] 管理者キャンセル時の自動繰り上げ（`admin_cancel_reservation` RPC、同パターン）
+- [x] キャンセル / 繰り上げで穴ができた待ちリストの再採番（ADR-0022、`renumber_waitlist_after_gap`）
 - [x] 繰り上げ通知メール（`notifyReservationPromoted`、admin client で相手 token 取得）
 - [x] キャンセル期限（2営業日前17時）のチェック（UI + Server Action、admin 経路は強制キャンセル可）
 - [x] retention cleanup SQL 関数（`cleanup_expired_clubs` / `cleanup_old_audit_logs`）

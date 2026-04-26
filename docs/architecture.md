@@ -75,7 +75,7 @@
 │       └── supabase/admin.ts              # secret key クライアント（RLS バイパス）
 ├── supabase/
 │   ├── config.toml
-│   ├── migrations/                        # 15 本（initial / rpcs / retention / listing / detail / lookup / fixes / multi_parent_child / fk_cleanup / optional_parents / club_programs / get_my_reservation_program / clubs_published_at / facility_phone_and_dynamic / admin_cancel_reservation）
+│   ├── migrations/                        # 16 本（initial / rpcs / retention / listing / detail / lookup / fixes / multi_parent_child / fk_cleanup / optional_parents / club_programs / get_my_reservation_program / clubs_published_at / facility_phone_and_dynamic / admin_cancel_reservation / renumber_waitlist_on_cancel）
 │   └── seed.sql                           # placeholder（PII 禁止方針）
 ├── scripts/db-push.mjs                    # `pnpm db:push` ラッパ
 ├── e2e/                                   # Playwright: smoke / permission-guard / reservation-flow / admin-flow
@@ -241,8 +241,9 @@ RLS に頼り切らず、Server Action / Route Handler 側でも `requireAdmin` 
 | 関数 | 呼び元 | 役割 |
 | --- | --- | --- |
 | `create_reservation(club_id, secure_token, parents jsonb, children jsonb, phone, email, notes)` | `supabase.rpc` from server client | `clubs FOR UPDATE` + 容量判定 + 連番採番 + 予約 INSERT + 保護者/子どもの関係テーブル INSERT |
-| `cancel_reservation(reservation_number, secure_token)` | 同上 | 利用者向け：トークン検証 + キャンセル + 繰り上げ |
-| `admin_cancel_reservation(reservation_id)` | admin client（service_role） | 管理者向け：reservation_id でキャンセル + 繰り上げ。EXECUTE は service_role のみ（ADR-0021） |
+| `cancel_reservation(reservation_number, secure_token)` | 同上 | 利用者向け：トークン検証 + キャンセル + 繰り上げ + 待ちリスト再採番（ADR-0022） |
+| `admin_cancel_reservation(reservation_id)` | admin client（service_role） | 管理者向け：reservation_id でキャンセル + 繰り上げ + 待ちリスト再採番。EXECUTE は service_role のみ（ADR-0021, ADR-0022） |
+| `renumber_waitlist_after_gap(club_id, gap_position)` | 上記 2 RPC の内部 | `waitlist_position > gap_position` の行を昇順に 1 つずつ詰める内部ヘルパー（ADR-0022） |
 | `get_my_reservation(reservation_number, secure_token)` | 同上 | 予約確認画面の読み取り |
 | `list_public_clubs()` | 同上 | 利用者向けクラブ一覧（件数集計つき） |
 | `get_public_club(id)` | 同上 | クラブ詳細 1 件 |
@@ -279,9 +280,11 @@ Client: /reservations?r=...&t=... の「キャンセルする」
        ├─ fetchMyReservation(r, t) でトークン検証 + キャンセル前の情報を snapshot
        ├─ isCancellable(clubStartAt) で 2 営業日前 17:00 JST を確認（祝日含む）
        ├─ RPC: cancel_reservation(r, t)
-       │   ├─ SELECT reservations FOR UPDATE (token 一致)
+       │   ├─ SELECT reservations FOR UPDATE (token 一致 / 旧 waitlist_position も取得)
        │   ├─ UPDATE status='canceled', canceled_at=now()
-       │   └─ if 元が confirmed: clubs FOR UPDATE 取得 → waitlist 先頭を confirmed に昇格
+       │   ├─ if 元が confirmed: clubs FOR UPDATE 取得 → waitlist 先頭を confirmed に昇格
+       │   └─ renumber_waitlist_after_gap(club_id, gap)（ADR-0022）
+       │        gap = 元が waitlisted なら旧 waitlist_position、繰り上げ発生時は 1
        ├─ notifyReservationCanceled (fire-and-forget)
        └─ if promotion が発生: notifyReservationPromoted（相手の secure_token を admin client で取得）
 ```
@@ -297,9 +300,10 @@ Admin: /admin/clubs/[id]/reservations の「キャンセルする」
             └→ Server Action: adminCancelReservationFormAction(id, formData)
                  ├─ requireFacilityPermission を再チェック（render と submit の権限ズレに保険）
                  ├─ RPC: admin_cancel_reservation(reservation_id)（service_role のみ実行可）
-                 │   ├─ SELECT reservations FOR UPDATE
+                 │   ├─ SELECT reservations FOR UPDATE（旧 waitlist_position も取得）
                  │   ├─ UPDATE status='canceled', canceled_at=now()
-                 │   └─ if 元が confirmed: clubs FOR UPDATE → waitlist 先頭を昇格
+                 │   ├─ if 元が confirmed: clubs FOR UPDATE → waitlist 先頭を昇格
+                 │   └─ renumber_waitlist_after_gap(club_id, gap)（ADR-0022 と同じ）
                  ├─ notifyReservationCanceled / notifyReservationPromoted（利用者経路と同じテンプレ）
                  ├─ logAdminAction(reservation.admin_cancel)（個人情報はメタに含めない）
                  └─ revalidatePath + redirect → 一覧?canceled=1

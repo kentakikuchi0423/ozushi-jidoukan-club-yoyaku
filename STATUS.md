@@ -5,7 +5,38 @@
 
 ---
 
-## 最終更新: 2026-04-26（管理者キャンセル導線 + Q14 上限到達時方針）
+## 最終更新: 2026-04-26（待ちリスト再採番）
+
+### このチャンクで解消したもの
+1. **キャンセル時に待ちリストの順位を詰め直す**（ADR-0022）:
+   - 既存挙動の不具合: 待ちリスト `{1, 2, 3}` の 2 番目がキャンセル → 残りは `{1, 3}` のままで「3 番目」と表示され続けていた。先頭が繰り上がりで抜けた場合も同様に後続が詰まらなかった
+   - migration `20260426000000_renumber_waitlist_on_cancel.sql`:
+     - 共通ヘルパー `renumber_waitlist_after_gap(uuid, integer)` を新設（`revoke all from public`、内部呼び出し専用）
+     - `cancel_reservation` / `admin_cancel_reservation` を `CREATE OR REPLACE` で差し替え、キャンセル / 繰り上げ後にギャップ位置以降を 1 つずつ詰める
+     - PG の partial unique index `(club_id, waitlist_position) where status='waitlisted'` を破らないよう、PL/pgSQL FOR ループで `waitlist_position` 昇順に 1 行ずつ UPDATE
+   - 順位変動を都度メールで通知することはしない（送るのは引き続き繰り上げ確定の先頭の人だけ）
+2. **docs**:
+   - `docs/decisions.md` に **ADR-0022** 追加
+   - `docs/architecture.md`: RPC 表に `renumber_waitlist_after_gap` を追記、`cancel_reservation` / `admin_cancel_reservation` の説明と 4.2 / 4.3 のフロー図を更新、migration 数（15 → 16）
+   - `docs/requirements.md`: §3.6 に「待ちリスト再採番」の項目追加
+   - `docs/admin-manual.md`: §6-2 に順位の詰め直しを補足
+   - `docs/user-manual.md`: §5「待ちリストからの繰り上がり」に順位繰り上がりを補足
+   - `docs/security-review.md`: §8 にレビュー実施記録 1 行
+   - `docs/testing-strategy.md`: §3 に観点を追加
+   - `docs/acceptance-tests.md`: A-3 を「3 人目の利用者が C として繰り上がる」シナリオに拡張、B-10 に再採番の確認項目を追加
+
+### ⚠ 次の一手
+- 本番 Supabase に `20260426000000_renumber_waitlist_on_cancel.sql` を `pnpm db:push` で適用する（**ユーザー明示確認待ち**）
+- 適用後、`capacity=1` の検証クラブで「A: confirmed / B: waitlist 1 / C: waitlist 2 / B キャンセル → C が waitlist 1」まで Playwright で疎通確認
+- 検証通過後 `git push origin main`
+
+### テスト結果
+- `pnpm format` / `pnpm lint` / `pnpm typecheck`: all green
+- `pnpm test`: 既存 25 件は変更なし。今回は migration のみで TS への影響なし
+
+---
+
+## 1 つ前: 2026-04-26（管理者キャンセル導線 + Q14 上限到達時方針）
 
 ### このチャンクで解消したもの
 1. **管理者キャンセル導線**（ADR-0021）:

@@ -254,7 +254,7 @@
   - Q5 で「Phase 4 では作らない」としていたが、運用上「電話問い合わせ → 管理者がキャンセル」のフローが頻発する想定が立った。
   - 既存の `cancel_reservation` RPC は `(reservation_number + secure_token)` を要求する利用者向け関数で、admin は token を持たないためそのままでは流用できない。
 - **Decision**:
-  - 新 RPC `admin_cancel_reservation(p_reservation_id uuid)` を追加（migration 20260425000000）。
+  - 新 RPC `admin_cancel_reservation(p_reservation_id uuid)` を追加(migration 20260425000000)。
     - SECURITY DEFINER、`grant execute` は `service_role` のみ（Server Action 経由でのみ呼べる）。
     - 認可は Server Action 側（`requireFacilityPermission`）で対象館の権限を確認してから呼ぶ。
     - キャンセル + waitlist 先頭の繰り上げを 1 トランザクションで実施。idempotent（再呼び出しは canceled=false の no-op）。
@@ -265,3 +265,22 @@
 - **Consequences**:
   - 締切後でも管理者は強制キャンセルできるため、無連絡欠席や日程変更に対応可能。
   - 利用者が受け取るメールは「セルフキャンセル時」と区別がつかない。違いを示したい場合は `notifyReservationCanceled` に `by` フラグを足してテンプレ分岐できる（v1 では分岐しない）。
+
+## ADR-0022 キャンセル時に待ちリストの順位を詰め直す
+
+- **Status**: Accepted（2026-04-26）
+- **Context**:
+  - 当初の `cancel_reservation` / `admin_cancel_reservation` は、キャンセル対象の `waitlist_position` を null にするだけで、後ろの待ち列の順位を更新していなかった。
+  - 結果として、待ちリスト `{1, 2, 3}` の 2 番目がキャンセルした後も、3 番目は `waitlist_position = 3` のまま残り、UI に「3 番目」と表示され続けるバグになっていた。
+  - 利用者からも「自分の前の人がキャンセルしたはずなのに順位が変わらない」という違和感の訴えが出る筋。
+- **Decision**:
+  - migration 20260426000000 で共通ヘルパー `renumber_waitlist_after_gap(club_id, gap_position)` を新設し、`cancel_reservation` / `admin_cancel_reservation` の末尾から呼び出す。
+    - 元が `waitlisted` のキャンセル → ギャップは旧 `waitlist_position`
+    - 元が `confirmed` のキャンセル + 先頭繰り上げあり → ギャップは 1（先頭の位置）
+    - それ以外 → 何もしない
+  - ヘルパー本体は PL/pgSQL の FOR ループで `waitlist_position` 昇順に 1 行ずつ `waitlist_position - 1` で UPDATE する。一括 UPDATE ではなく **昇順 1 行ずつ** にするのは、`(club_id, waitlist_position)` の partial unique index に対して中間状態の重複を避けるため。
+  - メール通知は **送らない**（順位変動のたびにメールが届くと煩わしい。利用者は予約確認 URL を再訪したときに最新の順位が見えれば十分）。送るのは引き続き、繰り上げ確定（waitlisted → confirmed）になった先頭の人にだけ。
+- **Consequences**:
+  - 予約確認画面・予約者一覧・admin キャンセル確認画面のいずれも DB 値を素直に表示するだけで正しい順位になる（アプリ側のロジック修正は不要）。
+  - 同一クラブで複数人が同時にキャンセルしても、`reservations FOR UPDATE` + `clubs FOR UPDATE`（confirmed の場合）で直列化されるため整合する。
+  - 万一一括 UPDATE に変更したくなった場合は、deferrable な UNIQUE constraint への移行が必要（partial unique index は deferrable にできないため、CREATE UNIQUE INDEX を ALTER TABLE ADD CONSTRAINT に置き換える等の追加作業がいる）。

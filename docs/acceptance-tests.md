@@ -68,14 +68,16 @@ RUN_PERMISSION_E2E=1 pnpm test:e2e e2e/permission-guard.spec.ts
 
 **手順**
 1. 利用者 A が予約 → 確定（`confirmed`）
-2. 利用者 B が同じクラブに予約 → キャンセル待ち（`waitlisted`、完了画面に「○ 番目」と表示）
-3. 利用者 A がキャンセル
-4. 利用者 B に繰り上がりメールが届く（`reservation.promoted`）
-5. 利用者 B の確認 URL を開き、ステータスが「ご予約は確定しています」になっていること
+2. 利用者 B が同じクラブに予約 → キャンセル待ち（`waitlisted`、完了画面に「1 番目」と表示）
+3. 利用者 C が同じクラブに予約 → キャンセル待ち（完了画面に「2 番目」と表示）
+4. 利用者 A がキャンセル
+5. 利用者 B に繰り上がりメールが届く（`reservation.promoted`）
+6. 利用者 B の確認 URL を開き、ステータスが「ご予約は確定しています」になっていること
+7. 利用者 C の確認 URL を開き、「現在の順位は **1 番目** です」と表示されること（元 2 番目 → 1 番目に詰まる、ADR-0022）
 
-**期待結果**: DB 上では B の `status` が `waitlisted` → `confirmed` に遷移し、A は `canceled`。メール送信記録は Resend ダッシュボードで確認。
+**期待結果**: DB 上では B の `status` が `waitlisted` → `confirmed`、A は `canceled`、C の `waitlist_position` が 2 → 1 に更新される。メール送信記録は Resend ダッシュボードで確認。順位変動のメールは C には送信されない（送るのは繰り上げ確定の B のみ）。
 
-**NG 時**: `cancel_reservation` RPC のトランザクション境界のバグが疑われる。該当クラブ ID の `audit_logs` と `reservations` を照合。
+**NG 時**: `cancel_reservation` RPC のトランザクション境界のバグまたは `renumber_waitlist_after_gap` の不具合が疑われる。該当クラブ ID の `audit_logs` と `reservations` の `waitlist_position` を照合。
 
 ---
 
@@ -284,7 +286,7 @@ RUN_PERMISSION_E2E=1 pnpm test:e2e e2e/permission-guard.spec.ts
 
 ### B-10. 管理者による予約キャンセル
 
-**前提**: A-1 で作った（または既存の）予約が active（予約完了 / キャンセル待ち）で残っているクラブがある。締切前後どちらでも可。
+**前提**: A-1 で作った（または既存の）予約が active（予約完了 / キャンセル待ち）で残っているクラブがある。締切前後どちらでも可。可能であれば待ちリストが 2 人以上いる状態が望ましい（再採番の挙動も同時に検証できる）。
 
 **手順**
 1. 担当館の admin でログインし、`/admin/clubs/<club id>/reservations` を開く
@@ -297,10 +299,11 @@ RUN_PERMISSION_E2E=1 pnpm test:e2e e2e/permission-guard.spec.ts
 5. 予約者一覧に戻り、緑のバナー「予約をキャンセルしました」が表示されること
 6. 該当予約のバッジが「キャンセル済み」に変わっていること
 7. 元が「予約完了」だった場合、次のキャンセル待ち（あれば）が「予約完了」に繰り上がっていること
+8. **キャンセル待ちの途中の方をキャンセルした場合、後ろの方の `(N 番目)` バッジが 1 つずつ詰まっていること**（ADR-0022）
 
-**期待結果**: 利用者経路と同じキャンセル / 繰り上げメールが送信される。`audit_logs` に `reservation.admin_cancel` が残り、metadata に `reservationNumber` / `previousStatus` / `facilityCode` / `clubId` / `promoted` / `idempotentNoop` を含む（個人情報は含まない）。
+**期待結果**: 利用者経路と同じキャンセル / 繰り上げメールが送信される。`audit_logs` に `reservation.admin_cancel` が残り、metadata に `reservationNumber` / `previousStatus` / `facilityCode` / `clubId` / `promoted` / `idempotentNoop` を含む（個人情報は含まない）。`reservations.waitlist_position` の整合（連続した 1..N、null で穴なし）も DB 直接確認。
 
-**NG 時**: 「予約のキャンセルに失敗しました」が出る場合、最も多い原因は **migration `20260425000000_admin_cancel_reservation.sql` が本番未適用**。Vercel Function Logs に `[admin.reservation.cancel] supabase rpc error` の code を確認し、`PGRST202` なら `pnpm db:push` を実行する。
+**NG 時**: 「予約のキャンセルに失敗しました」が出る場合、最も多い原因は **migration が本番未適用**。Vercel Function Logs に `[admin.reservation.cancel] supabase rpc error` の code を確認し、`PGRST202` なら `pnpm db:push` を実行する。順位の詰め直しが動かない場合は migration `20260426000000_renumber_waitlist_on_cancel.sql` の適用状況を確認。
 
 ---
 
