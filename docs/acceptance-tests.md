@@ -314,9 +314,10 @@ RUN_PERMISSION_E2E=1 pnpm test:e2e e2e/permission-guard.spec.ts
 **手順**
 1. 上部ナビの「館の管理」「アカウント追加・削除」が表示されていること
 2. 「館の管理」をクリック → `/admin/facilities` に遷移するが amber 警告「このページは全館管理者のみ利用できます。」が表示され、CRUD ボタンは出ない
-3. 「アカウント追加・削除」も同様
+3. 警告の上に「← クラブ一覧に戻る」リンクが出ており、押すと `/admin/clubs` に戻れること（行き止まり防止）
+4. 「アカウント追加・削除」も同様（`/admin/accounts`、`/admin/facilities/new`、`/admin/facilities/<id>/edit` も同じ）
 
-**期待結果**: 表面上は見えるがサーバーサイドで弾かれる。`requireSuperAdmin()` の挙動を示す。
+**期待結果**: 表面上は見えるがサーバーサイドで弾かれる。`requireSuperAdmin()` の挙動を示す。「← クラブ一覧に戻る」リンクが必ず表示される。
 
 ---
 

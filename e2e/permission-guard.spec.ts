@@ -129,6 +129,12 @@ test.describe("non-super admin sees amber warning on super-only pages", () => {
       ).toBeVisible({ timeout: 10_000 });
       // 機能リンクが無いことを確認（新規登録・編集・削除・一覧が出ない）
       await expect(page.getByRole("link", { name: "新規登録" })).toHaveCount(0);
+      // 「クラブ一覧に戻る」リンクが表示されていることを確認（行き止まり防止）
+      const backLink = page.getByRole("link", {
+        name: "← クラブ一覧に戻る",
+      });
+      await expect(backLink).toBeVisible();
+      await expect(backLink).toHaveAttribute("href", "/admin/clubs");
     });
   }
 });

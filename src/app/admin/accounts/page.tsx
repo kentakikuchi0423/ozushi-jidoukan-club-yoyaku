@@ -32,6 +32,14 @@ export default async function AdminAccountsPage() {
     if (error instanceof SuperAdminRequiredError) {
       return (
         <main className="mx-auto w-full max-w-xl flex-1 px-4 py-10 sm:px-6">
+          <nav className="mb-4 text-sm">
+            <Link
+              href="/admin/clubs"
+              className="text-[var(--color-muted)] underline underline-offset-4 hover:text-[var(--color-foreground)]"
+            >
+              ← クラブ一覧に戻る
+            </Link>
+          </nav>
           <FormMessage tone="warning">
             このページは全館管理者のみ利用できます。
           </FormMessage>

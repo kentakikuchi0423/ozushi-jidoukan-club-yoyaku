@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
 
+import { FormMessage } from "@/components/ui";
 import {
   AuthenticationRequiredError,
   requireSuperAdmin,
@@ -37,9 +38,17 @@ export default async function AdminFacilityEditPage({ params }: Props) {
     if (error instanceof SuperAdminRequiredError) {
       return (
         <main className="mx-auto w-full max-w-xl flex-1 px-4 py-10 sm:px-6">
-          <p className="rounded-md bg-amber-50 p-4 text-sm text-amber-900">
+          <nav className="mb-4 text-sm">
+            <Link
+              href="/admin/clubs"
+              className="text-[var(--color-muted)] underline underline-offset-4 hover:text-[var(--color-foreground)]"
+            >
+              ← クラブ一覧に戻る
+            </Link>
+          </nav>
+          <FormMessage tone="warning">
             このページは全館管理者のみ利用できます。
-          </p>
+          </FormMessage>
         </main>
       );
     }
