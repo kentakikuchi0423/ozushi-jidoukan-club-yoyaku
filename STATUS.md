@@ -26,13 +26,18 @@
    - `docs/acceptance-tests.md`: A-3 を「3 人目の利用者が C として繰り上がる」シナリオに拡張、B-10 に再採番の確認項目を追加
 
 ### ⚠ 次の一手
-- 本番 Supabase に `20260426000000_renumber_waitlist_on_cancel.sql` を `pnpm db:push` で適用する（**ユーザー明示確認待ち**）
-- 適用後、`capacity=1` の検証クラブで「A: confirmed / B: waitlist 1 / C: waitlist 2 / B キャンセル → C が waitlist 1」まで Playwright で疎通確認
-- 検証通過後 `git push origin main`
+- `git push origin main`（ローカルは origin/main から **1 コミット先行**）
+- デプロイ後、本番でも B-10 の手動シナリオ（待ちリスト 2 件以上を作って 1 番目をキャンセル → 後ろが詰まる）を 1 周し動作再確認
 
 ### テスト結果
 - `pnpm format` / `pnpm lint` / `pnpm typecheck`: all green
-- `pnpm test`: 既存 25 件は変更なし。今回は migration のみで TS への影響なし
+- `pnpm test`: 既存 25 件は変更なし（migration のみで TS 影響なし）
+- 本番 Supabase に `20260426000000_renumber_waitlist_on_cancel.sql` を **適用済み**
+- Playwright E2E（ローカルビルド + 本番 Supabase）: **PASS**
+  - `ozu_100013` (waitlist 1) を作成 → `ozu_100014` (waitlist 2) を作成
+  - admin で `ozu_100013` をキャンセル
+  - `ozu_100014` が `pos 2 → pos 1` に詰まることを画面表示で確認
+  - 後始末で `ozu_100014` もキャンセル済み
 
 ---
 
