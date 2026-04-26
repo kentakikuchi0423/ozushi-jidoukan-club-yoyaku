@@ -282,7 +282,29 @@ RUN_PERMISSION_E2E=1 pnpm test:e2e e2e/permission-guard.spec.ts
 
 ---
 
-### B-10. 非 super_admin の super-only 画面アクセス（★）
+### B-10. 管理者による予約キャンセル
+
+**前提**: A-1 で作った（または既存の）予約が active（予約完了 / キャンセル待ち）で残っているクラブがある。締切前後どちらでも可。
+
+**手順**
+1. 担当館の admin でログインし、`/admin/clubs/<club id>/reservations` を開く
+2. 対象の予約カード右下の「キャンセルする」を押す
+3. `/admin/reservations/<reservation id>/cancel` の確認画面で予約内容と次の挙動が表示されることを確認
+   - 「キャンセル通知メールが送信される」
+   - 元が「予約完了」なら「キャンセル待ち先頭が繰り上がる」
+   - 「取り消し不可」
+4. 「キャンセルを確定する」を押す
+5. 予約者一覧に戻り、緑のバナー「予約をキャンセルしました」が表示されること
+6. 該当予約のバッジが「キャンセル済み」に変わっていること
+7. 元が「予約完了」だった場合、次のキャンセル待ち（あれば）が「予約完了」に繰り上がっていること
+
+**期待結果**: 利用者経路と同じキャンセル / 繰り上げメールが送信される。`audit_logs` に `reservation.admin_cancel` が残り、metadata に `reservationNumber` / `previousStatus` / `facilityCode` / `clubId` / `promoted` / `idempotentNoop` を含む（個人情報は含まない）。
+
+**NG 時**: 「予約のキャンセルに失敗しました」が出る場合、最も多い原因は **migration `20260425000000_admin_cancel_reservation.sql` が本番未適用**。Vercel Function Logs に `[admin.reservation.cancel] supabase rpc error` の code を確認し、`PGRST202` なら `pnpm db:push` を実行する。
+
+---
+
+### B-11. 非 super_admin の super-only 画面アクセス（★）
 
 **前提**: 1 館のみ権限を持つ admin でログイン。
 
@@ -310,7 +332,8 @@ RUN_PERMISSION_E2E=1 pnpm test:e2e e2e/permission-guard.spec.ts
 | B-7 | — | 手動 |
 | B-8 | — | 手動（実メール送信を伴うため） |
 | B-9 | — | 手動 |
-| B-10 | `e2e/permission-guard.spec.ts` | `RUN_PERMISSION_E2E=1` + 2 人目 admin |
+| B-10（管理者キャンセル） | — | 手動。実装後に Playwright スクリプトで疎通確認済み（`/tmp/admin-cancel-e2e.mjs`）。E2E spec への取り込みは未着手 |
+| B-11 | `e2e/permission-guard.spec.ts` | `RUN_PERMISSION_E2E=1` + 2 人目 admin |
 
 ---
 

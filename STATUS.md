@@ -19,17 +19,32 @@
 2. **予約番号 6 桁上限到達時の方針**（Q14）:
    - `docs/open-questions.md` に Q14 を新設。CLAUDE.md 固定要件「番号再利用しない」を維持
    - 平時は何もしない（実質 246 年到達不可）。到達時の対応手順（migration SQL ひな形 + アプリ側 3 ファイル改修 + 注意点）を明記
-3. **docs**:
+3. **本番 Supabase に migration 適用 + ローカル E2E で疎通確認**:
+   - `pnpm db:push` で `20260425000000_admin_cancel_reservation.sql` を本番に適用
+   - `pnpm build` + `PORT=3101 pnpm start`（ローカル）+ Playwright 一発スクリプト（`/tmp/admin-cancel-e2e.mjs`）で「予約作成 → ログイン → 一覧 → キャンセル → ?canceled=1 + キャンセル済みバッジ」まで通った
+   - 当初の本番エラー（「予約のキャンセルに失敗しました」）は **migration が本番未適用 + Vercel に旧コード**の合わせ技。ローカル `pnpm dev` から本番 Supabase を叩いた時に PGRST202 で落ちていた
+   - 副次対策: `admin-cancel.ts` で PostgREST の code/hint/details を `console.error` に出すよう強化（次回の同種トラブル時に Vercel ログから即特定できるように）
+4. **docs**:
    - `docs/decisions.md` に **ADR-0021** 追加
-   - `docs/open-questions.md` の **Q5** を Resolved（管理者キャンセル実装済み）
+   - `docs/open-questions.md` の **Q5** を Resolved（管理者キャンセル実装済み）+ **Q14** を新設
+   - `docs/architecture.md`: ディレクトリ構成 / RPC 表 / 4.2 / 4.3 / 5.3 監査ログ一覧 / migration 数（14 → 15）を更新
+   - `docs/requirements.md`: §4.5 として管理者キャンセル要件を追加
+   - `docs/security-review.md`: §1 に「管理者による予約キャンセル」行を追加 + §8 にレビュー実施記録 1 行
+   - `docs/admin-manual.md`: §6-2「管理者によるキャンセル」+ §9 監査ログに `reservation.admin_cancel` を追加
+   - `docs/operations.md`: §10-5 として `reservation.admin_cancel` の tail SQL + §11 のリリース前手動チェックに項目追加
+   - `docs/acceptance-tests.md`: B-10「管理者による予約キャンセル」を新設、既存 B-10 を B-11 に振り替え + マッピング表更新
+   - `docs/testing-strategy.md`: §3 観点に管理者キャンセルを追加
+   - `docs/manual-index.md` / `README.md`: ディレクトリ構成・索引を最新化
 
-### ⚠ デプロイ前にやること
-- 本番 Supabase に `20260425000000_admin_cancel_reservation.sql` を `pnpm db:push` で適用する
-- 適用後、本番で「予約者一覧 → キャンセルする → 確認 → 確定」を 1 件試してメール送信まで疎通確認
+### ⚠ 次の一手
+- `git push origin main`（ローカルは origin/main から **9 コミット先行**。Vercel 自動デプロイ）
+- デプロイ後、本番で B-10 の手動シナリオを 1 周し、`audit_logs` に `reservation.admin_cancel` が残ることを確認
+- 本番 DB に残っているテスト予約（`ozu_100010` / `ozu_100011`：キャンセル待ち、`ozu_100012`：キャンセル済み、いずれも email = `playwright-test@example.invalid`）は管理画面から `ozu_100010` / `ozu_100011` を順次キャンセルして整理。retention cleanup（1 年）でも自動消去される
 
 ### テスト結果
 - `pnpm format` / `pnpm lint` / `pnpm typecheck` / `pnpm build`: all green
 - `pnpm test`: 25 passed（Vitest worker teardown の flake は既知のもので、テスト自体は全 PASS）
+- 管理者キャンセル E2E（ローカルビルド + 本番 Supabase）: PASS（reservation_id `ozu_100012` で「予約をキャンセルしました」success バナーと「キャンセル済み」バッジまで確認）
 
 ---
 

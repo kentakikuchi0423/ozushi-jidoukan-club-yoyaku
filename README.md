@@ -167,7 +167,7 @@ RUN_PERMISSION_E2E=1 PORT=3100 pnpm test:e2e e2e/permission-guard.spec.ts
 ├── src/
 │   ├── app/
 │   │   ├── (利用者)                 # /, /clubs/[id], /clubs/[id]/done, /reservations
-│   │   ├── admin/                   # /admin, /admin/login, /admin/clubs/*, /admin/password, /admin/accounts, /admin/facilities, /admin/programs
+│   │   ├── admin/                   # /admin, /admin/login, /admin/clubs/*, /admin/reservations/[id]/cancel, /admin/password, /admin/accounts, /admin/facilities, /admin/programs
 │   │   ├── api/cron/                # /api/cron/retention-cleanup
 │   │   └── globals.css              # テーマ変数（CSS 変数）
 │   ├── components/
@@ -186,7 +186,7 @@ RUN_PERMISSION_E2E=1 PORT=3100 pnpm test:e2e e2e/permission-guard.spec.ts
 │       ├── env.ts                   # secret key + Resend + CRON_SECRET
 │       ├── facilities/              # fetchFacilities / fetchActiveFacilityContacts
 │       ├── mail/                    # Resend wrapper + 5 templates + notify
-│       ├── reservations/            # create / cancel / lookup / secure-token / admin-list
+│       ├── reservations/            # create / cancel / lookup / secure-token / admin-list / admin-cancel / admin-detail
 │       └── supabase/admin.ts        # secret key クライアント
 ├── supabase/
 │   ├── config.toml

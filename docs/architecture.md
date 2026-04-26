@@ -46,6 +46,7 @@
 │   │   │   ├── actions.ts                 # logoutAction
 │   │   │   ├── login/                     # ログインフォーム + Server Action（監査ログ付き）
 │   │   │   ├── clubs/                     # CRUD（list / new / [id]/edit / 公開トグル / [id]/reservations）
+│   │   │   ├── reservations/[id]/cancel/  # 管理者キャンセル確認画面 + Server Action（ADR-0021）
 │   │   │   ├── programs/                  # 事業マスター CRUD（全 admin）
 │   │   │   ├── facilities/                # 館の CRUD（super_admin のみ、ADR-0018）
 │   │   │   ├── password/                  # パスワード変更
@@ -70,11 +71,11 @@
 │       ├── env.ts                         # SUPABASE_SECRET_KEY / RESEND_* / CRON_SECRET
 │       ├── facilities/                    # fetchFacilities / fetchActiveFacilityContacts
 │       ├── mail/                          # send + 5 templates（confirmed / waitlisted / promoted / canceled / admin-invite） + notify
-│       ├── reservations/                  # create / cancel / lookup / secure-token
+│       ├── reservations/                  # create / cancel / lookup / secure-token / admin-cancel / admin-detail / admin-list
 │       └── supabase/admin.ts              # secret key クライアント（RLS バイパス）
 ├── supabase/
 │   ├── config.toml
-│   ├── migrations/                        # 14 本（initial / rpcs / retention / listing / detail / lookup / fixes / multi_parent_child / fk_cleanup / optional_parents / club_programs / get_my_reservation_program / clubs_published_at / facility_phone_and_dynamic）
+│   ├── migrations/                        # 15 本（initial / rpcs / retention / listing / detail / lookup / fixes / multi_parent_child / fk_cleanup / optional_parents / club_programs / get_my_reservation_program / clubs_published_at / facility_phone_and_dynamic / admin_cancel_reservation）
 │   └── seed.sql                           # placeholder（PII 禁止方針）
 ├── scripts/db-push.mjs                    # `pnpm db:push` ラッパ
 ├── e2e/                                   # Playwright: smoke / permission-guard / reservation-flow / admin-flow
@@ -157,7 +158,9 @@ create table public.reservations (
   id uuid primary key default gen_random_uuid(),
   club_id uuid not null references public.clubs(id) on delete cascade,
   reservation_number text not null unique
-    check (reservation_number ~ '^(ozu|kita|toku)_[0-9]{6}$'),
+    -- 初期 migration では `(ozu|kita|toku)_` 固定だったが、館マスター動的化（ADR-0018,
+    -- migration 20260424000003）で `^[a-z][a-z0-9]+_[0-9]{6}$` に緩和済み。
+    check (reservation_number ~ '^[a-z][a-z0-9]+_[0-9]{6}$'),
   secure_token text not null unique check (length(secure_token) >= 32),
   status public.reservation_status not null,
   waitlist_position integer,
@@ -238,7 +241,8 @@ RLS に頼り切らず、Server Action / Route Handler 側でも `requireAdmin` 
 | 関数 | 呼び元 | 役割 |
 | --- | --- | --- |
 | `create_reservation(club_id, secure_token, parents jsonb, children jsonb, phone, email, notes)` | `supabase.rpc` from server client | `clubs FOR UPDATE` + 容量判定 + 連番採番 + 予約 INSERT + 保護者/子どもの関係テーブル INSERT |
-| `cancel_reservation(reservation_number, secure_token)` | 同上 | トークン検証 + キャンセル + 繰り上げ |
+| `cancel_reservation(reservation_number, secure_token)` | 同上 | 利用者向け：トークン検証 + キャンセル + 繰り上げ |
+| `admin_cancel_reservation(reservation_id)` | admin client（service_role） | 管理者向け：reservation_id でキャンセル + 繰り上げ。EXECUTE は service_role のみ（ADR-0021） |
 | `get_my_reservation(reservation_number, secure_token)` | 同上 | 予約確認画面の読み取り |
 | `list_public_clubs()` | 同上 | 利用者向けクラブ一覧（件数集計つき） |
 | `get_public_club(id)` | 同上 | クラブ詳細 1 件 |
@@ -267,7 +271,7 @@ Client: /clubs/[id] のフォーム submit
        └─ redirect → /clubs/[id]/done?r=...&t=...&s=...&p=...
 ```
 
-### 4.2 キャンセル + 繰り上げ（実装済み）
+### 4.2 キャンセル + 繰り上げ（利用者経路、実装済み）
 
 ```
 Client: /reservations?r=...&t=... の「キャンセルする」
@@ -282,7 +286,29 @@ Client: /reservations?r=...&t=... の「キャンセルする」
        └─ if promotion が発生: notifyReservationPromoted（相手の secure_token を admin client で取得）
 ```
 
-### 4.3 Retention cleanup（実装済み）
+### 4.3 キャンセル + 繰り上げ（管理者経路、実装済み、ADR-0021）
+
+```
+Admin: /admin/clubs/[id]/reservations の「キャンセルする」
+  └→ /admin/reservations/[id]/cancel  確認画面（reservation_id をパスから取る）
+        ├─ fetchAdminReservationDetail(id) で予約 + クラブ + 館 + 保護者・子どもを 1 クエリ
+        ├─ requireFacilityPermission(facilityCode) で対象館の権限チェック
+        └─ form submit
+            └→ Server Action: adminCancelReservationFormAction(id, formData)
+                 ├─ requireFacilityPermission を再チェック（render と submit の権限ズレに保険）
+                 ├─ RPC: admin_cancel_reservation(reservation_id)（service_role のみ実行可）
+                 │   ├─ SELECT reservations FOR UPDATE
+                 │   ├─ UPDATE status='canceled', canceled_at=now()
+                 │   └─ if 元が confirmed: clubs FOR UPDATE → waitlist 先頭を昇格
+                 ├─ notifyReservationCanceled / notifyReservationPromoted（利用者経路と同じテンプレ）
+                 ├─ logAdminAction(reservation.admin_cancel)（個人情報はメタに含めない）
+                 └─ revalidatePath + redirect → 一覧?canceled=1
+```
+
+利用者経路と異なり、管理者経路では締切（2 営業日前 17:00）の判定を**行わない**。
+締切後の無連絡欠席や日程変更時の強制キャンセルが主な運用想定。
+
+### 4.4 Retention cleanup（実装済み）
 
 - Vercel Cron が日次 18:00 UTC（= 翌 03:00 JST）に `/api/cron/retention-cleanup` を GET
 - Route Handler が `Bearer <CRON_SECRET>` を検証し、`cleanup_expired_clubs()` + `cleanup_old_audit_logs()` を順に呼ぶ
@@ -305,6 +331,7 @@ Client: /reservations?r=...&t=... の「キャンセルする」
 - クラブ: `club.create` / `club.update` / `club.delete` / `club.publish`
 - 事業マスター: `program.create` / `program.update` / `program.delete`
 - 館: `facility.create` / `facility.update` / `facility.delete`
+- 予約: `reservation.admin_cancel`（管理者によるキャンセル、ADR-0021）
 - アカウント: `admin.create` / `admin.password_change` / `admin.login.succeeded` / `admin.login.failed`
 - リテンション: `retention.cleanup_clubs` / `retention.cleanup_audit_logs`
 

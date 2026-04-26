@@ -399,6 +399,24 @@ order by created_at desc
 limit 30;
 ```
 
+### 10-5. 管理者による予約キャンセルの履歴
+```sql
+select
+  created_at,
+  admin_id,
+  metadata->>'reservationNumber' as reservation_number,
+  metadata->>'previousStatus'    as previous_status,
+  metadata->>'facilityCode'      as facility_code,
+  metadata->>'promoted'          as promoted,
+  metadata->>'idempotentNoop'    as idempotent_noop
+from public.audit_logs
+where action = 'reservation.admin_cancel'
+order by created_at desc
+limit 100;
+```
+
+`previous_status` が `confirmed` で `promoted = true` のものは、キャンセル待ち先頭が繰り上がっており、繰り上げメールも送信されている（fire-and-forget なので成否は Vercel ログで `[mail] notifyReservationPromoted failed` を grep して確認）。
+
 ---
 
 ## 11. リリース前の受入テスト
@@ -425,3 +443,4 @@ RUN_PERMISSION_E2E=1 pnpm test:e2e e2e/permission-guard.spec.ts
 - 削除済み館のクラブの参照整合性（B-7）
 - アカウント招待の実メール受信（B-8、Resend ダッシュボードで）
 - パスワード変更後の再ログイン（B-9）
+- 管理者による予約キャンセル（B-10、利用者へのメール送信 + 繰り上げまで疎通）
