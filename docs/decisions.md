@@ -119,7 +119,7 @@
 
 ## ADR-0014 管理者認証は Supabase Auth を採用し、ID はメールアドレスとする
 
-- **Status**: Accepted（2026-04-22、open-questions.md Q1 / Q11 の決定内容を取り込み）
+- **Status**: Accepted（2026-04-22）
 - **Context**:
   - 要件では「ID/パスワード」でログインと書かれているが、固有 ID を別に発番する実装コストと、ID を忘れた際の復旧フローが発生する
   - Supabase Auth は email + password、MFA、パスワードリセット、ログイン失敗レート制限などを標準で提供
@@ -251,7 +251,7 @@
 
 - **Status**: Accepted（2026-04-26）
 - **Context**:
-  - Q5 で「Phase 4 では作らない」としていたが、運用上「電話問い合わせ → 管理者がキャンセル」のフローが頻発する想定が立った。
+  - 当初は「Phase 4 では作らない」としていたが、運用上「電話問い合わせ → 管理者がキャンセル」のフローが頻発する想定が立った。
   - 既存の `cancel_reservation` RPC は `(reservation_number + secure_token)` を要求する利用者向け関数で、admin は token を持たないためそのままでは流用できない。
 - **Decision**:
   - 新 RPC `admin_cancel_reservation(p_reservation_id uuid)` を追加(migration 20260425000000)。
@@ -265,6 +265,75 @@
 - **Consequences**:
   - 締切後でも管理者は強制キャンセルできるため、無連絡欠席や日程変更に対応可能。
   - 利用者が受け取るメールは「セルフキャンセル時」と区別がつかない。違いを示したい場合は `notifyReservationCanceled` に `by` フラグを足してテンプレ分岐できる（v1 では分岐しない）。
+
+## ADR-0023 予約番号の 6 桁部分は館別シーケンスで採番する
+
+- **Status**: Accepted（2026-04-27）
+- **Context**:
+  - 予約番号は人間可読・全体ユニーク・再利用しないことが固定要件（CLAUDE.md）
+  - 候補は 2 つあった: 案A（館別の通し番号 100000 → 999999）／案B（6 桁ランダム + 衝突時リトライ）
+  - 案B はランダム性で「予約件数が外から推測されない」利点があるが、衝突確率対応で実装が複雑になる
+  - 推測困難性は既に `secure_token`（ADR-0004）で担保しており、予約番号自体が漏れても他人予約にアクセスできない
+- **Decision**:
+  - **案A: 館別の通し番号（100000 → 999999）** を採用
+  - 館ごとに専用テーブル `reservation_number_sequences (facility_id, next_value)` を持ち、`create_reservation` RPC 内で `UPDATE ... RETURNING` の原子更新でシーケンスを払い出す（衝突なし）
+  - 番号フォーマット: `<facility_code>_<6-digit>`（例: `ozu_123456`）。`RESERVATION_NUMBER_REGEX = /^([a-z][a-z0-9]{1,9})_(\d{6})$/`
+  - `next_value` の CHECK は `100000..1000000`、実払い出しは `100000..999999`
+  - 上限到達時の対応手順は ADR-0030 にまとめる（現実的にはほぼ起きない想定）
+- **Consequences**:
+  - 番号順 = 申込順 で人間にとって直感的
+  - 「予約件数が外から推測される」点は許容（公開リスクとして低い）
+  - 1 年経過後の retention cleanup で空いた番号も **再利用しない**（古い確認メールに残る番号と新番号が衝突して UX が混乱するため。CLAUDE.md 固定要件）
+
+## ADR-0024 写真 URL は http/https のみ許可、protocol/host のみ検証する
+
+- **Status**: Accepted（2026-04-27）
+- **Context**:
+  - クラブ登録時の写真 URL は管理者が任意の外部 URL（Google Drive 共有リンク等）を貼る運用
+  - `javascript:` 等の危険スキームを通すと XSS 経路になりうる
+  - 一方で外部ホストの allowlist を最初から持つと、新しいストレージサービスを使うたびに運用変更が必要
+- **Decision**:
+  - **http / https スキームのみ許可**（`/^https?:\/\//` の prefix 検証 + `new URL().protocol` で再確認）
+  - **host の allowlist は持たない**（必要性が出た段階で追加検討）
+  - レンダリング側は `<a target="_blank" rel="noopener noreferrer">` を必須（`src/app/clubs/[id]/page.tsx`、`src/components/clubs/club-card.tsx` で実装済み）
+  - 入力検証は `src/lib/clubs/input-schema.ts`、表示時の二重防御は `hasValidPhotoUrl()`（`src/lib/clubs/types.ts`）
+- **Consequences**:
+  - `javascript:` / `data:` / `file:` 等の危険スキームは zod とランタイムの両方で弾く
+  - 外部ホストの不正 URL（マルウェア配布サイト等）まではこのレイヤでは弾けない。運用で「館内で確認済みの URL のみ貼る」を徹底する前提
+  - 将来 host allowlist が必要になったときは `hasValidPhotoUrl` に集約されているので 1 箇所改修で済む
+
+## ADR-0025 予約待ちの上限は持たず無制限とする
+
+- **Status**: Accepted（2026-04-27）
+- **Context**:
+  - 「定員の N 倍まで」のような上限を設ける案もあったが、児童館規模のイベントで実害が出るほどの待ち列にはならない
+  - 上限を超えた利用者を弾くフローを実装すると、UI / メール文面 / RPC エラーハンドリングまで影響範囲が広い
+- **Decision**:
+  - 予約待ちの上限は **設けない**（無制限）
+  - `create_reservation` RPC は満員の場合 `coalesce(max(waitlist_position), 0) + 1` で末尾に追加するだけ（`supabase/migrations/20260422000000_reservation_rpcs.sql`、`20260423000000_multi_parent_child.sql`）
+- **Consequences**:
+  - 予約待ち番号が大きくなるリスクはあるが、運用上は問題にならない見込み
+  - 万一「予約待ち 100 人超え」のような実害が出た場合は、別 ADR で上限導入を再検討する
+  - 待ちリスト順位の整合は ADR-0022（キャンセル時の再採番）でカバー
+
+## ADR-0026 同一保護者の重複予約は許容し、警告は当面実装しない
+
+- **Status**: Accepted（2026-04-27）
+- **Context**:
+  - 当初は「兄弟姉妹で別々に申し込むケース」を想定して複数回予約を許容しつつ、UX として「同一メール + 同一クラブ」の重複に警告を出す案だった
+  - その後の実装で `children` 配列（migration 20260423000000）が導入され、1 予約に複数の子を入れられるようになった結果、「兄弟は 1 予約にまとめる」が正解パスとして成立している
+  - 一方で「同一メール + 同一クラブ」での重複自体は DB 制約・RPC・フォームのいずれでも弾いていない
+- **Decision**:
+  - **複数回予約は許容**（DB 制約は追加しない）
+  - **重複時の UX 警告も当面は実装しない**
+  - 兄弟が同時参加する場合は `children` 配列に複数子を入れる運用を案内する（利用者マニュアル側で誘導）
+- **Consequences**:
+  - 二重送信や入力ミスによる重複予約は通る。実害が出れば管理者キャンセル導線（ADR-0021）でリカバリ可能
+  - 定員消費の無駄は出うる。観測したうえで再評価する
+- **再評価のトリガー条件**（以下が観測されたら別 ADR で警告 UI / DB 制約を再検討）:
+  - 管理者から「重複予約の手動キャンセル依頼が月に複数件」の声
+  - retention cleanup 前の DB で同一クラブ・同一 parent email の active 重複が定員圧迫レベル
+  - 二重送信事故が同一ユーザーから複数報告される
 
 ## ADR-0022 キャンセル時に待ちリストの順位を詰め直す
 
@@ -284,3 +353,90 @@
   - 予約確認画面・予約者一覧・admin キャンセル確認画面のいずれも DB 値を素直に表示するだけで正しい順位になる（アプリ側のロジック修正は不要）。
   - 同一クラブで複数人が同時にキャンセルしても、`reservations FOR UPDATE` + `clubs FOR UPDATE`（confirmed の場合）で直列化されるため整合する。
   - 万一一括 UPDATE に変更したくなった場合は、deferrable な UNIQUE constraint への移行が必要（partial unique index は deferrable にできないため、CREATE UNIQUE INDEX を ALTER TABLE ADD CONSTRAINT に置き換える等の追加作業がいる）。
+
+## ADR-0027 監査ログは 3 年保持を運用ガイドラインとする
+
+- **Status**: Accepted（2026-04-27）
+- **Context**:
+  - 個人情報を含まない監査ログ（ログイン成功/失敗、クラブ CRUD、招待・削除、admin cancel、retention cleanup など）は調査用途で 1 年以上残しておきたい
+  - retention cleanup（`/api/cron/retention-cleanup`）は現状クラブ・予約のみが対象で、`audit_logs` は対象外（無期限累積）
+  - 個人情報は含めない原則（`docs/security-review.md` §3）が前提のため、長期保持しても法的リスクは低い
+  - DB 容量への影響は軽微（1 行あたり 1〜2 KB のテキスト）
+- **Decision**:
+  - **監査ログは 3 年保持** を運用ガイドラインとする
+  - 自動削除は v1 では実装しない。3 年経過後の取り扱いは運用担当者が判断する（手動削除 or retention 拡張の追加 ADR）
+  - `audit_logs` の DB 容量が運用上問題になった段階で、retention cleanup を `audit_logs` に拡張する別 ADR で対応する
+- **Consequences**:
+  - launch から 3 年は何も触る必要がない
+  - 容量監視は Supabase ダッシュボードで十分（個別アラートは設けない）
+  - 個人情報を含めない原則を引き続き厳守する（`audit_logs.metadata` に氏名・電話・メール本文を入れない）
+
+## ADR-0028 利用者画面は WCAG 2.1 AA 相当を目標とする
+
+- **Status**: Accepted（2026-04-27）
+- **Context**:
+  - 大洲市の公的サービスとして、保護者が幅広い環境で使えることが望ましい
+  - JIS X 8341-3 / WCAG 2.1 AA は日本の自治体サイトで広く使われている目標値
+  - AAA まで上げると実装制約が大きく、launch スピードと釣り合わない
+- **Decision**:
+  - 利用者画面は **WCAG 2.1 AA 相当** を目標とする
+  - 重点項目: コントラスト比（4.5:1 以上）、フォントサイズ、キーボード操作（focus visible）、フォームのラベル、エラー表示、`<a target="_blank">` の `rel="noopener noreferrer"`
+  - Phase 6 のテスト工程で観点別の手動チェックを行い、`docs/acceptance-tests.md` のチェック項目で軽く回帰できるようにする
+  - 管理者画面は同等の心がけはするが、内部利用者向けなので AA 完全準拠は要求しない
+- **Consequences**:
+  - ADR-0017（Tailwind `@layer base` 化、primary 色 `#4f7668` の AA 化）は本 ADR の前段にあたる
+  - 改善余地が見つかった場合は別 ADR を起こさず、Phase 6 / 運用後の改善 PR で対応する
+
+## ADR-0029 リポジトリは private スタート、Phase 6 終盤で public 切替する
+
+- **Status**: Accepted（2026-04-27）
+- **Context**:
+  - Claude Code を主体に開発しているため、初期 commit に試行錯誤の痕跡や、誤って test secrets が混入するリスクがある
+  - 一方で、自治体の予約システムとして将来的に public で参照される価値（同種システムの参考実装になる）はある
+- **Decision**:
+  - 開発期間中は **private** で運用
+  - Phase 6 終盤（テスト / セキュリティ / 仕上げ完了時点）で **`git log` 全 commit を diff レビュー** し、secret 混入がないことを確認
+  - 確認後に GitHub Settings から **public 切替** を行う
+- **Consequences**:
+  - public 切替前のチェックリストは `docs/security-review.md` に該当節を維持する
+  - public 切替時点までは secret は GitHub Actions secrets / Vercel env / `.env.local` のみで管理し、コミットしない
+  - public 切替自体は GitHub の Settings 操作のみで完結する（コードへの影響なし）
+
+## ADR-0030 予約番号 6 桁の上限到達時は 7 桁拡張で対応する
+
+- **Status**: Accepted（2026-04-27）
+- **Context**:
+  - 予約番号は `<facility_code>_<6-digit>` 形式（ADR-0023）
+  - `reservation_number_sequences` の CHECK は `100000..1000000`、実払い出しは `100000..999999` の 900,000 番／館
+  - スケール感: 1 日 50 予約・年中無休でも約 49 年、1 日 10 予約で約 246 年で **現実的に到達しない**
+  - 番号は再利用しない原則（CLAUDE.md 固定要件）。retention cleanup で空いた番号も再利用しない（古い確認メールに残る番号と新番号の衝突回避）
+- **Decision**:
+  - **平時は何もしない**。上限到達が見えてきた時点で 7 桁に拡張する
+  - 検知シグナル: サーバログの `reservation_number_sequences_next_value_check` CHECK 違反エラー
+  - 拡張は新規 migration 1 本 + アプリ側 3 ファイル改修で完結する想定（下記手順）
+- **対応手順（参考、上限到達時に実施）**:
+  1. **migration 追加**: `next_value` の上限と `reservations.reservation_number` の CHECK を緩める
+     ```sql
+     alter table public.reservation_number_sequences
+       drop constraint reservation_number_sequences_next_value_check;
+     alter table public.reservation_number_sequences
+       add constraint reservation_number_sequences_next_value_check
+         check (next_value between 100000 and 10000000);
+
+     alter table public.reservations
+       drop constraint reservations_reservation_number_check;
+     alter table public.reservations
+       add constraint reservations_reservation_number_check
+         check (reservation_number ~ '^[a-z][a-z0-9]+_[0-9]{6,7}$');
+     ```
+  2. **`create_reservation` RPC の `lpad` 桁数調整**: 旧 6 桁番号と新 7 桁番号を両立させたい場合は `lpad` をやめて `to_char(v_allocated_seq, 'FM999999999')` 等の可変桁に変更（または「上限到達後は 7 固定」で `lpad(..., 7, '0')` でも可）
+  3. **`src/lib/reservations/number.ts`**:
+     - `RESERVATION_NUMBER_SEQUENCE_MAX = 9_999_999`
+     - `RESERVATION_NUMBER_REGEX = /^([a-z][a-z0-9]{1,9})_(\d{6,7})$/`
+     - `buildReservationNumber` の桁判定（必要なら `lpad` 相当を調整）
+  4. **テスト更新**: `number.test.ts` に 7 桁ケースを追加
+  5. **デプロイ**: 通常の Vercel デプロイで反映。DB migration は `pnpm db:push`
+- **Consequences**:
+  - 1 館だけ先に到達しても他館には影響しない（sequence は館別）
+  - 旧 6 桁番号は永続的に有効。利用者の手元の確認メールは引き続き機能する
+  - secure_token の長さは変更しないので URL 互換性は保たれる

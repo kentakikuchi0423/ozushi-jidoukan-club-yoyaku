@@ -5,15 +5,30 @@
 
 ---
 
-## 最終更新: 2026-04-26（待ちリスト再採番 + super_admin 警告画面のバックリンク）
+## 最終更新: 2026-04-27（open-questions.md を完全 close、Q1〜Q14 を ADR 化済みに整理）
 
 ### このチャンクで解消したもの
-0. **super_admin 専用ページの権限なし時に「クラブ一覧に戻る」リンクを表示**:
+0. **`docs/open-questions.md` の完全 close**:
+   - 残っていた Q2 / Q4 / Q7 / Q8 / Q9 / Q12 / Q13 / Q14 をすべて推奨案どおりに決着させ、`docs/decisions.md` に **ADR-0023〜0030** として転記
+     - ADR-0023: 予約番号は館別シーケンス（案A）
+     - ADR-0024: 写真 URL は http/https のみ許可
+     - ADR-0025: 予約待ちは無制限
+     - ADR-0026: 同一保護者の重複予約は許容、UX 警告は当面なし（再評価トリガー条件付き）
+     - ADR-0027: 監査ログは 3 年保持を運用ガイドラインとする
+     - ADR-0028: 利用者画面は WCAG 2.1 AA 相当を目標
+     - ADR-0029: リポジトリは private スタート、Phase 6 終盤で public 切替
+     - ADR-0030: 予約番号 6 桁の上限到達時は 7 桁拡張で対応（migration 手順を保持）
+   - Q3 / Q5 / Q6 / Q10 の Resolved 済みインライン記載は重複なので削除
+   - `docs/open-questions.md` は **「2026-04-27 時点で未解決の論点はありません」** を冒頭で明示する空アーカイブ形式に書き直し。Q1〜Q14 → ADR/実装パスの cross-reference のみ残す
+   - 第三者が見たときに「残論点なし」が一目でわかる構造になった
+
+### このチャンクで解消したもの（前回分）
+1. **super_admin 専用ページの権限なし時に「クラブ一覧に戻る」リンクを表示**:
    - `/admin/facilities`、`/admin/accounts`、`/admin/facilities/new`、`/admin/facilities/[id]/edit` の `SuperAdminRequiredError` 分岐に nav リンクを追加
    - 後者 2 ページは amber-50 直書きから他ページと同じ `FormMessage tone="warning"` に統一
    - `e2e/permission-guard.spec.ts` にバックリンクの可視性 / `href` 検証を追加
    - `docs/acceptance-tests.md` B-11、`docs/admin-manual.md` §3-1 を反映
-1. **キャンセル時に待ちリストの順位を詰め直す**（ADR-0022）:
+2. **キャンセル時に待ちリストの順位を詰め直す**（ADR-0022）:
    - 既存挙動の不具合: 待ちリスト `{1, 2, 3}` の 2 番目がキャンセル → 残りは `{1, 3}` のままで「3 番目」と表示され続けていた。先頭が繰り上がりで抜けた場合も同様に後続が詰まらなかった
    - migration `20260426000000_renumber_waitlist_on_cancel.sql`:
      - 共通ヘルパー `renumber_waitlist_after_gap(uuid, integer)` を新設（`revoke all from public`、内部呼び出し専用）

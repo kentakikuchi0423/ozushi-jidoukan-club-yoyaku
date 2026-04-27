@@ -115,8 +115,7 @@ delete from public.admins where id = '<UUID>';
 ## 4. Retention cleanup（1 年以上前のクラブ削除 ほか）
 
 `supabase/migrations/20260422010000_retention_cleanup.sql` で以下 2 つの SQL
-関数を定義している（ADR 相当の判断は CLAUDE.md §固定要件 と
-`docs/open-questions.md` Q9）。
+関数を定義している（ADR 相当の判断は CLAUDE.md §固定要件 と ADR-0027）。
 
 | 関数 | 対象 | デフォルト保持日数 | 最小保持日数 |
 | --- | --- | --- | --- |
