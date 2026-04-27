@@ -5,7 +5,23 @@
 
 ---
 
-## 最終更新: 2026-04-27（全ファイル ultrathink レビュー: 軽微整理 + Q15/Q16 を open-questions に追加）
+## 最終更新: 2026-04-28（Q15/Q16 を ADR-0031/0032 として close + 安定ソート migration 追加）
+
+### このチャンクで解消したもの
+0. **Q15/Q16 を推奨案で決着**:
+   - **Q15** Server Action ログでの `error.message` の取り扱い → **ADR-0031** として現状維持を決定（security-review §4 の許容範囲内、`details` 除外で主要 PII 漏れ経路は塞がっている、debug 性を維持）
+   - **Q16** 公開クラブ一覧の安定ソート → **ADR-0032** として `c.id desc` 二次キーを追加。migration `20260428000000_list_public_clubs_stable_sort.sql` を新規作成（`list_public_clubs` のみ更新、`get_public_club` は単一行のため変更不要）
+   - `docs/open-questions.md` を空アーカイブに戻し、「2026-04-28 時点で未解決の論点はありません」を再表示
+   - `docs/architecture.md` の migration 数を 16 → 17 に更新
+   - **本番への migration 適用はまだ**（ユーザー承認待ち）。コードへの影響なし、適用しても既存データに影響なし
+
+### ⚠ 次の一手
+- 本番に migration `20260428000000_list_public_clubs_stable_sort.sql` を `pnpm db:push` で適用するか確認
+- migration はコードへの影響なし。適用しなくてもアプリは動作する（同一 start_at のクラブが複数ある時の表示順が undefined のまま）
+
+---
+
+## 1 つ前: 2026-04-27（全ファイル ultrathink レビュー: 軽微整理 + Q15/Q16 を open-questions に追加）
 
 ### このチャンクで解消したもの
 0. **全ファイル ultrathink レビュー実施（Phase 6 完了直前のスポットチェック）**:

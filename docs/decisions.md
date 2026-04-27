@@ -440,3 +440,33 @@
   - 1 館だけ先に到達しても他館には影響しない（sequence は館別）
   - 旧 6 桁番号は永続的に有効。利用者の手元の確認メールは引き続き機能する
   - secure_token の長さは変更しないので URL 互換性は保たれる
+
+## ADR-0031 Server Action ログでは現行の `code / message / hint` パターンを維持する
+
+- **Status**: Accepted（2026-04-28）
+- **Context**:
+  - `src/app/clubs/[id]/actions.ts` ほか複数箇所の `console.error` で `error.message` をログに含めている。`docs/security-review.md` §4 では「code / message / hint を許容、details は除外」を方針として明記
+  - 理論的な懸念として、PG エラーの一部（`22P02` invalid input syntax / `22001` value too long など）は `message` 自体に offending value（利用者が入力した phone / email など）が含まれる可能性がある
+  - ただし zod が事前に厳格な検証を行っており、CHECK 制約と zod の regex がズレた場合にしか発生しない。さらに `details` は明示的に除外しているため、CHECK 違反で値が漏れる経路はほぼ閉じている
+- **Decision**:
+  - **現状維持**。`console.error` には引き続き `tag / code / message / hint` を含める方針を維持する
+  - 理由: (1) `details` 除外で主要な PII 漏れ経路は塞がっている、(2) `message` を除外すると debug 性が大きく落ちる、(3) zod による事前検証で実用上の発生確率は極めて低い、(4) Sentry 等のエラートラッキング導入時に `beforeSend` で PII マスクする既存方針（security-review §4）でカバーできる
+- **Consequences**:
+  - 既存コードに変更なし
+  - 将来 Sentry / Datadog 等を導入する際は `beforeSend` で `message` のサニタイズフィルタを必ず通す（既存方針の継続）
+  - zod スキーマと DB CHECK の整合性は引き続き厳密に保つ（現状すでに一致）
+
+## ADR-0032 公開クラブ一覧は二次キー `c.id desc` で安定ソートする
+
+- **Status**: Accepted（2026-04-28）
+- **Context**:
+  - 公開クラブ一覧の ORDER BY は `c.start_at desc` のみ（migration `20260424000002_clubs_published_at.sql`）
+  - CLAUDE.md 固定要件「クラブ一覧は **日付降順・時間降順**」は `start_at`（timestamptz）1 列で表現できているが、同一 `start_at` のクラブが複数登録された場合（同時刻開催の隣館同士など）、表示順が undefined になる
+  - 実用上の影響は小さいが、E2E テストの安定性やページング導入時の予測可能性のため、決定的な順序が望ましい
+- **Decision**:
+  - migration `20260428000000_list_public_clubs_stable_sort.sql` で `list_public_clubs` を `ORDER BY c.start_at desc, c.id desc` に変更
+  - `get_public_club(uuid)` は単一行を返すので変更不要
+- **Consequences**:
+  - 同一 `start_at` のクラブの表示順が UUID 降順で決定的になる（人間の意図的な序列ではないが、安定）
+  - アプリ側コードへの影響なし（戻り値型・WHERE 句は同一）
+  - migration 数: 16 → 17

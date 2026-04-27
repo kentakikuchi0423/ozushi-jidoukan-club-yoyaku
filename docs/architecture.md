@@ -75,7 +75,7 @@
 │       └── supabase/admin.ts              # secret key クライアント（RLS バイパス）
 ├── supabase/
 │   ├── config.toml
-│   ├── migrations/                        # 16 本（initial / rpcs / retention / listing / detail / lookup / fixes / multi_parent_child / fk_cleanup / optional_parents / club_programs / get_my_reservation_program / clubs_published_at / facility_phone_and_dynamic / admin_cancel_reservation / renumber_waitlist_on_cancel）
+│   ├── migrations/                        # 17 本（initial / rpcs / retention / listing / detail / lookup / fixes / multi_parent_child / fk_cleanup / optional_parents / club_programs / get_my_reservation_program / clubs_published_at / facility_phone_and_dynamic / admin_cancel_reservation / renumber_waitlist_on_cancel / list_public_clubs_stable_sort）
 │   └── seed.sql                           # placeholder（PII 禁止方針）
 ├── scripts/db-push.mjs                    # `pnpm db:push` ラッパ
 ├── e2e/                                   # Playwright: smoke / permission-guard / reservation-flow / admin-flow
