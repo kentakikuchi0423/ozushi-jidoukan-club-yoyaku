@@ -1,5 +1,7 @@
-// server-only: 予約の secure_token を生成・検証するユーティリティ。
-// トークンは必ずサーバー側で生成し、メール本文の URL と DB にのみ保存する。
+import "server-only";
+
+// 予約の secure_token を生成・検証するユーティリティ。トークンは必ず
+// サーバー側で生成し、メール本文の URL と DB にのみ保存する。
 // 生成には Web Crypto (globalThis.crypto.getRandomValues) を使い、
 // Node / Edge いずれのランタイムでも動くようにする。
 

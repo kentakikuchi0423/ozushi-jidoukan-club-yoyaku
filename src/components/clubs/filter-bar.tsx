@@ -16,7 +16,7 @@ const STATUS_LABEL: Record<ClubAvailability, string> = {
   ended: "終了",
 };
 
-export interface FilterFacility {
+interface FilterFacility {
   readonly code: FacilityCode;
   readonly name: string;
 }

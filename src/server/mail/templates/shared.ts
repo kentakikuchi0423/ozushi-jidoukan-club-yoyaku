@@ -1,3 +1,5 @@
+import "server-only";
+
 import { formatJstDateRange } from "@/lib/format";
 import { publicEnv } from "@/lib/env";
 

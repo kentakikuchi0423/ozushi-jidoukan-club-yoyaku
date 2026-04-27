@@ -5,7 +5,23 @@
 
 ---
 
-## 最終更新: 2026-04-27（city-consultation.md §4-4 / §7 を「必要な対応」表記に + §8-3 と付録 B を削除）
+## 最終更新: 2026-04-27（全ファイル ultrathink レビュー: 軽微整理 + Q15/Q16 を open-questions に追加）
+
+### このチャンクで解消したもの
+0. **全ファイル ultrathink レビュー実施（Phase 6 完了直前のスポットチェック）**:
+   - 3 つの Explore Agent を並列実行: (a) 仕様 vs 実装の差分検出、(b) 冗長コード・dead code 検出、(c) ドキュメント整合性確認
+   - **重大な乖離なし**: ADR / requirements / CLAUDE.md と実装は概ね整合。migration 数 (16)、SECURITY DEFINER 関数（9）、監査ログ action（11）、メールテンプレート（5）、env vars すべてドキュメントと一致
+   - 軽微な改善を 2 件適用（機能影響なし）:
+     - `src/server/` 配下で `import "server-only"` が無かった 7 ファイル（`secure-token.ts` + mail templates 6 本）に追加（ADR-0015 の defense-in-depth 強化）
+     - `src/components/clubs/filter-bar.tsx` の `FilterFacility` interface を非 export 化（filter-bar.tsx 内部のみ使用）
+   - 判断が必要な論点 2 件を **open-questions.md** に追加:
+     - **Q15** Server Action ログでの `error.message` の取り扱い（PG エラーの一部に値が含まれる懸念、現行は security-review §4 の許容範囲内）
+     - **Q16** `list_public_clubs` / `get_public_club` の ORDER BY の二次キー追加（同一 `start_at` での安定ソート）
+   - 検証: `pnpm format:check` / `pnpm lint` / `pnpm typecheck` / `pnpm test`（90 / 90 PASS、worker teardown flake は既知）+ `pnpm test:e2e`（**13 passed / 6 skipped（opt-in）/ 0 failed**）
+
+---
+
+## 1 つ前: 2026-04-27（city-consultation.md §4-4 / §7 を「必要な対応」表記に + §8-3 と付録 B を削除）
 
 ### このチャンクで解消したもの
 0. **協議資料に不要なセクションを削除**:
