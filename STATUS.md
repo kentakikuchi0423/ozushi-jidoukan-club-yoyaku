@@ -25,10 +25,14 @@
      - `src/server/mail/templates/login-alert.test.ts`（8 ケース）
    - 既存ファイル更新: `src/app/admin/login/actions.ts`（失敗ログ後に `maybeSendLoginAlert` を呼ぶ）、`docs/architecture.md`（migration 数 17→18 / メールテンプレ 5→6 / SECURITY DEFINER 関数表 / 監査ログ action 一覧）、`docs/security-review.md`
    - 検証: `pnpm format` / `pnpm lint`（exit 0）/ `pnpm typecheck`（exit 0）/ `pnpm test`（合計 18 ファイル / 140 tests PASS、worker spawn flake は既知）
-   - 本番反映: commit `6667156` を origin/main へ push 済 + `pnpm db:push` で未適用 migration 2 本（`20260428000000_list_public_clubs_stable_sort.sql` / `20260428010000_login_alert_helpers.sql`）を本番 Supabase へ適用済
+   - 本番反映: commit `6667156` を origin/main へ push 済。**migration はまだ未適用**
 
 ### ⚠ 次の一手
-- ログインアラートメールを実体験するには Resend の `RESEND_API_KEY` / `RESEND_FROM_ADDRESS` を本番（Vercel env）に設定する必要あり。未設定でも判定ロジックは走るが `sendEmail` で `console.warn` を出して no-op になる
+- 本番に未適用の migration が **2 本** 残っている。ユーザー側で `pnpm db:push` を実行して適用してください:
+  - `20260428000000_list_public_clubs_stable_sort.sql`（前 commit `9438d22` 由来）
+  - `20260428010000_login_alert_helpers.sql`（commit `6667156` 由来）
+  - どちらも DDL のみ。コードは Resend env 未設定なら `console.warn` で no-op するため、適用しても既存挙動に副作用なし
+- ログインアラートメールを実体験するには Resend の `RESEND_API_KEY` / `RESEND_FROM_ADDRESS` を本番（Vercel env）に設定する必要あり
 - 本番運用開始後に「閾値 5 回 / cool-down 24h」が誤発火 / 検知遅すぎ になっていないか観測（再評価トリガーは ADR-0033 の末尾を参照）
 
 ---
