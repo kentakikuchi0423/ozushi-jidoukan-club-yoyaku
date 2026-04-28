@@ -5,7 +5,35 @@
 
 ---
 
-## 最終更新: 2026-04-28（Q15/Q16 を ADR-0031/0032 として close + 安定ソート migration 追加）
+## 最終更新: 2026-04-28（ADR-0033 ログイン失敗アラート: 5回/30分で本人通知を実装）
+
+### このチャンクで解消したもの
+0. **管理者ログイン失敗時の自己通知メールを実装**（ADR-0033）:
+   - 同一メールが直近 **30 分** で **5 回** ログインに失敗した時点で、本人へ注意喚起メールを 1 通送る
+   - 「身に覚えのないログイン試行」を本人に気付かせる経路を新設。Supabase Auth 既定のレート制限と組み合わせ、`docs/security-review.md` の brute-force ステータスを「済（最小限）」→「済」に格上げ
+   - 通知爆撃 / 第三者スパム踏み台化を防ぐための制約を組み込み:
+     - **未登録メールには送らない**（`admins` テーブル存在チェック）
+     - **24h cool-down**（`audit_logs.admin.login.alert_sent` を見て連投を抑止）
+     - **本文に IP / 時刻 / 失敗回数を含めない**（PII 最小化、ADR-0033 §本文方針）
+     - **アカウント凍結はしない**（意図的な DoS の入口を作らない）
+   - 追加ファイル:
+     - `docs/decisions.md` ADR-0033（閾値・cool-down・宛先制限の根拠と再評価トリガー）
+     - migration `20260428010000_login_alert_helpers.sql`（`evaluate_login_alert(email, window_min, cooldown_h)` RPC、service_role 限定）
+     - `src/server/auth/login-alert.ts`（判定ロジック、fire-and-forget）
+     - `src/server/mail/templates/login-alert.ts`（管理者向けテンプレ、`textToHtml` 経由）
+     - `src/server/auth/login-alert.test.ts`（7 ケース）
+     - `src/server/mail/templates/login-alert.test.ts`（8 ケース）
+   - 既存ファイル更新: `src/app/admin/login/actions.ts`（失敗ログ後に `maybeSendLoginAlert` を呼ぶ）、`docs/architecture.md`（migration 数 17→18 / メールテンプレ 5→6 / SECURITY DEFINER 関数表 / 監査ログ action 一覧）、`docs/security-review.md`
+   - 検証: `pnpm format` / `pnpm lint`（exit 0）/ `pnpm typecheck`（exit 0）/ `pnpm test`（合計 18 ファイル / 140 tests PASS、worker spawn flake は既知）
+   - **本番への migration 適用はまだ**（ユーザー承認待ち）。Resend 環境変数が未設定なら `console.warn` のみで no-op するため、適用しても既存挙動に副作用なし
+
+### ⚠ 次の一手
+- 本番に未適用の migration が 2 本（`20260428000000_list_public_clubs_stable_sort.sql` と `20260428010000_login_alert_helpers.sql`）。`pnpm db:push` で順次適用するか確認
+- アラートメール送信を実体験するには Resend の `RESEND_API_KEY` / `RESEND_FROM_ADDRESS` を本番に設定する必要あり（未設定だと判定だけ走って no-op）
+
+---
+
+## 1 つ前: 2026-04-28（Q15/Q16 を ADR-0031/0032 として close + 安定ソート migration 追加）
 
 ### このチャンクで解消したもの
 0. **Q15/Q16 を推奨案で決着**:
@@ -13,15 +41,10 @@
    - **Q16** 公開クラブ一覧の安定ソート → **ADR-0032** として `c.id desc` 二次キーを追加。migration `20260428000000_list_public_clubs_stable_sort.sql` を新規作成（`list_public_clubs` のみ更新、`get_public_club` は単一行のため変更不要）
    - `docs/open-questions.md` を空アーカイブに戻し、「2026-04-28 時点で未解決の論点はありません」を再表示
    - `docs/architecture.md` の migration 数を 16 → 17 に更新
-   - **本番への migration 適用はまだ**（ユーザー承認待ち）。コードへの影響なし、適用しても既存データに影響なし
-
-### ⚠ 次の一手
-- 本番に migration `20260428000000_list_public_clubs_stable_sort.sql` を `pnpm db:push` で適用するか確認
-- migration はコードへの影響なし。適用しなくてもアプリは動作する（同一 start_at のクラブが複数ある時の表示順が undefined のまま）
 
 ---
 
-## 1 つ前: 2026-04-27（全ファイル ultrathink レビュー: 軽微整理 + Q15/Q16 を open-questions に追加）
+## 2 つ前: 2026-04-27（全ファイル ultrathink レビュー: 軽微整理 + Q15/Q16 を open-questions に追加）
 
 ### このチャンクで解消したもの
 0. **全ファイル ultrathink レビュー実施（Phase 6 完了直前のスポットチェック）**:

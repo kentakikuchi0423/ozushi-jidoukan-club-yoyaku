@@ -389,18 +389,21 @@
 
 ## ADR-0029 リポジトリは private スタート、Phase 6 終盤で public 切替する
 
-- **Status**: Accepted（2026-04-27）
+- **Status**: Accepted（2026-04-27、2026-04-28 に MIT ライセンス選択を明記）
 - **Context**:
   - Claude Code を主体に開発しているため、初期 commit に試行錯誤の痕跡や、誤って test secrets が混入するリスクがある
   - 一方で、自治体の予約システムとして将来的に public で参照される価値（同種システムの参考実装になる）はある
+  - public 切替時にライセンスが付いていないと、法的には "all rights reserved" 扱いになり README に書いた「他地域への流用」が成立しない
 - **Decision**:
   - 開発期間中は **private** で運用
   - Phase 6 終盤（テスト / セキュリティ / 仕上げ完了時点）で **`git log` 全 commit を diff レビュー** し、secret 混入がないことを確認
   - 確認後に GitHub Settings から **public 切替** を行う
+  - ライセンスは **MIT** を採用（`LICENSE` ファイル + `package.json` の `"license"` フィールド + `README.md §ライセンス` の 3 点で表明）。理由は (1) 自治体システムとしての透明性、(2) 同種の児童館・施設予約システムへの転用容易性、(3) 依存ライブラリ群（Next.js / Supabase JS / Resend SDK 等）と互換のもっともゆるい OSS ライセンス
 - **Consequences**:
   - public 切替前のチェックリストは `docs/security-review.md` に該当節を維持する
   - public 切替時点までは secret は GitHub Actions secrets / Vercel env / `.env.local` のみで管理し、コミットしない
   - public 切替自体は GitHub の Settings 操作のみで完結する（コードへの影響なし）
+  - ライセンス変更（MIT 以外への切替）が必要になった場合は別 ADR を起こして全 contributor の同意を取り直す
 
 ## ADR-0030 予約番号 6 桁の上限到達時は 7 桁拡張で対応する
 
@@ -470,3 +473,27 @@
   - 同一 `start_at` のクラブの表示順が UUID 降順で決定的になる（人間の意図的な序列ではないが、安定）
   - アプリ側コードへの影響なし（戻り値型・WHERE 句は同一）
   - migration 数: 16 → 17
+
+## ADR-0033 ログイン失敗 5 回／30 分でアラートメールを送る
+
+- **Status**: Accepted（2026-04-28）
+- **Context**:
+  - 管理者ログインは Supabase Auth の email + password。失敗は `audit_logs.admin.login.failed` に email / IP / reason 付きで全件記録済み（`src/app/admin/login/actions.ts`）
+  - Supabase Auth 自体に IP ベースのレート制限はあるが、「身に覚えのないログイン試行」を本人に気付かせる経路は無い
+  - 一方で素朴に「N 回失敗で常にメール」だと、(a) 攻撃者が任意アドレスへ通知爆撃をかけられる、(b) 当社ドメインから第三者にスパムを送る踏み台にされる、(c) アカウント凍結だと意図的な締め出し（DoS）が可能、という別リスクが入る
+- **Decision**: 以下の制約付きでアラートメール送信を実装する。
+  - **閾値**: 同一メールアドレスについて、直近 **30 分** に `admin.login.failed` が **5 件以上** 蓄積した時点で 1 通送信（業界一般・OWASP ASVS V11 / NIST SP 800-63B 帯）
+  - **宛先制限**: `admins` テーブルに存在するメールに **限る**。未登録メールには絶対に送らない（踏み台防止 + Resend の評判保護）
+  - **cool-down**: 同一メールに対し直近 **24 時間** に `admin.login.alert_sent` が記録されていればスキップ（通知爆撃防止）
+  - **アカウント凍結はしない**: 通知のみ。意図的な DoS の入口を作らない
+  - **本文方針**: IP・時刻の詳細は本文に書かない（PII 最小化、`docs/security-review.md` §4 の方針継続）。「複数回のログイン失敗を検知しました／心当たりがなければパスワード変更を／心当たりがなくても緊急性は低い旨」だけ案内
+  - **記録**: 送信した場合は `audit_logs` に `admin.login.alert_sent`（metadata: `{ email, threshold, window_minutes }`）を残す。未登録 / cool-down 中でスキップした場合は **記録しない**（cool-down の判定はスキップしなかった「送信した」記録に対してのみ行う）
+  - **発火タイミング**: `loginAction` の失敗パスで `admin.login.failed` を記録した直後に fire-and-forget。本人ログイン UX を待たせない
+- **Consequences**:
+  - Resend 使用量増は最大でも「1 アカウント × 1 通 / 24h」。無料枠（100 通/日）に対して攻撃下でも余裕
+  - Supabase Auth の既定レート制限と合わせ、`docs/security-review.md` §3 の「Brute Force（管理者ログイン）」が「済（最小限）」→「済」に格上げ可能
+  - メールテンプレ追加で `architecture.md §6` のテンプレ数 5 → 6
+  - 30 分窓の query は `audit_logs.created_at` インデックスで間に合う想定。失敗ログは元々レアなので追加 index は不要
+- **再評価のトリガー**:
+  - 5 回未満でも本人から「身に覚えのないログイン試行が頻発」と申告がある（誤打鍵による誤発火が多すぎる場合は閾値を上げる、または検知が遅すぎる場合は下げる）
+  - ログイン失敗の規模が「audit_logs クエリが遅い」レベルに達した場合は `(action, created_at desc)` 部分インデックスを追加

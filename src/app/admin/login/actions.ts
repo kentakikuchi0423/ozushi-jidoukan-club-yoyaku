@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { logAdminAction } from "@/server/audit/log";
+import { maybeSendLoginAlert } from "@/server/auth/login-alert";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type LoginActionResult = { ok: false; message: string };
@@ -50,6 +51,10 @@ export async function loginAction(input: {
         message: e instanceof Error ? e.message : String(e),
       });
     });
+
+    // 失敗ログ記録後に閾値到達なら本人へ注意喚起メールを送る（ADR-0033）。
+    // fire-and-forget。送信判定の例外はこの中で吸収する。
+    await maybeSendLoginAlert(input.email);
 
     return {
       ok: false,
